@@ -1,0 +1,55 @@
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+*.iml
+*.lock
+pubspec.lock
+
+# Android specific
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/gradle-wrapper.jar
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties
+/android/key.properties
+*.jks
+
+# iOS specific
+/ios/Flutter/.last_build_id
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/ephemeral/
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+/ios/Runner.xcworkspace/xcuserdata/
+/ios/Runner.xcodeproj/xcuserdata/
+
+# Web specific
+/web/packages/
+
+# macOS specific
+/macos/Flutter/ephemeral/
+/macos/Pods/
+/macos/.symlinks/
+/macos/Flutter/GeneratedPluginRegistrant.swift
+/macos/Flutter/Flutter-Debug.xcconfig
+/macos/Flutter/Flutter-Release.xcconfig
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Generated files
+*.g.dart
+*.freezed.dart
