@@ -1,0 +1,163 @@
+import 'package:flutter/foundation.dart';
+import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/models/instance.dart';
+import 'package:pixelodon/services/auth_service.dart';
+
+/// Repository for managing authentication state
+class AuthRepository extends ChangeNotifier {
+  final AuthService _authService;
+  
+  /// Currently authenticated instances
+  List<Instance> _instances = [];
+  
+  /// Currently active instance domain
+  String? _activeInstanceDomain;
+  
+  /// Currently authenticated accounts
+  Map<String, Account> _accounts = {};
+  
+  /// Constructor
+  AuthRepository({
+    AuthService? authService,
+  }) : _authService = authService ?? AuthService();
+  
+  /// Initialize the repository
+  Future<void> initialize() async {
+    // Load authenticated instances
+    final domains = await _authService.getAuthenticatedInstances();
+    
+    if (domains.isNotEmpty) {
+      // Load instance information for each domain
+      for (final domain in domains) {
+        try {
+          final instance = await _authService.discoverInstance(domain);
+          _instances.add(instance);
+          
+          // Set the first instance as active if none is set
+          if (_activeInstanceDomain == null) {
+            _activeInstanceDomain = domain;
+          }
+        } catch (e) {
+          debugPrint('Failed to load instance $domain: $e');
+        }
+      }
+      
+      notifyListeners();
+    }
+  }
+  
+  /// Get the list of authenticated instances
+  List<Instance> get instances => _instances;
+  
+  /// Get the currently active instance
+  Instance? get activeInstance {
+    if (_activeInstanceDomain == null) return null;
+    return _instances.firstWhere(
+      (instance) => instance.domain == _activeInstanceDomain,
+      orElse: () => null as Instance, // This will never happen if _activeInstanceDomain is valid
+    );
+  }
+  
+  /// Get the currently active account
+  Account? get activeAccount {
+    if (_activeInstanceDomain == null) return null;
+    return _accounts[_activeInstanceDomain];
+  }
+  
+  /// Set the active instance
+  void setActiveInstance(String domain) {
+    if (_instances.any((instance) => instance.domain == domain)) {
+      _activeInstanceDomain = domain;
+      notifyListeners();
+    }
+  }
+  
+  /// Discover an instance by domain
+  Future<Instance> discoverInstance(String domain) async {
+    return await _authService.discoverInstance(domain);
+  }
+  
+  /// Start the OAuth flow for an instance
+  /// 
+  /// Returns the URL to redirect the user to and the state to verify the callback
+  Future<Map<String, String>> startOAuthFlow(String domain) async {
+    return await _authService.getAuthorizationUrl(domain);
+  }
+  
+  /// Complete the OAuth flow for an instance
+  /// 
+  /// Returns true if authentication was successful
+  Future<bool> completeOAuthFlow(
+    String domain, 
+    String code,
+    {String? state}
+  ) async {
+    try {
+      // Exchange the authorization code for an access token
+      await _authService.exchangeAuthorizationCode(domain, code, state: state);
+      
+      // Add the instance to the list if it's not already there
+      if (!_instances.any((instance) => instance.domain == domain)) {
+        final instance = await _authService.discoverInstance(domain);
+        _instances.add(instance);
+        
+        // Set as active instance if none is set
+        if (_activeInstanceDomain == null) {
+          _activeInstanceDomain = domain;
+        }
+        
+        notifyListeners();
+      } else {
+        // If the instance is already in the list, make sure it's up to date
+        final index = _instances.indexWhere((instance) => instance.domain == domain);
+        if (index >= 0) {
+          try {
+            final updatedInstance = await _authService.discoverInstance(domain);
+            _instances[index] = updatedInstance;
+            notifyListeners();
+          } catch (e) {
+            debugPrint('Failed to update instance info: $e');
+            // Continue with the existing instance info
+          }
+        }
+      }
+      
+      return true;
+    } catch (e) {
+      debugPrint('Failed to complete OAuth flow: $e');
+      // Rethrow the exception to allow the UI to handle it
+      rethrow;
+    }
+  }
+  
+  /// Logout from an instance
+  Future<void> logout(String domain) async {
+    await _authService.logout(domain);
+    
+    _instances.removeWhere((instance) => instance.domain == domain);
+    _accounts.remove(domain);
+    
+    // If the active instance was removed, set a new one
+    if (_activeInstanceDomain == domain) {
+      _activeInstanceDomain = _instances.isNotEmpty ? _instances.first.domain : null;
+    }
+    
+    notifyListeners();
+  }
+  
+  /// Check if the user is authenticated with an instance
+  Future<bool> isAuthenticated(String domain) async {
+    return await _authService.isAuthenticated(domain);
+  }
+  
+  /// Get the access token for an instance
+  Future<String?> getAccessToken(String domain) async {
+    return await _authService.getAccessToken(domain);
+  }
+  
+  /// Update the account information for an instance
+  void updateAccount(String domain, Account account) {
+    _accounts[domain] = account;
+    notifyListeners();
+  }
+}

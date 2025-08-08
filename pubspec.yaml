@@ -1,0 +1,114 @@
+name: pixelodon
+description: "A modern, privacy-respecting Fediverse client for Mastodon and Pixelfed."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+  flutter_staggered_grid_view: ^0.7.0
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  photo_view: ^0.14.0
+  flutter_svg: ^2.0.9
+  image_picker: ^1.0.7
+  image_cropper: ^5.0.1
+  flutter_markdown: ^0.6.18
+  url_launcher: ^6.2.4
+  share_plus: ^7.2.1
+  flutter_animate: ^4.5.0
+
+  # State Management
+  flutter_riverpod: ^2.4.10
+  riverpod_annotation: ^2.3.4
+
+  # Routing
+  go_router: ^13.2.0
+
+  # Network
+  dio: ^5.4.0
+  connectivity_plus: ^5.0.2
+  http_parser: ^4.0.2
+
+  # Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  path_provider: ^2.1.2
+
+  # Serialization
+  json_annotation: ^4.8.1
+  freezed_annotation: ^2.4.1
+
+  # Background Processing
+  workmanager: ^0.5.2
+
+  # Push Notifications
+  firebase_messaging: ^14.7.10
+  firebase_core: ^2.24.2
+
+  # Utilities
+  intl: ^0.19.0
+  logger: ^2.0.2+1
+  package_info_plus: ^5.0.1
+  device_info_plus: ^9.1.1
+  permission_handler: ^11.2.0
+  uuid: ^4.3.3
+  timeago: ^3.7.1
+  uni_links: ^0.5.1
+  crypto: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+  freezed: ^2.4.7
+  riverpod_generator: ^2.3.10
+  
+  # Testing
+  mockito: ^5.4.4
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+flutter:
+  uses-material-design: true
+  
+  generate: true # For localization
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+    - assets/translations/
+  
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

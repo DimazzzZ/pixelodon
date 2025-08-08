@@ -53,3 +53,5 @@ pubspec.lock
 # Generated files
 *.g.dart
 *.freezed.dart
+
+reference
