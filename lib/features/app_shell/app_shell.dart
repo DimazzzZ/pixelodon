@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Provider for the current navigation index
 final currentIndexProvider = StateProvider<int>((ref) => 0);
@@ -59,7 +59,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(currentIndexProvider);
-    final activeInstance = ref.watch(activeInstanceProvider);
+    final activeInstance = ref.watch(newActiveInstanceProvider);
     
     return Scaffold(
       appBar: AppBar(

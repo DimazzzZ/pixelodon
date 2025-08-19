@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -69,10 +69,10 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
         throw Exception(errorDescription);
       }
 
-      // Process the authorization code
-      await ref.read(authProvider.notifier).processAuthorizationCode(
-        code: authCode,
-        domain: widget.domain,
+      // Complete the OAuth flow using the new auth repository
+      await ref.read(newAuthRepositoryProvider).completeOAuthFlow(
+        widget.domain,
+        authCode,
         state: widget.state,
       );
 

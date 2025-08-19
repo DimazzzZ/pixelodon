@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
+  final authRepository = ref.watch(newAuthRepositoryProvider);
   
   return GoRouter(
     initialLocation: '/auth/login',

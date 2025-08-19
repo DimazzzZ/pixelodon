@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 import 'package:pixelodon/models/instance.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     
     try {
       final domain = _instanceController.text.trim();
-      final instance = await ref.read(authRepositoryProvider).discoverInstance(domain);
+      final instance = await ref.read(newAuthRepositoryProvider).discoverInstance(domain);
       
       setState(() {
         _discoveredInstance = instance;
@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     
     try {
       final domain = _discoveredInstance!.domain;
-      final authInfo = await ref.read(authRepositoryProvider).startOAuthFlow(domain);
+      final authInfo = await ref.read(newAuthRepositoryProvider).startOAuthFlow(domain);
       
       // Launch the authorization URL
       final url = Uri.parse(authInfo['url']!);
@@ -288,7 +288,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             // Existing accounts
             Consumer(
               builder: (context, ref, child) {
-                final instances = ref.watch(instancesProvider);
+                final instances = ref.watch(newInstancesProvider);
                 
                 if (instances.isEmpty) return const SizedBox.shrink();
                 
@@ -314,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       subtitle: Text(instance.domain),
                       trailing: const Icon(Icons.login),
                       onTap: () {
-                        ref.read(authRepositoryProvider).setActiveInstance(instance.domain);
+                        ref.read(newAuthRepositoryProvider).setActiveInstance(instance.domain);
                         context.go('/home');
                       },
                     )),

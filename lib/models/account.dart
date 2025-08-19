@@ -44,8 +44,14 @@ class Account with _$Account {
     /// The URL of the account's avatar
     String? avatar,
     
+    /// The URL of the account's static avatar (non-animated)
+    String? avatarStatic,
+    
     /// The URL of the account's header image
     String? header,
+    
+    /// The URL of the account's static header image
+    String? headerStatic,
     
     /// The account's follower count
     @Default(0) int followersCount,
