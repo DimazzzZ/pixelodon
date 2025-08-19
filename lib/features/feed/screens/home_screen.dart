@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 
 /// Provider for the home timeline
 final homeTimelineProvider = StateNotifierProvider<TimelineNotifier, TimelineState>((ref) {
   final timelineService = ref.watch(timelineServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
+  final activeInstance = ref.watch(newActiveInstanceProvider);
   
   return TimelineNotifier(
     timelineService: timelineService,
@@ -192,7 +192,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timelineState = ref.watch(homeTimelineProvider);
     final timelineNotifier = ref.read(homeTimelineProvider.notifier);
-    final activeInstance = ref.watch(activeInstanceProvider);
+    final activeInstance = ref.watch(newActiveInstanceProvider);
     
     return Scaffold(
       body: activeInstance == null

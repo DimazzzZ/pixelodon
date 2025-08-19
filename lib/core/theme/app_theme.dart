@@ -90,8 +90,6 @@ class AppTheme {
         onSecondary: Colors.white,
         error: errorColor,
         onError: Colors.white,
-        background: backgroundColor,
-        onBackground: textColor,
         surface: surfaceColor,
         onSurface: textColor,
       ),
@@ -141,11 +139,11 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryColor),
+          borderSide: const BorderSide(color: primaryColor),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: errorColor),
+          borderSide: const BorderSide(color: errorColor),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -170,7 +168,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
-          side: BorderSide(color: primaryColor),
+          side: const BorderSide(color: primaryColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

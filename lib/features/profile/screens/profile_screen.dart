@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/status.dart' as model;
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 
@@ -12,7 +12,7 @@ import 'package:pixelodon/widgets/feed/feed_list.dart';
 final profileProvider = StateNotifierProvider.family<ProfileNotifier, ProfileState, String>((ref, accountId) {
   final accountService = ref.watch(accountServiceProvider);
   final timelineService = ref.watch(timelineServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
+  final activeInstance = ref.watch(newActiveInstanceProvider);
   
   return ProfileNotifier(
     accountService: accountService,
@@ -398,7 +398,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider(widget.accountId));
     final profileNotifier = ref.read(profileProvider(widget.accountId).notifier);
-    final activeInstance = ref.watch(activeInstanceProvider);
+    final activeInstance = ref.watch(newActiveInstanceProvider);
     final isPixelfed = activeInstance?.isPixelfed ?? false;
     
     return Scaffold(
@@ -638,7 +638,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   
   /// Build the follow button
   Widget _buildFollowButton(ProfileState state, ProfileNotifier notifier) {
-    final isCurrentUser = ref.read(activeAccountProvider)?.id == widget.accountId;
+    final isCurrentUser = ref.read(newActiveAccountProvider)?.id == widget.accountId;
     
     if (isCurrentUser) {
       return ElevatedButton(

@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   connectivity_plus
+  desktop_webview_window
   file_selector_windows
   firebase_core
   flutter_secure_storage_windows

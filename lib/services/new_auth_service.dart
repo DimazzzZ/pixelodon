@@ -53,9 +53,6 @@ class NewAuthService {
   /// Key for storing refresh tokens in secure storage
   static const String _refreshTokensKey = 'new_refresh_tokens';
   
-  /// Key for storing PKCE code verifiers in secure storage
-  static const String _pkceVerifiersKey = 'new_pkce_verifiers';
-  
   /// Key for storing account information in secure storage
   static const String _accountsKey = 'new_accounts';
   
@@ -585,11 +582,13 @@ class NewAuthService {
         bot: accountData['bot'] ?? false,
         locked: accountData['locked'] ?? false,
         fields: (accountData['fields'] as List?)
-            ?.map((field) => {
-                  'name': field['name'],
-                  'value': field['value'],
-                  'verified_at': field['verified_at'],
-                })
+            ?.map((field) => Field(
+                  name: field['name'] ?? '',
+                  value: field['value'] ?? '',
+                  verifiedAt: field['verified_at'] != null
+                      ? DateTime.tryParse(field['verified_at'].toString())
+                      : null,
+                ))
             .toList(),
       );
       

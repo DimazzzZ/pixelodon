@@ -16,7 +16,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _init() async {
     state = const AuthState.loading();
-    final isAuth = await _authService.isAuthenticated();
+    final isAuth = await _authService.isAuthenticatedLegacy();
     if (!isAuth) {
       state = const AuthState.unauthenticated();
       return;

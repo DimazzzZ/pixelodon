@@ -1,18 +1,17 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pixelodon/core/config/app_config.dart';
-import 'package:pixelodon/repositories/auth_repository.dart';
+import 'package:pixelodon/repositories/new_auth_repository.dart';
 
 /// Base API service for Mastodon and Pixelfed
 class ApiService {
   final Dio _dio;
-  final AuthRepository _authRepository;
+  final NewAuthRepository _authRepository;
   
   /// Constructor
   ApiService({
-    required AuthRepository authRepository,
+    required NewAuthRepository authRepository,
     Dio? dio,
   }) : _authRepository = authRepository,
        _dio = dio ?? Dio() {
@@ -21,8 +20,8 @@ class ApiService {
   
   /// Initialize Dio with interceptors and default options
   void _initializeDio() {
-    _dio.options.connectTimeout = Duration(milliseconds: AppConfig.apiTimeoutMs);
-    _dio.options.receiveTimeout = Duration(milliseconds: AppConfig.apiTimeoutMs);
+    _dio.options.connectTimeout = const Duration(milliseconds: AppConfig.apiTimeoutMs);
+    _dio.options.receiveTimeout = const Duration(milliseconds: AppConfig.apiTimeoutMs);
     
     // Add logging interceptor in debug mode
     if (AppConfig.enableApiLogging) {
@@ -283,40 +282,40 @@ class ApiException implements Exception {
 
 /// Exception for timeout errors
 class TimeoutException extends ApiException {
-  TimeoutException(String message) : super(message);
+  TimeoutException(super.message);
 }
 
 /// Exception for network errors
 class NetworkException extends ApiException {
-  NetworkException(String message) : super(message);
+  NetworkException(super.message);
 }
 
 /// Exception for unauthorized errors
 class UnauthorizedException extends ApiException {
-  UnauthorizedException(String message) : super(message, statusCode: 401);
+  UnauthorizedException(super.message) : super(statusCode: 401);
 }
 
 /// Exception for forbidden errors
 class ForbiddenException extends ApiException {
-  ForbiddenException(String message) : super(message, statusCode: 403);
+  ForbiddenException(super.message) : super(statusCode: 403);
 }
 
 /// Exception for not found errors
 class NotFoundException extends ApiException {
-  NotFoundException(String message) : super(message, statusCode: 404);
+  NotFoundException(super.message) : super(statusCode: 404);
 }
 
 /// Exception for rate limit errors
 class RateLimitException extends ApiException {
-  RateLimitException(String message) : super(message, statusCode: 429);
+  RateLimitException(super.message) : super(statusCode: 429);
 }
 
 /// Exception for server errors
 class ServerException extends ApiException {
-  ServerException(String message) : super(message, statusCode: 500);
+  ServerException(super.message) : super(statusCode: 500);
 }
 
 /// Exception for unknown errors
 class UnknownException extends ApiException {
-  UnknownException(String message) : super(message);
+  UnknownException(super.message);
 }

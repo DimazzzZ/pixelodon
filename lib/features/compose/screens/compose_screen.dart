@@ -6,14 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pixelodon/models/status.dart' as model;
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 
 /// Provider for the compose screen state
 final composeProvider = StateNotifierProvider.autoDispose<ComposeNotifier, ComposeState>((ref) {
   final timelineService = ref.watch(timelineServiceProvider);
   final mediaService = ref.watch(mediaServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
+  final activeInstance = ref.watch(newActiveInstanceProvider);
   
   return ComposeNotifier(
     timelineService: timelineService,
@@ -371,7 +371,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   Widget build(BuildContext context) {
     final composeState = ref.watch(composeProvider);
     final composeNotifier = ref.read(composeProvider.notifier);
-    final activeAccount = ref.watch(activeAccountProvider);
+    final activeAccount = ref.watch(newActiveAccountProvider);
     
     // Update controllers when state changes
     if (_textController.text != composeState.text) {
@@ -530,7 +530,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   Widget _buildReplyingTo(BuildContext context, model.Status status) {
     return Container(
       padding: const EdgeInsets.all(8),
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
       child: Row(
         children: [
           const Icon(
@@ -694,8 +694,8 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           ),
           
           // Poll button (not implemented)
-          IconButton(
-            icon: const Icon(Icons.poll),
+          const IconButton(
+            icon: Icon(Icons.poll),
             onPressed: null, // TODO: Implement polls
           ),
           
@@ -729,14 +729,14 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
             },
             icon: _getVisibilityIcon(state.visibility),
             underline: const SizedBox(),
-            items: [
+            items: const [
               DropdownMenuItem(
                 value: model.Visibility.public,
                 child: Row(
                   children: [
-                    const Icon(Icons.public),
-                    const SizedBox(width: 8),
-                    const Text('Public'),
+                    Icon(Icons.public),
+                    SizedBox(width: 8),
+                    Text('Public'),
                   ],
                 ),
               ),
@@ -744,9 +744,9 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 value: model.Visibility.unlisted,
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_open),
-                    const SizedBox(width: 8),
-                    const Text('Unlisted'),
+                    Icon(Icons.lock_open),
+                    SizedBox(width: 8),
+                    Text('Unlisted'),
                   ],
                 ),
               ),
@@ -754,9 +754,9 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 value: model.Visibility.private,
                 child: Row(
                   children: [
-                    const Icon(Icons.lock),
-                    const SizedBox(width: 8),
-                    const Text('Followers only'),
+                    Icon(Icons.lock),
+                    SizedBox(width: 8),
+                    Text('Followers only'),
                   ],
                 ),
               ),
@@ -764,9 +764,9 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 value: model.Visibility.direct,
                 child: Row(
                   children: [
-                    const Icon(Icons.mail),
-                    const SizedBox(width: 8),
-                    const Text('Direct'),
+                    Icon(Icons.mail),
+                    SizedBox(width: 8),
+                    Text('Direct'),
                   ],
                 ),
               ),

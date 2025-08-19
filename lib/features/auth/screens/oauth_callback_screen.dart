@@ -77,6 +77,9 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
       );
 
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         // Navigate to home on success
         context.go('/');
       }
@@ -117,7 +120,9 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
                   ),
                 ],
               )
-            : const CircularProgressIndicator(),
+            : _isLoading 
+                ? const CircularProgressIndicator()
+                : const SizedBox(), // Empty widget when not loading and no error
       ),
     );
   }

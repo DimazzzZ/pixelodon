@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/new_auth_provider.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 
 /// Widget for displaying a feed of posts
@@ -86,7 +86,7 @@ class _FeedListState extends ConsumerState<FeedList> {
   
   @override
   Widget build(BuildContext context) {
-    final activeInstance = ref.watch(activeInstanceProvider);
+    final activeInstance = ref.watch(newActiveInstanceProvider);
     
     if (activeInstance == null) {
       return const Center(

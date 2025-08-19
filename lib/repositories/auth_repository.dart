@@ -8,13 +8,13 @@ class AuthRepository extends ChangeNotifier {
   final AuthService _authService;
   
   /// Currently authenticated instances
-  List<Instance> _instances = [];
+  final List<Instance> _instances = [];
   
   /// Currently active instance domain
   String? _activeInstanceDomain;
   
   /// Currently authenticated accounts
-  Map<String, Account> _accounts = {};
+  final Map<String, Account> _accounts = {};
   
   /// Constructor
   AuthRepository({
@@ -34,9 +34,7 @@ class AuthRepository extends ChangeNotifier {
           _instances.add(instance);
           
           // Set the first instance as active if none is set
-          if (_activeInstanceDomain == null) {
-            _activeInstanceDomain = domain;
-          }
+          _activeInstanceDomain ??= domain;
         } catch (e) {
           debugPrint('Failed to load instance $domain: $e');
         }
@@ -52,10 +50,13 @@ class AuthRepository extends ChangeNotifier {
   /// Get the currently active instance
   Instance? get activeInstance {
     if (_activeInstanceDomain == null) return null;
-    return _instances.firstWhere(
-      (instance) => instance.domain == _activeInstanceDomain,
-      orElse: () => null as Instance, // This will never happen if _activeInstanceDomain is valid
-    );
+    try {
+      return _instances.firstWhere(
+        (instance) => instance.domain == _activeInstanceDomain,
+      );
+    } catch (_) {
+      return null;
+    }
   }
   
   /// Get the currently active account
@@ -102,9 +103,7 @@ class AuthRepository extends ChangeNotifier {
         _instances.add(instance);
         
         // Set as active instance if none is set
-        if (_activeInstanceDomain == null) {
-          _activeInstanceDomain = domain;
-        }
+        _activeInstanceDomain ??= domain;
         
         notifyListeners();
       } else {

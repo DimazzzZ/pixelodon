@@ -8,13 +8,13 @@ class NewAuthRepository extends ChangeNotifier {
   final NewAuthService _authService;
   
   /// Currently authenticated instances
-  List<Instance> _instances = [];
+  final List<Instance> _instances = [];
   
   /// Currently active instance domain
   String? _activeInstanceDomain;
   
   /// Currently authenticated accounts
-  Map<String, Account> _accounts = {};
+  final Map<String, Account> _accounts = {};
   
   /// Constructor
   NewAuthRepository({
@@ -40,9 +40,7 @@ class NewAuthRepository extends ChangeNotifier {
           }
           
           // Set the first instance as active if none is set
-          if (_activeInstanceDomain == null) {
-            _activeInstanceDomain = domain;
-          }
+          _activeInstanceDomain ??= domain;
         } catch (e) {
           debugPrint('Failed to load instance $domain: $e');
         }
@@ -58,10 +56,13 @@ class NewAuthRepository extends ChangeNotifier {
   /// Get the currently active instance
   Instance? get activeInstance {
     if (_activeInstanceDomain == null) return null;
-    return _instances.firstWhere(
-      (instance) => instance.domain == _activeInstanceDomain,
-      orElse: () => null as Instance, // This will never happen if _activeInstanceDomain is valid
-    );
+    try {
+      return _instances.firstWhere(
+        (instance) => instance.domain == _activeInstanceDomain,
+      );
+    } catch (_) {
+      return null;
+    }
   }
   
   /// Get the currently active account
@@ -100,7 +101,7 @@ class NewAuthRepository extends ChangeNotifier {
   ) async {
     try {
       // Exchange the authorization code for an access token
-      final tokens = await _authService.exchangeAuthorizationCode(domain, code, state: state);
+      await _authService.exchangeAuthorizationCode(domain, code, state: state);
       
       // Add the instance to the list if it's not already there
       if (!_instances.any((instance) => instance.domain == domain)) {
@@ -108,9 +109,7 @@ class NewAuthRepository extends ChangeNotifier {
         _instances.add(instance);
         
         // Set as active instance if none is set
-        if (_activeInstanceDomain == null) {
-          _activeInstanceDomain = domain;
-        }
+        _activeInstanceDomain ??= domain;
         
         // Get the account information
         final account = await _authService.getAccountInfo(domain);

@@ -1,33 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixelodon/services/auth_service.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-
-@GenerateMocks([Dio, FlutterSecureStorage])
-import 'auth_service_test.mocks.dart';
 
 void main() {
   late AuthService authService;
-  late MockDio mockDio;
-  late MockFlutterSecureStorage mockSecureStorage;
 
   setUp(() {
-    mockDio = MockDio();
-    mockSecureStorage = MockFlutterSecureStorage();
-    authService = AuthService(
-      dio: mockDio,
-      secureStorage: mockSecureStorage,
-    );
+    authService = AuthService();
   });
 
   test('Test redirect URI validation', () {
-    // This test directly tests the private method _isRedirectUriSafe
-    // We're using a workaround to access it via reflection
-    final isRedirectUriSafe = (String uri) {
+    bool isRedirectUriSafe(String uri) {
       return authService.isRedirectUriSafeForTesting(uri);
-    };
+    }
 
     // Test valid URIs
     expect(isRedirectUriSafe('pixelodon://oauth/callback'), isTrue);
