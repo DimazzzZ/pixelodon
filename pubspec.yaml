@@ -1,0 +1,69 @@
+name: federated_client
+description: A high-performance, privacy-respecting Fediverse client for Mastodon and Pixelfed built with Flutter and Riverpod.
+publish_to: "none"
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State & Routing
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.1
+
+  # HTTP & Models
+  dio: ^5.6.0
+  dio_smart_retry: ^6.0.0
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Storage & Security
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.4
+
+  # Background & Push
+  workmanager: ^0.5.2
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.0
+
+  # Media & UI
+  image_picker: ^1.1.2
+  photo_manager: ^3.2.3
+  photo_view: ^0.15.0
+  image_editor_plus: ^1.0.5
+  flutter_staggered_grid_view: ^0.7.0
+  cached_network_image: ^3.3.1
+  transparent_image: ^2.0.1
+
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
+  uni_links: ^0.5.1
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.12
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+  very_good_analysis: ^6.0.0
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+    strict-inference: true
+
