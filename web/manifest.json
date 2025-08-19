@@ -1,13 +1,19 @@
 {
-    "name": "pixelodon",
-    "short_name": "pixelodon",
+    "name": "Pixelodon",
+    "short_name": "Pixelodon",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A modern, privacy-respecting Fediverse client for Mastodon and Pixelfed",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "protocol_handlers": [
+        {
+            "protocol": "pixelodon",
+            "url": "/oauth_callback.html?%s"
+        }
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

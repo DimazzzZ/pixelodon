@@ -51,12 +51,17 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>app.pixelodon</string>
+			<string>com.example.pixelodon</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>pixelodon</string>
 			</array>
 		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
 	</array>
 </dict>
 </plist>
