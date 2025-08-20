@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
@@ -364,6 +365,10 @@ class SettingsScreen extends ConsumerWidget {
   void _switchAccount(BuildContext context, WidgetRef ref, String domain) {
     final authRepository = ref.read(authRepositoryProvider);
     authRepository.setActiveInstance(domain);
+    
+    // Navigate to home and update bottom navigation state
+    ref.read(currentIndexProvider.notifier).state = 0; // Set to Home tab
+    context.go('/home');
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

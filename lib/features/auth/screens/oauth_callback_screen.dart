@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +32,8 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   late AppLinks _appLinks;
+  Timer? _timeoutTimer;
+  static const int _timeoutSeconds = 60; // 1 minute timeout
   
   @override
   void initState() {
@@ -38,6 +41,21 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
     _appLinks = AppLinks();
     _setupDeepLinkListener();
     _handleCallback();
+    _startTimeout();
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimeout() {
+    _timeoutTimer = Timer(const Duration(seconds: _timeoutSeconds), () {
+      if (mounted && _isLoading) {
+        _setError('Authentication timed out. You may have canceled the login process.');
+      }
+    });
   }
 
   void _setupDeepLinkListener() {
@@ -151,6 +169,19 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
                   'Please wait while we finish setting up your account.',
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'If you canceled the login process or it\'s taking too long, you can go back.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.go('/auth/login'),
+                  child: const Text('Cancel & Go Back to Login'),
                 ),
               ] else if (_errorMessage != null) ...[
                 Icon(

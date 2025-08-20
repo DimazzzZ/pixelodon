@@ -27,6 +27,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
   
+  /// Reset loading state when returning to the screen
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reset loading state when screen becomes active again
+    // This handles the case where user returns from OAuth callback
+    if (_isLoading && _discoveredInstance != null) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
   /// Discover an instance by domain
   Future<void> _discoverInstance() async {
     if (!_formKey.currentState!.validate()) return;

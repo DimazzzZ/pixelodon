@@ -13,7 +13,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   
   return GoRouter(
-    initialLocation: '/auth/login',
+    initialLocation: '/',
     debugLogDiagnostics: true,
     
     // Global redirect function to handle authentication
@@ -23,14 +23,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggingIn = state.matchedLocation.startsWith('/auth');
       final isOAuthCallback = state.matchedLocation == '/oauth/callback';
       
+      // If on root path, redirect based on authentication status
+      if (state.matchedLocation == '/') {
+        return isLoggedIn ? '/home' : '/auth/login';
+      }
+      
       // If the user is not logged in and not on the login screen or OAuth callback, redirect to login
       if (!isLoggedIn && !isLoggingIn && !isOAuthCallback) {
         return '/auth/login';
       }
       
-      // If the user is logged in and on the login screen, redirect to home
-      // But don't redirect if on the callback screen (to allow adding accounts)
-      if (isLoggedIn && isLoggingIn && state.matchedLocation != '/auth/callback') {
+      // If the user is logged in and on the login screen, allow it (for adding accounts)
+      // But don't redirect if on the callback screen
+      if (isLoggedIn && isLoggingIn && state.matchedLocation != '/auth/callback' && state.matchedLocation != '/auth/login') {
         return '/home';
       }
       
