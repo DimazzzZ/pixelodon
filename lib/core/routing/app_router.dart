@@ -29,7 +29,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       
       // If the user is logged in and on the login screen, redirect to home
-      // But don't redirect if on the callback screen
+      // But don't redirect if on the callback screen (to allow adding accounts)
       if (isLoggedIn && isLoggingIn && state.matchedLocation != '/auth/callback') {
         return '/home';
       }
