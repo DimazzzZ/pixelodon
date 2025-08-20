@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
+import 'package:pixelodon/features/feed/screens/home_screen.dart';
 import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Provider for the app router
@@ -39,19 +40,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth/login',
         builder: (context, state) => const LoginScreen(),
       ),
+      // Handle OAuth callback - both for navigation from login screen and deep links
       GoRoute(
-        path: '/auth/callback',
+        path: '/oauth/callback',
         builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>?;
+          debugPrint('OAuth callback route - URI: ${state.uri}');
+          debugPrint('OAuth callback route - Full URI: ${state.uri}');
           
-          // Check query parameters first (for deep links)
+          // Get parameters from query string (from deep link)
           final queryParams = state.uri.queryParameters;
           final queryDomain = queryParams['domain'];
           final queryState = queryParams['state'];
           final queryCode = queryParams['code'];
           
-          debugPrint('Auth callback route - Query parameters: $queryParams');
-          debugPrint('Auth callback route - Extra parameters: $extra');
+          debugPrint('OAuth callback route - Query parameters: $queryParams');
+          
+          // Get parameters from extra data (from navigation)
+          final extra = state.extra as Map<String, dynamic>?;
+          debugPrint('OAuth callback route - Extra parameters: $extra');
           
           // Check fragment for parameters if they're not in query string
           String? fragmentDomain;
@@ -59,119 +65,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           String? fragmentCode;
           
           if (state.uri.fragment.isNotEmpty) {
-            debugPrint('Auth callback route - Checking fragment: ${state.uri.fragment}');
+            debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
             final fragmentParams = Uri.splitQueryString(state.uri.fragment);
             fragmentDomain = fragmentParams['domain'];
             fragmentState = fragmentParams['state'];
             fragmentCode = fragmentParams['code'];
             
-            debugPrint('Auth callback route - Fragment domain: $fragmentDomain');
-            debugPrint('Auth callback route - Fragment state: $fragmentState');
-            debugPrint('Auth callback route - Fragment code: $fragmentCode');
+            debugPrint('OAuth callback route - Fragment domain: $fragmentDomain');
+            debugPrint('OAuth callback route - Fragment state: $fragmentState');
+            debugPrint('OAuth callback route - Fragment code: $fragmentCode');
           }
           
-          // If we have parameters from fragment, use them
-          if (fragmentDomain != null && fragmentState != null) {
-            return OAuthCallbackScreen(
-              domain: fragmentDomain,
-              state: fragmentState,
-              code: fragmentCode,
-            );
-          }
+          // Priority: query params > fragment params > extra params
+          final domain = queryDomain ?? fragmentDomain ?? extra?['domain'];
+          final oauthState = queryState ?? fragmentState ?? extra?['state'];
+          final code = queryCode ?? fragmentCode;
           
-          // If we have parameters from query string, use them
-          if (queryDomain != null && queryState != null) {
-            return OAuthCallbackScreen(
-              domain: queryDomain,
-              state: queryState,
-              code: queryCode,
-            );
-          }
-          
-          // If we have the domain and state from the login screen, use them
-          if (extra != null && extra.containsKey('domain') && extra.containsKey('state')) {
-            return OAuthCallbackScreen(
-              domain: extra['domain']!,
-              state: extra['state']!,
-              // No code here as this is the initial navigation to the callback screen
-            );
-          }
-          
-          // Otherwise, redirect to login
-          return const LoginScreen();
-        },
-      ),
-      
-      // Handle callback with proper path format (for deep links)
-      GoRoute(
-        path: '/auth/callback',
-        builder: (context, state) {
-          debugPrint('Auth callback route - URI: ${state.uri}');
-          
-          // Get parameters from query string
-          final queryParams = state.uri.queryParameters;
-          final domain = queryParams['domain'];
-          final oauthState = queryParams['state'];
-          
-          debugPrint('Auth callback route - Query parameters: $queryParams');
-          
-          // Check fragment for parameters if they're not in query string
-          if ((domain == null || oauthState == null) && state.uri.fragment.isNotEmpty) {
-            debugPrint('Auth callback route - Checking fragment: ${state.uri.fragment}');
-            final fragmentParams = Uri.splitQueryString(state.uri.fragment);
-            final fragmentDomain = fragmentParams['domain'];
-            final fragmentState = fragmentParams['state'];
-            
-            if (fragmentDomain != null && fragmentState != null) {
-              return OAuthCallbackScreen(
-                domain: fragmentDomain,
-                state: fragmentState,
-              );
-            }
-          }
+          debugPrint('OAuth callback route - Final domain: $domain');
+          debugPrint('OAuth callback route - Final state: $oauthState');
+          debugPrint('OAuth callback route - Final code: $code');
           
           if (domain != null && oauthState != null) {
-            return OAuthCallbackScreen(
-              domain: domain,
-              state: oauthState,
-            );
-          }
-          
-          return const LoginScreen();
-        },
-      ),
-      // Handle deep link callback from OAuth provider
-      GoRoute(
-        path: '/oauth/callback',
-        builder: (context, state) {
-          // Get the domain, state, and code from the query parameters
-          final queryParams = state.uri.queryParameters;
-          final domain = queryParams['domain'];
-          final oauthState = queryParams['state'];
-          final code = queryParams['code'];
-          
-          debugPrint('OAuth callback route - Query parameters: $queryParams');
-          
-          // Check fragment for parameters if they're not in query string
-          if ((domain == null || oauthState == null || code == null) && state.uri.fragment.isNotEmpty) {
-            debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
-            final fragmentParams = Uri.splitQueryString(state.uri.fragment);
-            final fragmentDomain = fragmentParams['domain'];
-            final fragmentState = fragmentParams['state'];
-            final fragmentCode = fragmentParams['code'];
-            
-            if (fragmentDomain != null && fragmentState != null) {
-              return OAuthCallbackScreen(
-                domain: fragmentDomain,
-                state: fragmentState,
-                code: fragmentCode,
-              );
-            }
-          }
-          
-          if (domain != null && oauthState != null) {
-            // Redirect to the auth callback route with the parameters
-            // This ensures consistent handling of the callback
             return OAuthCallbackScreen(
               domain: domain,
               state: oauthState,
@@ -180,49 +94,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           }
           
           // If we don't have the required parameters, redirect to login
-          return const LoginScreen();
-        },
-      ),
-      
-      // Handle callback with proper path format (for deep links)
-      GoRoute(
-        path: '/oauth/callback',
-        builder: (context, state) {
-          debugPrint('OAuth callback route - URI: ${state.uri}');
-          
-          // Get parameters from query string
-          final queryParams = state.uri.queryParameters;
-          final domain = queryParams['domain'];
-          final oauthState = queryParams['state'];
-          final code = queryParams['code'];
-          
-          debugPrint('OAuth callback route - Query parameters: $queryParams');
-          
-          // Check fragment for parameters if they're not in query string
-          if ((domain == null || oauthState == null || code == null) && state.uri.fragment.isNotEmpty) {
-            debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
-            final fragmentParams = Uri.splitQueryString(state.uri.fragment);
-            final fragmentDomain = fragmentParams['domain'];
-            final fragmentState = fragmentParams['state'];
-            final fragmentCode = fragmentParams['code'];
-            
-            if (fragmentDomain != null && fragmentState != null) {
-              return OAuthCallbackScreen(
-                domain: fragmentDomain,
-                state: fragmentState,
-                code: fragmentCode,
-              );
-            }
-          }
-          
-          if (domain != null && oauthState != null) {
-            return OAuthCallbackScreen(
-              domain: domain,
-              state: oauthState,
-              code: code,
-            );
-          }
-          
+          debugPrint('OAuth callback route - Missing required parameters, redirecting to login');
           return const LoginScreen();
         },
       ),
@@ -234,9 +106,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // Home route
           GoRoute(
             path: '/home',
-            builder: (context, state) => const Center(
-              child: Text('Home Screen - To be implemented'),
-            ),
+            builder: (context, state) => const HomeScreen(),
           ),
           
           // Explore route

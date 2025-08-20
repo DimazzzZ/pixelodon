@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/screens/oauth_callback_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -45,6 +46,16 @@ class RouterNotifier extends ChangeNotifier {
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: '/auth/callback',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return OAuthCallbackScreen(
+              domain: extra?['domain'] ?? '',
+              state: extra?['state'],
+            );
+          },
         ),
         GoRoute(
           path: '/',

@@ -55,3 +55,4 @@ pubspec.lock
 *.freezed.dart
 
 reference
+/.output.txt

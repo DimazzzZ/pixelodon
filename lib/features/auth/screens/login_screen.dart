@@ -69,13 +69,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Launch the authorization URL
       final url = Uri.parse(authInfo['url']!);
       if (await canLaunchUrl(url)) {
-        // Use inAppWebView mode instead of externalApplication to better handle the redirect
-        final result = await launchUrl(url, mode: LaunchMode.inAppWebView);
+        // Use externalApplication mode so the OAuth flow happens in the system browser
+        // which can properly handle the custom URL scheme redirect back to the app
+        final result = await launchUrl(url, mode: LaunchMode.externalApplication);
         debugPrint('URL launch result: $result');
         
         // Navigate to the callback screen
         if (mounted) {
-          context.push('/auth/callback', extra: {
+          context.push('/oauth/callback', extra: {
             'domain': domain,
             'state': authInfo['state'],
           });

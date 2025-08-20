@@ -577,8 +577,12 @@ class NewAuthService {
         followersCount: accountData['followers_count'],
         followingCount: accountData['following_count'],
         statusesCount: accountData['statuses_count'],
-        lastStatusAt: accountData['last_status_at'],
-        createdAt: accountData['created_at'],
+        lastStatusAt: accountData['last_status_at'] != null
+            ? DateTime.tryParse(accountData['last_status_at'].toString())
+            : null,
+        createdAt: accountData['created_at'] != null
+            ? DateTime.tryParse(accountData['created_at'].toString())
+            : null,
         bot: accountData['bot'] ?? false,
         locked: accountData['locked'] ?? false,
         fields: (accountData['fields'] as List?)

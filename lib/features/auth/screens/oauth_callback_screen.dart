@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app_links/app_links.dart';
 import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Screen for handling OAuth callback
@@ -29,100 +30,157 @@ class OAuthCallbackScreen extends ConsumerStatefulWidget {
 class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   bool _isLoading = true;
   String? _errorMessage;
+  late AppLinks _appLinks;
   
   @override
   void initState() {
     super.initState();
-    // Process the callback on the next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _processCallback();
+    _appLinks = AppLinks();
+    _setupDeepLinkListener();
+    _handleCallback();
+  }
+
+  void _setupDeepLinkListener() {
+    _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('Received deep link: $uri');
+      _processCallback(uri);
+    }, onError: (err) {
+      debugPrint('Deep link error: $err');
+      _setError('Failed to handle authentication callback');
     });
+  }
+
+  Future<void> _handleCallback() async {
+    try {
+      // Get the initial link in case the app was opened by the callback
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        debugPrint('Initial URI: $initialUri');
+        await _processCallback(initialUri);
+      }
+    } catch (e) {
+      debugPrint('Error getting initial link: $e');
+      // Continue waiting for deep link
+    }
   }
   
   /// Process the OAuth callback
-  Future<void> _processCallback() async {
+  Future<void> _processCallback(Uri uri) async {
     try {
-      final routerState = GoRouterState.of(context);
-      final uri = routerState.uri;
-
-      // Try to get code from both query parameters and URI fragment
-      String? authCode = widget.code ?? uri.queryParameters['code'];
-
-      // If code is not in query params, check URI fragment
-      if (authCode == null && uri.fragment.isNotEmpty) {
-        final fragmentParams = Uri.splitQueryString(uri.fragment);
-        authCode = fragmentParams['code'];
+      debugPrint('Processing callback URI: $uri');
+      
+      // Check if this is our OAuth callback
+      if (uri.scheme != 'pixelodon' || uri.host != 'oauth' || uri.pathSegments.first != 'callback') {
+        debugPrint('URI is not OAuth callback: ${uri.scheme}://${uri.host}${uri.path}');
+        return;
       }
 
-      if (authCode == null) {
-        throw Exception('No authorization code found in callback');
-      }
-
-      // Check for error in query params or fragment
-      final error = uri.queryParameters['error'] ??
-        (uri.fragment.isNotEmpty ? Uri.splitQueryString(uri.fragment)['error'] : null);
+      final code = uri.queryParameters['code'];
+      final state = uri.queryParameters['state'];
+      final error = uri.queryParameters['error'];
+      final errorDescription = uri.queryParameters['error_description'];
 
       if (error != null) {
-        final errorDescription = uri.queryParameters['error_description'] ??
-          (uri.fragment.isNotEmpty ? Uri.splitQueryString(uri.fragment)['error_description'] : null) ??
-          'Unknown error occurred';
-        throw Exception(errorDescription);
+        _setError('Authentication failed: ${errorDescription ?? error}');
+        return;
       }
 
-      // Complete the OAuth flow using the new auth repository
-      await ref.read(newAuthRepositoryProvider).completeOAuthFlow(
-        widget.domain,
-        authCode,
-        state: widget.state,
-      );
+      if (code == null) {
+        _setError('No authorization code received');
+        return;
+      }
+
+      debugPrint('Received authorization code: $code');
+      debugPrint('Received state: $state');
+      debugPrint('Expected state: ${widget.state}');
+
+      // Verify state if provided
+      if (widget.state != null && state != widget.state) {
+        _setError('State mismatch - possible security issue');
+        return;
+      }
+
+      // Exchange the authorization code for tokens
+      final authRepository = ref.read(newAuthRepositoryProvider);
+      await authRepository.completeOAuthFlow(widget.domain, code, state: state);
 
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        // Navigate to home on success
+        // Navigate to home screen on success
         context.go('/');
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
-      }
+      debugPrint('Error processing callback: $e');
+      _setError('Authentication failed: ${e.toString()}');
+    }
+  }
+
+  void _setError(String error) {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Authenticating'),
+        automaticallyImplyLeading: false,
+      ),
       body: Center(
-        child: _errorMessage != null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Authentication Error',
-                    style: Theme.of(context).textTheme.titleLarge,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_isLoading) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 24),
+                Text(
+                  'Completing authentication...',
+                  style: theme.textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Please wait while we finish setting up your account.',
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ] else if (_errorMessage != null) ...[
+                Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
+                  size: 64,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Authentication Failed',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.error,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => context.go('/auth/login'),
-                    child: const Text('Try Again'),
-                  ),
-                ],
-              )
-            : _isLoading 
-                ? const CircularProgressIndicator()
-                : const SizedBox(), // Empty widget when not loading and no error
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Back to Login'),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
