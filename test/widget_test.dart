@@ -1,35 +1,68 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Widget tests for Pixelodon app
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:pixelodon/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const PixelodonApp());
+  group('Pixelodon Widget Tests', () {
+    testWidgets('PixelodonApp should build correctly with ProviderScope', (WidgetTester tester) async {
+      // Build the app with proper ProviderScope wrapper
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: PixelodonApp(),
+        ),
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
+      // Wait for the widget to settle and handle any async operations
+      await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // Tap the FloatingActionButton and trigger a frame.
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pump();
+      // Verify that the app builds successfully
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('1'), findsOneWidget);
+    testWidgets('PixelodonApp should have correct title', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: PixelodonApp(),
+        ),
+      );
 
-    // Tap the FloatingActionButton again and trigger a frame.
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pump();
+      await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // Verify that our counter has incremented again.
-    expect(find.text('2'), findsOneWidget);
+      // Find the MaterialApp and verify its title
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.title, 'Pixelodon');
+    });
+
+    testWidgets('PixelodonApp should use system theme mode', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: PixelodonApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+
+      // Find the MaterialApp and verify theme mode
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.themeMode, ThemeMode.system);
+    });
+
+    testWidgets('PixelodonApp should have debug banner disabled', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: PixelodonApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+
+      // Find the MaterialApp and verify debug banner is disabled
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.debugShowCheckedModeBanner, false);
+    });
   });
 }
