@@ -5,6 +5,7 @@ import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
+import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/providers/new_auth_provider.dart';
 
 /// Provider for the app router
@@ -147,12 +148,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Settings')),
-          body: const Center(
-            child: Text('Settings Screen - To be implemented'),
-          ),
-        ),
+        builder: (context, state) => const SettingsScreen(),
       ),
       
       // Fallback route
