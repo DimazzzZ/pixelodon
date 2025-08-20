@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
+import 'package:pixelodon/core/network/api_service.dart';
 
 /// Provider for the public timeline
 final publicTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, TimelineState>((ref) {
@@ -65,6 +67,7 @@ class TimelineState {
 class PublicTimelineNotifier extends StateNotifier<TimelineState> {
   final timelineService;
   final String? domain;
+  CancelToken? _cancelToken;
   
   PublicTimelineNotifier({
     required this.timelineService,
@@ -75,19 +78,37 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
     }
   }
   
+  @override
+  void dispose() {
+    _cancelToken?.cancel('Timeline navigation cancelled');
+    super.dispose();
+  }
+  
   /// Set timeline filters
   void setFilters({bool? local, bool? onlyMedia}) {
-    state = state.copyWith(
-      local: local,
-      onlyMedia: onlyMedia,
-    );
+    final newLocal = local ?? state.local;
+    final newOnlyMedia = onlyMedia ?? state.onlyMedia;
     
-    loadTimeline();
+    // Only reload if filters actually changed
+    if (newLocal != state.local || newOnlyMedia != state.onlyMedia) {
+      state = state.copyWith(
+        local: newLocal,
+        onlyMedia: newOnlyMedia,
+      );
+      
+      loadTimeline();
+    }
   }
   
   /// Load the initial timeline
-  Future<void> loadTimeline() async {
+  Future<void> loadTimeline({int retryCount = 0}) async {
     if (domain == null) return;
+    
+    // Only cancel if there's an ongoing request
+    if (_cancelToken != null && !_cancelToken!.isCancelled) {
+      _cancelToken!.cancel('New timeline request');
+    }
+    _cancelToken = CancelToken();
     
     state = state.copyWith(
       isLoading: true,
@@ -101,6 +122,7 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
         limit: 20,
         local: state.local,
         onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
       );
       
       String? maxId;
@@ -115,6 +137,13 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
         maxId: maxId,
       );
     } catch (e) {
+      // Automatic retry for cancellation errors with exponential backoff
+      if (e is CancellationException && retryCount < 3) {
+        final delay = Duration(milliseconds: 100 * (retryCount + 1)); // 100ms, 200ms, 300ms
+        await Future.delayed(delay);
+        return loadTimeline(retryCount: retryCount + 1);
+      }
+      
       state = state.copyWith(
         isLoading: false,
         hasError: true,
@@ -127,12 +156,17 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
   Future<void> refreshTimeline() async {
     if (domain == null) return;
     
+    // Cancel any previous request
+    _cancelToken?.cancel('Timeline refresh');
+    _cancelToken = CancelToken();
+    
     try {
       final statuses = await timelineService.getPublicTimeline(
         domain!,
         limit: 20,
         local: state.local,
         onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
       );
       
       String? maxId;
@@ -159,6 +193,10 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
   Future<void> loadMore() async {
     if (domain == null || state.isLoading || !state.hasMore) return;
     
+    // Cancel any previous request
+    _cancelToken?.cancel('Load more request');
+    _cancelToken = CancelToken();
+    
     state = state.copyWith(
       isLoading: true,
     );
@@ -170,6 +208,7 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
         maxId: state.maxId,
         local: state.local,
         onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
       );
       
       String? maxId;
@@ -238,11 +277,45 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  int _currentTabIndex = 0;
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Listen to tab changes to set filters appropriately
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        return; // Ignore intermediate states during animation
+      }
+      
+      final newIndex = _tabController.index;
+      if (newIndex != _currentTabIndex) {
+        _currentTabIndex = newIndex;
+        _setFiltersForTab(newIndex);
+      }
+    });
+    
+    // Set initial filters for the first tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setFiltersForTab(0);
+    });
+  }
+  
+  /// Set filters based on the tab index
+  void _setFiltersForTab(int tabIndex) {
+    final timelineNotifier = ref.read(publicTimelineProvider.notifier);
+    
+    switch (tabIndex) {
+      case 0: // For You / Discover tab
+        timelineNotifier.setFilters(local: false, onlyMedia: true);
+        break;
+      case 2: // Local / Community tab
+        timelineNotifier.setFilters(local: true, onlyMedia: false);
+        break;
+      // Tab 1 is trending, which doesn't use timeline data
+    }
   }
   
   @override
@@ -322,13 +395,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     final timelineState = ref.watch(publicTimelineProvider);
     final timelineNotifier = ref.read(publicTimelineProvider.notifier);
     
-    // Set filters for this tab
-    if (timelineState.onlyMedia != true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        timelineNotifier.setFilters(onlyMedia: true);
-      });
-    }
-    
     return FeedList(
       statuses: timelineState.statuses,
       isLoading: timelineState.isLoading,
@@ -404,13 +470,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   Widget _buildLocalTab() {
     final timelineState = ref.watch(publicTimelineProvider);
     final timelineNotifier = ref.read(publicTimelineProvider.notifier);
-    
-    // Set filters for this tab
-    if (timelineState.local != true || timelineState.onlyMedia != false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        timelineNotifier.setFilters(local: true, onlyMedia: false);
-      });
-    }
     
     return FeedList(
       statuses: timelineState.statuses,

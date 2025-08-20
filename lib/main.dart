@@ -28,15 +28,6 @@ class PixelodonApp extends ConsumerStatefulWidget {
 }
 
 class _PixelodonAppState extends ConsumerState<PixelodonApp> {
-  @override
-  void initState() {
-    super.initState();
-    
-    // Initialize the auth repository
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authRepositoryProvider).initialize();
-    });
-  }
   
   @override
   Widget build(BuildContext context) {

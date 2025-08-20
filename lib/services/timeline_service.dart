@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/models/status.dart';
 
@@ -49,6 +50,7 @@ class TimelineService {
     bool? local,
     bool? remote,
     bool? onlyMedia,
+    CancelToken? cancelToken,
   }) async {
     try {
       final response = await _apiService.get(
@@ -62,6 +64,7 @@ class TimelineService {
           if (remote != null) 'remote': remote,
           if (onlyMedia != null) 'only_media': onlyMedia,
         },
+        cancelToken: cancelToken,
       );
       
       return (response.data as List)
@@ -144,6 +147,7 @@ class TimelineService {
     bool? excludeReplies,
     bool? excludeReblogs,
     bool? pinned,
+    CancelToken? cancelToken,
   }) async {
     try {
       final response = await _apiService.get(
@@ -158,6 +162,7 @@ class TimelineService {
           if (excludeReblogs != null) 'exclude_reblogs': excludeReblogs,
           if (pinned != null) 'pinned': pinned,
         },
+        cancelToken: cancelToken,
       );
       
       return (response.data as List)

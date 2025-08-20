@@ -222,6 +222,10 @@ class ApiService {
   /// Handle errors
   Future<Response> _handleError(dynamic error) async {
     if (error is DioException) {
+      if (error.type == DioExceptionType.cancel) {
+        throw CancellationException('Request was cancelled');
+      }
+      
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
           error.type == DioExceptionType.sendTimeout) {
@@ -313,6 +317,11 @@ class RateLimitException extends ApiException {
 /// Exception for server errors
 class ServerException extends ApiException {
   ServerException(super.message) : super(statusCode: 500);
+}
+
+/// Exception for cancelled requests
+class CancellationException extends ApiException {
+  CancellationException(super.message);
 }
 
 /// Exception for unknown errors

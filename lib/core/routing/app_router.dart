@@ -10,6 +10,7 @@ import 'package:pixelodon/features/feed/screens/home_screen.dart';
 import 'package:pixelodon/features/notifications/screens/notifications_screen.dart';
 import 'package:pixelodon/features/profile/screens/profile_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
+import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Provider for the app router
@@ -17,7 +18,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     
     // Global redirect function to handle authentication
@@ -26,10 +27,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authRepository.instances.isNotEmpty;
       final isLoggingIn = state.matchedLocation.startsWith('/auth');
       final isOAuthCallback = state.matchedLocation == '/oauth/callback';
+      final isSplash = state.matchedLocation == '/splash';
       
-      // If on root path, redirect based on authentication status
+      // Always allow splash screen
+      if (isSplash) {
+        return null;
+      }
+      
+      // If on root path, redirect to splash
       if (state.matchedLocation == '/') {
-        return isLoggedIn ? '/home' : '/auth/login';
+        return '/splash';
       }
       
       // If the user is not logged in and not on the login screen or OAuth callback, redirect to login
@@ -79,6 +86,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     
     // Define all routes
     routes: [
+      // Splash screen route
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      
       // Auth routes
       GoRoute(
         path: '/auth/login',

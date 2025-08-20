@@ -127,10 +127,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.public,
-                    size: 64,
-                    color: theme.colorScheme.primary,
+                  Image.asset(
+                    'assets/images/logo.png',
+                    width: 64,
+                    height: 64,
                   ),
                   const SizedBox(height: 16),
                   Text(

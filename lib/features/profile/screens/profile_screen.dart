@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -8,6 +9,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/core/network/api_service.dart';
 
 /// Provider for a user profile
 final profileProvider = StateNotifierProvider.family<ProfileNotifier, ProfileState, String>((ref, accountId) {
@@ -98,6 +100,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final timelineService;
   final String? domain;
   final String accountId;
+  CancelToken? _cancelToken;
   
   ProfileNotifier({
     required this.accountService,
@@ -108,6 +111,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     if (domain != null) {
       loadProfile();
     }
+  }
+  
+  @override
+  void dispose() {
+    _cancelToken?.cancel('Profile navigation cancelled');
+    super.dispose();
   }
   
   /// Set timeline filters
@@ -158,8 +167,14 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   }
   
   /// Load the account's statuses
-  Future<void> loadStatuses() async {
+  Future<void> loadStatuses({int retryCount = 0}) async {
     if (domain == null) return;
+    
+    // Only cancel if there's an ongoing request
+    if (_cancelToken != null && !_cancelToken!.isCancelled) {
+      _cancelToken!.cancel('New status request');
+    }
+    _cancelToken = CancelToken();
     
     state = state.copyWith(
       isLoadingStatuses: true,
@@ -174,6 +189,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         excludeReplies: state.excludeReplies,
         excludeReblogs: state.excludeReblogs,
         pinned: state.pinned,
+        cancelToken: _cancelToken,
       );
       
       String? maxId;
@@ -188,6 +204,13 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         maxId: maxId,
       );
     } catch (e) {
+      // Automatic retry for cancellation errors with exponential backoff
+      if (e is CancellationException && retryCount < 3) {
+        final delay = Duration(milliseconds: 100 * (retryCount + 1)); // 100ms, 200ms, 300ms
+        await Future.delayed(delay);
+        return loadStatuses(retryCount: retryCount + 1);
+      }
+      
       state = state.copyWith(
         isLoadingStatuses: false,
         hasError: true,
@@ -522,25 +545,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             Positioned(
               bottom: -40,
               left: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.scaffoldBackgroundColor,
-                    width: 4,
+              child: Material(
+                elevation: 8,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.scaffoldBackgroundColor,
+                      width: 4,
+                    ),
                   ),
-                ),
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundImage: account.avatar != null
-                      ? CachedNetworkImageProvider(account.avatar!)
-                      : null,
-                  child: account.avatar == null
-                      ? Text(
-                          account.displayName[0],
-                          style: const TextStyle(fontSize: 32),
-                        )
-                      : null,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundImage: account.avatar != null
+                        ? CachedNetworkImageProvider(account.avatar!)
+                        : null,
+                    child: account.avatar == null
+                        ? Text(
+                            account.displayName[0],
+                            style: const TextStyle(fontSize: 32),
+                          )
+                        : null,
+                  ),
                 ),
               ),
             ),
@@ -698,8 +726,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     if (isPixelfed) {
       // Grid view for Pixelfed
       return state.statuses.isEmpty
-          ? const Center(
-              child: Text('No posts yet'),
+          ? Center(
+              child: state.isLoadingStatuses
+                  ? const CircularProgressIndicator()
+                  : const Text('No posts yet'),
             )
           : MasonryGridView.count(
               crossAxisCount: 3,
