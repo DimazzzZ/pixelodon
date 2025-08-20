@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/media_gallery.dart';
+import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Widget for displaying a post in a feed
@@ -330,33 +330,14 @@ class _PostCardState extends ConsumerState<PostCard> {
             if (_isExpanded || (_status.spoilerText?.isEmpty ?? true)) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Html(
-                  data: _status.content,
-                  style: {
-                    "body": Style(
-                      margin: Margins.zero,
-                      padding: HtmlPaddings.zero,
-                    ),
-                    "p": Style(
-                      margin: Margins.only(bottom: 8),
-                    ),
-                    "a": Style(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  },
-                  onLinkTap: (url, _, __) {
+                child: SafeHtmlWidget(
+                  htmlContent: _status.content,
+                  onLinkTap: (url) {
                     // TODO: Handle link taps safely
                     if (url != null && Uri.tryParse(url) != null) {
                       // Could implement safe link handling here
                     }
                   },
-                  extensions: [
-                    // Disable potentially dangerous tags for security
-                    TagWrapExtension(
-                      tagsToWrap: {"script", "iframe", "embed", "object"},
-                      builder: (child) => const SizedBox.shrink(),
-                    ),
-                  ],
                 ),
               ),
             ],

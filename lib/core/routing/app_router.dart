@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
+import 'package:pixelodon/features/compose/screens/compose_screen.dart';
+import 'package:pixelodon/features/explore/screens/explore_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
+import 'package:pixelodon/features/notifications/screens/notifications_screen.dart';
+import 'package:pixelodon/features/profile/screens/profile_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
@@ -106,25 +110,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // Explore route
           GoRoute(
             path: '/explore',
-            builder: (context, state) => const Center(
-              child: Text('Explore Screen - To be implemented'),
-            ),
+            builder: (context, state) => const ExploreScreen(),
           ),
           
           // Notifications route
           GoRoute(
             path: '/notifications',
-            builder: (context, state) => const Center(
-              child: Text('Notifications Screen - To be implemented'),
-            ),
+            builder: (context, state) => const NotificationsScreen(),
           ),
           
-          // Profile route
+          // Profile route - current user
           GoRoute(
             path: '/profile',
-            builder: (context, state) => const Center(
-              child: Text('Profile Screen - To be implemented'),
-            ),
+            redirect: (context, state) {
+              // Get current user's account ID from provider
+              final container = ProviderScope.containerOf(context);
+              final activeAccount = container.read(activeAccountProvider);
+              if (activeAccount != null) {
+                return '/profile/${activeAccount.id}';
+              }
+              // If no active account, redirect to home
+              return '/home';
+            },
+          ),
+          
+          // Profile route - specific user
+          GoRoute(
+            path: '/profile/:accountId',
+            builder: (context, state) {
+              final accountId = state.pathParameters['accountId']!;
+              return ProfileScreen(accountId: accountId);
+            },
           ),
         ],
       ),
@@ -132,12 +148,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Routes outside the shell
       GoRoute(
         path: '/compose',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('New Post')),
-          body: const Center(
-            child: Text('Compose Screen - To be implemented'),
-          ),
-        ),
+        builder: (context, state) => const ComposeScreen(),
       ),
 
       GoRoute(

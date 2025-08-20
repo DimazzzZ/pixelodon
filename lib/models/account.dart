@@ -79,6 +79,9 @@ class Account with _$Account {
     /// Whether the authenticated user has a pending follow request for this account
     @Default(false) bool requested,
     
+    /// Whether the authenticated user is following this account
+    @Default(false) bool following,
+    
     /// Domain of the account's instance
     String? domain,
     

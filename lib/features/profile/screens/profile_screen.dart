@@ -7,6 +7,7 @@ import 'package:pixelodon/models/status.dart' as model;
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
+import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 
 /// Provider for a user profile
 final profileProvider = StateNotifierProvider.family<ProfileNotifier, ProfileState, String>((ref, accountId) {
@@ -577,7 +578,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               
               if (account.note != null && account.note!.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text(account.note!),
+                SafeHtmlWidget(htmlContent: account.note!),
               ],
               
               const SizedBox(height: 16),
