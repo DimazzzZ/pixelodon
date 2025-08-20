@@ -2,16 +2,16 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:pixelodon/core/config/app_config.dart';
-import 'package:pixelodon/repositories/new_auth_repository.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 
 /// Base API service for Mastodon and Pixelfed
 class ApiService {
   final Dio _dio;
-  final NewAuthRepository _authRepository;
+  final AuthRepository _authRepository;
   
   /// Constructor
   ApiService({
-    required NewAuthRepository authRepository,
+    required AuthRepository authRepository,
     Dio? dio,
   }) : _authRepository = authRepository,
        _dio = dio ?? Dio() {

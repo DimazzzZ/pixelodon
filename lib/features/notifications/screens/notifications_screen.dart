@@ -6,14 +6,14 @@ import 'package:pixelodon/models/notification.dart' as model;
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/status.dart' hide Visibility, Card;
 import 'package:pixelodon/models/status.dart' as status_model;
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Provider for notifications
 final notificationsProvider = StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
   final accountService = ref.watch(accountServiceProvider);
-  final activeInstance = ref.watch(newActiveInstanceProvider);
+  final activeInstance = ref.watch(activeInstanceProvider);
   
   return NotificationsNotifier(
     accountService: accountService,
@@ -323,7 +323,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final notificationsState = ref.watch(notificationsProvider);
     final notificationsNotifier = ref.read(notificationsProvider.notifier);
-    final activeInstance = ref.watch(newActiveInstanceProvider);
+    final activeInstance = ref.watch(activeInstanceProvider);
     
     if (activeInstance == null) {
       return const Center(

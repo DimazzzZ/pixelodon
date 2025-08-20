@@ -9,22 +9,22 @@ part 'status.g.dart';
 class Status with _$Status {
   const factory Status({
     /// The ID of the status
-    required String id,
+    @Default('') String id,
     
     /// The URI of the status
-    required String uri,
+    @Default('') String uri,
     
     /// When the status was created
-    required DateTime createdAt,
+    @JsonKey(name: 'created_at') DateTime? createdAt,
     
     /// The account that authored the status
-    required Account account,
+    Account? account,
     
     /// The content of the status (HTML)
-    required String content,
+    @Default('') String content,
     
     /// The visibility of the status (public, unlisted, private, direct)
-    required Visibility visibility,
+    @Default(Visibility.public) Visibility visibility,
     
     /// Whether the status is a reply
     @Default(false) bool isReply,
@@ -39,13 +39,13 @@ class Status with _$Status {
     Status? inReplyToStatus,
     
     /// The ID of the status being replied to
-    String? inReplyToId,
+    @JsonKey(name: 'in_reply_to_id') String? inReplyToId,
     
     /// The ID of the account being replied to
-    String? inReplyToAccountId,
+    @JsonKey(name: 'in_reply_to_account_id') String? inReplyToAccountId,
     
     /// The status being reblogged/boosted
-    Status? rebloggedStatus,
+    @JsonKey(name: 'reblog') Status? rebloggedStatus,
     
     /// The status being quoted
     Status? quotedStatus,
@@ -54,25 +54,25 @@ class Status with _$Status {
     Application? application,
     
     /// The media attachments for the status
-    @Default([]) List<MediaAttachment> mediaAttachments,
+    @JsonKey(name: 'media_attachments') @Default([]) List<MediaAttachment> mediaAttachments,
     
     /// The mentions of users in the status
     @Default([]) List<Mention> mentions,
     
     /// The hashtags used in the status
-    @Default([]) List<String> tags,
+    @JsonKey(fromJson: _tagsFromJson) @Default([]) List<String> tags,
     
     /// The emojis used in the status
     @Default([]) List<Emoji> emojis,
     
     /// The number of reblogs/boosts for the status
-    @Default(0) int reblogsCount,
+    @JsonKey(name: 'reblogs_count') @Default(0) int reblogsCount,
     
     /// The number of favourites/likes for the status
-    @Default(0) int favouritesCount,
+    @JsonKey(name: 'favourites_count') @Default(0) int favouritesCount,
     
     /// The number of replies for the status
-    @Default(0) int repliesCount,
+    @JsonKey(name: 'replies_count') @Default(0) int repliesCount,
     
     /// URL to the status
     String? url,
@@ -93,7 +93,7 @@ class Status with _$Status {
     @Default(false) bool pinned,
     
     /// Content warning for the status
-    String? spoilerText,
+    @JsonKey(name: 'spoiler_text') String? spoilerText,
     
     /// Whether the media attachments should be hidden by default
     @Default(false) bool sensitive,
@@ -118,6 +118,18 @@ class Status with _$Status {
   }) = _Status;
 
   factory Status.fromJson(Map<String, dynamic> json) => _$StatusFromJson(json);
+}
+
+/// Helper function to parse tags from JSON, filtering out null values
+List<String> _tagsFromJson(dynamic json) {
+  if (json == null) return [];
+  if (json is List) {
+    return json
+        .where((tag) => tag != null && tag is String)
+        .cast<String>()
+        .toList();
+  }
+  return [];
 }
 
 /// Visibility of a status

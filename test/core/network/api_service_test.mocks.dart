@@ -16,7 +16,7 @@ import 'package:dio/src/transformer.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:pixelodon/models/account.dart' as _i12;
 import 'package:pixelodon/models/instance.dart' as _i8;
-import 'package:pixelodon/repositories/new_auth_repository.dart' as _i11;
+import 'package:pixelodon/repositories/auth_repository.dart' as _i11;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -848,11 +848,11 @@ class MockDio extends _i1.Mock implements _i7.Dio {
       ) as _i7.Dio);
 }
 
-/// A class which mocks [NewAuthRepository].
+/// A class which mocks [AuthRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockNewAuthRepository extends _i1.Mock implements _i11.NewAuthRepository {
-  MockNewAuthRepository() {
+class MockAuthRepository extends _i1.Mock implements _i11.AuthRepository {
+  MockAuthRepository() {
     _i1.throwOnMissingStub(this);
   }
 

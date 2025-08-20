@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_links/app_links.dart';
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -95,13 +95,13 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
       debugPrint('Expected state: ${widget.state}');
 
       // Verify state if provided
-      if (widget.state != null && state != widget.state) {
+      if (state != widget.state) {
         _setError('State mismatch - possible security issue');
         return;
       }
 
       // Exchange the authorization code for tokens
-      final authRepository = ref.read(newAuthRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider);
       await authRepository.completeOAuthFlow(widget.domain, code, state: state);
 
       if (mounted) {

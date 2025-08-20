@@ -259,7 +259,7 @@ void main() {
         expect(status.id, testStatusId);
         expect(status.uri, testUri);
         expect(status.createdAt, testCreatedAt);
-        expect(status.account.id, testAccount.id);
+        expect(status.account!.id, testAccount.id);
         expect(status.content, testContent);
         expect(status.visibility, Visibility.direct);
         expect(status.isReply, true);

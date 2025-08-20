@@ -6,14 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pixelodon/models/status.dart' as model;
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 
 /// Provider for the compose screen state
 final composeProvider = StateNotifierProvider.autoDispose<ComposeNotifier, ComposeState>((ref) {
   final timelineService = ref.watch(timelineServiceProvider);
   final mediaService = ref.watch(mediaServiceProvider);
-  final activeInstance = ref.watch(newActiveInstanceProvider);
+  final activeInstance = ref.watch(activeInstanceProvider);
   
   return ComposeNotifier(
     timelineService: timelineService,
@@ -89,8 +89,8 @@ class ComposeState {
 
 /// Notifier for the compose screen
 class ComposeNotifier extends StateNotifier<ComposeState> {
-  final timelineService;
-  final mediaService;
+  final dynamic timelineService;
+  final dynamic mediaService;
   final String? domain;
   
   ComposeNotifier({
@@ -371,7 +371,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   Widget build(BuildContext context) {
     final composeState = ref.watch(composeProvider);
     final composeNotifier = ref.read(composeProvider.notifier);
-    final activeAccount = ref.watch(newActiveAccountProvider);
+    final activeAccount = ref.watch(activeAccountProvider);
     
     // Update controllers when state changes
     if (_textController.text != composeState.text) {
@@ -549,7 +549,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   TextSpan(
-                    text: status.account.displayName,
+                    text: status.account?.displayName ?? 'Unknown User',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],

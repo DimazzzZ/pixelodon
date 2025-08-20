@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/core/network/api_service.dart';
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Provider for the API service
 final apiServiceProvider = Provider<ApiService>((ref) {
-  final authRepository = ref.watch(newAuthRepositoryProvider);
+  final authRepository = ref.watch(authRepositoryProvider);
   return ApiService(authRepository: authRepository);
 });
 
@@ -15,7 +15,7 @@ final apiUrlProvider = Provider.family<String, ({String domain, String endpoint}
 
 /// Provider for checking if an instance is Pixelfed
 final isPixelfedProvider = Provider.family<bool, String>((ref, domain) {
-  final instances = ref.watch(newInstancesProvider);
+  final instances = ref.watch(instancesProvider);
   final instance = instances.firstWhere(
     (instance) => instance.domain == domain,
     orElse: () => throw Exception('Instance not found: $domain'),

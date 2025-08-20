@@ -6,15 +6,17 @@ import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authRepository = ref.watch(newAuthRepositoryProvider);
+  final authRepository = ref.watch(authRepositoryProvider);
   
   return GoRouter(
     initialLocation: '/auth/login',
     debugLogDiagnostics: true,
+    
+    // Global redirect function to handle authentication
     redirect: (context, state) {
       // Check if the user is authenticated
       final isLoggedIn = authRepository.instances.isNotEmpty;
@@ -35,69 +37,55 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // No redirect needed
       return null;
     },
+    
+    // Error handler for the router
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(
+        title: const Text('Page Not Found'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Page not found: ${state.matchedLocation}',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('Go to Home'),
+            ),
+          ],
+        ),
+      ),
+    ),
+    
+    // Define all routes
     routes: [
       // Auth routes
       GoRoute(
         path: '/auth/login',
         builder: (context, state) => const LoginScreen(),
       ),
-      // Handle OAuth callback - both for navigation from login screen and deep links
+      
+      // OAuth callback route
+      GoRoute(
+        path: '/auth/callback',
+        builder: (context, state) => _buildOAuthCallbackScreen(state),
+      ),
+      
+      // Handle deep link callback from OAuth provider
       GoRoute(
         path: '/oauth/callback',
-        builder: (context, state) {
-          debugPrint('OAuth callback route - URI: ${state.uri}');
-          debugPrint('OAuth callback route - Full URI: ${state.uri}');
-          
-          // Get parameters from query string (from deep link)
-          final queryParams = state.uri.queryParameters;
-          final queryDomain = queryParams['domain'];
-          final queryState = queryParams['state'];
-          final queryCode = queryParams['code'];
-          
-          debugPrint('OAuth callback route - Query parameters: $queryParams');
-          
-          // Get parameters from extra data (from navigation)
-          final extra = state.extra as Map<String, dynamic>?;
-          debugPrint('OAuth callback route - Extra parameters: $extra');
-          
-          // Check fragment for parameters if they're not in query string
-          String? fragmentDomain;
-          String? fragmentState;
-          String? fragmentCode;
-          
-          if (state.uri.fragment.isNotEmpty) {
-            debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
-            final fragmentParams = Uri.splitQueryString(state.uri.fragment);
-            fragmentDomain = fragmentParams['domain'];
-            fragmentState = fragmentParams['state'];
-            fragmentCode = fragmentParams['code'];
-            
-            debugPrint('OAuth callback route - Fragment domain: $fragmentDomain');
-            debugPrint('OAuth callback route - Fragment state: $fragmentState');
-            debugPrint('OAuth callback route - Fragment code: $fragmentCode');
-          }
-          
-          // Priority: query params > fragment params > extra params
-          final domain = queryDomain ?? fragmentDomain ?? extra?['domain'];
-          final oauthState = queryState ?? fragmentState ?? extra?['state'];
-          final code = queryCode ?? fragmentCode;
-          
-          debugPrint('OAuth callback route - Final domain: $domain');
-          debugPrint('OAuth callback route - Final state: $oauthState');
-          debugPrint('OAuth callback route - Final code: $code');
-          
-          if (domain != null && oauthState != null) {
-            return OAuthCallbackScreen(
-              domain: domain,
-              state: oauthState,
-              code: code,
-            );
-          }
-          
-          // If we don't have the required parameters, redirect to login
-          debugPrint('OAuth callback route - Missing required parameters, redirecting to login');
-          return const LoginScreen();
-        },
+        builder: (context, state) => _buildOAuthCallbackScreen(state),
       ),
       
       // Main app shell route
@@ -146,6 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
+
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
@@ -157,33 +146,57 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: (_, __) => '/home',
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(
-        title: const Text('Page Not Found'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found: ${state.matchedLocation}',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => context.go('/home'),
-              child: const Text('Go to Home'),
-            ),
-          ],
-        ),
-      ),
-    ),
   );
 });
+
+/// Helper function to build the OAuth callback screen
+Widget _buildOAuthCallbackScreen(GoRouterState state) {
+  debugPrint('OAuth callback route - URI: ${state.uri}');
+  
+  // Get parameters from query string
+  final queryParams = state.uri.queryParameters;
+  final domain = queryParams['domain'];
+  final oauthState = queryParams['state'];
+  final code = queryParams['code'];
+  
+  debugPrint('OAuth callback route - Query parameters: $queryParams');
+  
+  // Check fragment for parameters if they're not in query string
+  if ((domain == null || oauthState == null || code == null) && state.uri.fragment.isNotEmpty) {
+    debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
+    final fragmentParams = Uri.splitQueryString(state.uri.fragment);
+    final fragmentDomain = fragmentParams['domain'];
+    final fragmentState = fragmentParams['state'];
+    final fragmentCode = fragmentParams['code'];
+    
+    if (fragmentDomain != null && fragmentState != null) {
+      return OAuthCallbackScreen(
+        domain: fragmentDomain,
+        state: fragmentState,
+        code: fragmentCode,
+      );
+    }
+  }
+  
+  // Check extra parameters from navigation
+  final extra = state.extra as Map<String, dynamic>?;
+  if (extra != null && extra.containsKey('domain') && extra.containsKey('state')) {
+    return OAuthCallbackScreen(
+      domain: extra['domain']!,
+      state: extra['state']!,
+      code: extra['code'],
+    );
+  }
+  
+  // If we have parameters from query string, use them
+  if (domain != null && oauthState != null) {
+    return OAuthCallbackScreen(
+      domain: domain,
+      state: oauthState,
+      code: code,
+    );
+  }
+  
+  // If we don't have the required parameters, redirect to login
+  return const LoginScreen();
+}

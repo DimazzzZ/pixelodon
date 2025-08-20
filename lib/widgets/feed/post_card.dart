@@ -203,7 +203,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${widget.status.account.displayName} boosted',
+                      '${widget.status.account?.displayName ?? 'Someone'} boosted',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey,
                       ),
@@ -216,13 +216,15 @@ class _PostCardState extends ConsumerState<PostCard> {
             // Post header
             ListTile(
               leading: GestureDetector(
-                onTap: () => context.push('/profile/${_status.account.id}'),
+                onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
                 child: CircleAvatar(
-                  backgroundImage: _status.account.avatar != null
-                      ? CachedNetworkImageProvider(_status.account.avatar!)
+                  backgroundImage: _status.account?.avatar != null
+                      ? CachedNetworkImageProvider(_status.account!.avatar!)
                       : null,
-                  child: _status.account.avatar == null
-                      ? Text(_status.account.displayName[0])
+                  child: _status.account?.avatar == null
+                      ? Text((_status.account?.displayName ?? 'User').isNotEmpty 
+                          ? (_status.account?.displayName ?? 'User')[0] 
+                          : 'U')
                       : null,
                 ),
               ),
@@ -230,9 +232,9 @@ class _PostCardState extends ConsumerState<PostCard> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => context.push('/profile/${_status.account.id}'),
+                      onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
                       child: Text(
-                        _status.account.displayName,
+                        _status.account?.displayName ?? 'Unknown User',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
@@ -242,7 +244,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     ),
                   ),
                   Text(
-                    '@${_status.account.username}',
+                    '@${_status.account?.username ?? 'unknown'}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey,
                     ),
@@ -252,7 +254,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                 ],
               ),
               subtitle: Text(
-                timeago.format(_status.createdAt),
+                timeago.format(_status.createdAt ?? DateTime.now()),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: Colors.grey,
                 ),

@@ -17,7 +17,7 @@ class Account with _$Account {
     required String acct,
     
     /// The display name of the account
-    required String displayName,
+    @JsonKey(name: 'display_name') required String displayName,
     
     /// Whether the account is locked (private)
     @Default(false) bool locked,
@@ -32,7 +32,7 @@ class Account with _$Account {
     @Default(false) bool group,
     
     /// The time the account was created
-    DateTime? createdAt,
+    @JsonKey(name: 'created_at') DateTime? createdAt,
     
     /// The account note (bio)
     String? note,
@@ -44,25 +44,25 @@ class Account with _$Account {
     String? avatar,
     
     /// The URL of the account's static avatar (non-animated)
-    String? avatarStatic,
+    @JsonKey(name: 'avatar_static') String? avatarStatic,
     
     /// The URL of the account's header image
     String? header,
     
     /// The URL of the account's static header image
-    String? headerStatic,
+    @JsonKey(name: 'header_static') String? headerStatic,
     
     /// The account's follower count
-    @Default(0) int followersCount,
+    @JsonKey(name: 'followers_count') @Default(0) int followersCount,
     
     /// The account's following count
-    @Default(0) int followingCount,
+    @JsonKey(name: 'following_count') @Default(0) int followingCount,
     
     /// The account's post count
-    @Default(0) int statusesCount,
+    @JsonKey(name: 'statuses_count') @Default(0) int statusesCount,
     
     /// The time of the account's last status
-    DateTime? lastStatusAt,
+    @JsonKey(name: 'last_status_at') DateTime? lastStatusAt,
     
     /// The account's fields (key-value pairs displayed on profile)
     List<Field>? fields,
@@ -100,7 +100,7 @@ class Field with _$Field {
     required String value,
     
     /// The timestamp of when the field was verified
-    DateTime? verifiedAt,
+    @JsonKey(name: 'verified_at') DateTime? verifiedAt,
   }) = _Field;
 
   factory Field.fromJson(Map<String, dynamic> json) => _$FieldFromJson(json);

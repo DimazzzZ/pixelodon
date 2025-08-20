@@ -9,7 +9,7 @@ import 'dart:ui' as _i6;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:pixelodon/models/account.dart' as _i5;
 import 'package:pixelodon/models/instance.dart' as _i2;
-import 'package:pixelodon/repositories/new_auth_repository.dart' as _i3;
+import 'package:pixelodon/repositories/auth_repository.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -34,11 +34,11 @@ class _FakeInstance_0 extends _i1.SmartFake implements _i2.Instance {
         );
 }
 
-/// A class which mocks [NewAuthRepository].
+/// A class which mocks [AuthRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockNewAuthRepository extends _i1.Mock implements _i3.NewAuthRepository {
-  MockNewAuthRepository() {
+class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
+  MockAuthRepository() {
     _i1.throwOnMissingStub(this);
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Settings screen with logout functionality
 class SettingsScreen extends ConsumerWidget {
@@ -10,8 +10,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeInstance = ref.watch(newActiveInstanceProvider);
-    final authRepository = ref.watch(newAuthRepositoryProvider);
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final authRepository = ref.watch(authRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -232,7 +232,7 @@ class SettingsScreen extends ConsumerWidget {
       }
       
       // Perform logout through the auth repository
-      final authRepository = ref.read(newAuthRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider);
       await authRepository.logout(domain);
       
       // Navigate to login screen

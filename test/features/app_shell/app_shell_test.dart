@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/models/instance.dart';
-import 'package:pixelodon/providers/new_auth_provider.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 import 'app_shell_test.mocks.dart';
 
@@ -23,7 +22,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            newActiveInstanceProvider.overrideWith((ref) => null),
+            activeInstanceProvider.overrideWith((ref) => null),
           ],
           child: MaterialApp(
             home: const AppShell(
@@ -47,7 +46,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            newActiveInstanceProvider.overrideWith((ref) => testInstance),
+            activeInstanceProvider.overrideWith((ref) => testInstance),
           ],
           child: MaterialApp(
             home: const AppShell(
@@ -71,7 +70,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            newActiveInstanceProvider.overrideWith((ref) => pixelfedInstance),
+            activeInstanceProvider.overrideWith((ref) => pixelfedInstance),
           ],
           child: MaterialApp(
             home: const AppShell(
@@ -94,7 +93,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            newActiveInstanceProvider.overrideWith((ref) => mastodonInstance),
+            activeInstanceProvider.overrideWith((ref) => mastodonInstance),
           ],
           child: MaterialApp(
             home: const AppShell(
@@ -291,7 +290,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              newActiveInstanceProvider.overrideWith((ref) => testInstance),
+              activeInstanceProvider.overrideWith((ref) => testInstance),
             ],
             child: MaterialApp(
               theme: ThemeData(
@@ -321,7 +320,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              newActiveInstanceProvider.overrideWith((ref) => longNameInstance),
+              activeInstanceProvider.overrideWith((ref) => longNameInstance),
             ],
             child: MaterialApp(
               home: const AppShell(
@@ -339,7 +338,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              newActiveInstanceProvider.overrideWith((ref) => null),
+              activeInstanceProvider.overrideWith((ref) => null),
             ],
             child: MaterialApp(
               home: const AppShell(

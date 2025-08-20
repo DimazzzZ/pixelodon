@@ -3,7 +3,7 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/services/auth_service.dart';
 
-/// Repository for managing authentication state
+/// Repository for managing authentication state with improved features
 class AuthRepository extends ChangeNotifier {
   final AuthService _authService;
   
@@ -32,6 +32,12 @@ class AuthRepository extends ChangeNotifier {
         try {
           final instance = await _authService.discoverInstance(domain);
           _instances.add(instance);
+          
+          // Load account information
+          final account = await _authService.getAccountInfo(domain);
+          if (account != null) {
+            _accounts[domain] = account;
+          }
           
           // Set the first instance as active if none is set
           _activeInstanceDomain ??= domain;
@@ -105,6 +111,12 @@ class AuthRepository extends ChangeNotifier {
         // Set as active instance if none is set
         _activeInstanceDomain ??= domain;
         
+        // Get the account information
+        final account = await _authService.getAccountInfo(domain);
+        if (account != null) {
+          _accounts[domain] = account;
+        }
+        
         notifyListeners();
       } else {
         // If the instance is already in the list, make sure it's up to date
@@ -113,6 +125,13 @@ class AuthRepository extends ChangeNotifier {
           try {
             final updatedInstance = await _authService.discoverInstance(domain);
             _instances[index] = updatedInstance;
+            
+            // Update the account information
+            final account = await _authService.getAccountInfo(domain);
+            if (account != null) {
+              _accounts[domain] = account;
+            }
+            
             notifyListeners();
           } catch (e) {
             debugPrint('Failed to update instance info: $e');
@@ -126,6 +145,19 @@ class AuthRepository extends ChangeNotifier {
       debugPrint('Failed to complete OAuth flow: $e');
       // Rethrow the exception to allow the UI to handle it
       rethrow;
+    }
+  }
+  
+  /// Refresh the access token for an instance
+  /// 
+  /// Returns true if the token was refreshed successfully
+  Future<bool> refreshAccessToken(String domain) async {
+    try {
+      await _authService.refreshAccessToken(domain);
+      return true;
+    } catch (e) {
+      debugPrint('Failed to refresh access token: $e');
+      return false;
     }
   }
   
@@ -154,9 +186,29 @@ class AuthRepository extends ChangeNotifier {
     return await _authService.getAccessToken(domain);
   }
   
+  /// Validate an access token
+  Future<bool> validateAccessToken(String domain) async {
+    final accessToken = await _authService.getAccessToken(domain);
+    if (accessToken == null) return false;
+    
+    return await _authService.validateAccessToken(domain, accessToken);
+  }
+  
   /// Update the account information for an instance
-  void updateAccount(String domain, Account account) {
-    _accounts[domain] = account;
-    notifyListeners();
+  Future<void> updateAccountInfo(String domain) async {
+    try {
+      final account = await _authService.getAccountInfo(domain);
+      if (account != null) {
+        _accounts[domain] = account;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to update account information: $e');
+    }
+  }
+  
+  /// Get the account information for a domain
+  Account? getAccount(String domain) {
+    return _accounts[domain];
   }
 }

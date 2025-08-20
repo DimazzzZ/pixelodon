@@ -1,25 +1,23 @@
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:pixelodon/core/config/app_config.dart';
 import 'package:pixelodon/core/network/api_service.dart';
-import 'package:pixelodon/repositories/new_auth_repository.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 
 import 'api_service_test.mocks.dart';
 
-@GenerateMocks([Dio, NewAuthRepository])
+@GenerateMocks([Dio, AuthRepository])
 void main() {
   group('ApiService Tests', () {
     late MockDio mockDio;
-    late MockNewAuthRepository mockAuthRepository;
+    late MockAuthRepository mockAuthRepository;
     late ApiService apiService;
 
     setUp(() {
       mockDio = MockDio();
-      mockAuthRepository = MockNewAuthRepository();
+      mockAuthRepository = MockAuthRepository();
       
       // Mock BaseOptions
       when(mockDio.options).thenReturn(BaseOptions());
