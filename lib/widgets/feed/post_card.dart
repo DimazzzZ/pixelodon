@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
@@ -73,7 +74,6 @@ class _PostCardState extends ConsumerState<PostCard> {
   /// Toggle like status
   Future<void> _toggleLike() async {
     final timelineService = ref.read(timelineServiceProvider);
-    final currentContext = context;
     
     setState(() {
       _isLiked = !_isLiked;
@@ -96,11 +96,13 @@ class _PostCardState extends ConsumerState<PostCard> {
           _isLiked = !_isLiked;
         });
         
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          SnackBar(
-            content: Text('Failed to ${_isLiked ? 'like' : 'unlike'} post'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to ${_isLiked ? 'like' : 'unlike'} post'),
+            ),
+          );
+        }
       }
     }
   }
@@ -108,7 +110,6 @@ class _PostCardState extends ConsumerState<PostCard> {
   /// Toggle reblog status
   Future<void> _toggleReblog() async {
     final timelineService = ref.read(timelineServiceProvider);
-    final currentContext = context;
     
     setState(() {
       _isReblogged = !_isReblogged;
@@ -131,11 +132,13 @@ class _PostCardState extends ConsumerState<PostCard> {
           _isReblogged = !_isReblogged;
         });
         
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          SnackBar(
-            content: Text('Failed to ${_isReblogged ? 'reblog' : 'unreblog'} post'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to ${_isReblogged ? 'reblog' : 'unreblog'} post'),
+            ),
+          );
+        }
       }
     }
   }
@@ -143,7 +146,6 @@ class _PostCardState extends ConsumerState<PostCard> {
   /// Toggle bookmark status
   Future<void> _toggleBookmark() async {
     final timelineService = ref.read(timelineServiceProvider);
-    final currentContext = context;
     
     setState(() {
       _isBookmarked = !_isBookmarked;
@@ -166,11 +168,13 @@ class _PostCardState extends ConsumerState<PostCard> {
           _isBookmarked = !_isBookmarked;
         });
         
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          SnackBar(
-            content: Text('Failed to ${_isBookmarked ? 'bookmark' : 'unbookmark'} post'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to ${_isBookmarked ? 'bookmark' : 'unbookmark'} post'),
+            ),
+          );
+        }
       }
     }
   }
@@ -326,7 +330,34 @@ class _PostCardState extends ConsumerState<PostCard> {
             if (_isExpanded || (_status.spoilerText?.isEmpty ?? true)) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(_status.content),
+                child: Html(
+                  data: _status.content,
+                  style: {
+                    "body": Style(
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                    ),
+                    "p": Style(
+                      margin: Margins.only(bottom: 8),
+                    ),
+                    "a": Style(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  },
+                  onLinkTap: (url, _, __) {
+                    // TODO: Handle link taps safely
+                    if (url != null && Uri.tryParse(url) != null) {
+                      // Could implement safe link handling here
+                    }
+                  },
+                  extensions: [
+                    // Disable potentially dangerous tags for security
+                    TagWrapExtension(
+                      tagsToWrap: {"script", "iframe", "embed", "object"},
+                      builder: (child) => const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
               ),
             ],
             
