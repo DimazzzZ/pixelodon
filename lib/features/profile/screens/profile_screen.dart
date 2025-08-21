@@ -10,8 +10,8 @@ import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/features/profile/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
-import 'package:pixelodon/features/profile/widgets/info_item.dart';
 import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
+import 'package:pixelodon/widgets/feed/feed_list.dart';
 
 /// Provider for a user profile
 final profileProvider =
@@ -414,6 +414,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  Future<List<model.Status>>? _likesFuture;
+  Future<List<model.Status>>? _bookmarksFuture;
 
   @override
   Widget build(BuildContext context) {
@@ -484,27 +486,215 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ];
                         },
-                        body: PostsTab(
-                          statuses: profileState.statuses,
-                          isLoading: profileState.isLoadingStatuses,
-                          hasError: profileState.hasError,
-                          errorMessage: profileState.errorMessage,
-                          hasMore: profileState.hasMore,
-                          isPixelfed: isPixelfed,
-                          onlyMedia: profileState.onlyMedia,
-                          onLoadMore: profileNotifier.loadMoreStatuses,
-                          onRefresh: profileNotifier.refreshStatuses,
-                          onEnsureOnlyMedia: (onlyMedia) =>
-                              profileNotifier.setFilters(onlyMedia: onlyMedia),
-                          onStatusUpdated: (status) =>
-                              profileNotifier.updateStatus(status),
-                        ),
+                        body: _buildProfileBody(context, isPixelfed, profileState, profileNotifier),
                       ),
                     ),
     );
   }
-}
+  Widget _buildProfileBody(BuildContext context, bool isPixelfed, ProfileState profileState, ProfileNotifier profileNotifier) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final isSelf = (ref.read(activeAccountProvider)?.id == widget.accountId);
 
+    final tabs = <Tab>[];
+    final views = <Widget>[];
+
+    if (isPixelfed) {
+      tabs.add(const Tab(text: 'Media'));
+      views.add(
+        PostsTab(
+          statuses: profileState.statuses.where((s) => s.mediaAttachments.isNotEmpty).toList(),
+          isLoading: profileState.isLoadingStatuses,
+          hasError: profileState.hasError,
+          errorMessage: profileState.errorMessage,
+          hasMore: profileState.hasMore,
+          isPixelfed: true,
+          onlyMedia: true,
+          onLoadMore: profileNotifier.loadMoreStatuses,
+          onRefresh: profileNotifier.refreshStatuses,
+          onEnsureOnlyMedia: (_) {},
+          onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+        ),
+      );
+    } else {
+      tabs.add(const Tab(text: 'Posts'));
+      views.add(
+        PostsTab(
+          statuses: profileState.statuses.where((s) => s.inReplyToId == null).toList(),
+          isLoading: profileState.isLoadingStatuses,
+          hasError: profileState.hasError,
+          errorMessage: profileState.errorMessage,
+          hasMore: profileState.hasMore,
+          isPixelfed: false,
+          onlyMedia: false,
+          onLoadMore: profileNotifier.loadMoreStatuses,
+          onRefresh: profileNotifier.refreshStatuses,
+          onEnsureOnlyMedia: (_) {},
+          onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+        ),
+      );
+    }
+
+    // Comments
+    tabs.add(const Tab(text: 'Comments'));
+    views.add(
+      PostsTab(
+        statuses: profileState.statuses.where((s) => s.inReplyToId != null).toList(),
+        isLoading: profileState.isLoadingStatuses,
+        hasError: profileState.hasError,
+        errorMessage: profileState.errorMessage,
+        hasMore: profileState.hasMore,
+        isPixelfed: false,
+        onlyMedia: false,
+        onLoadMore: profileNotifier.loadMoreStatuses,
+        onRefresh: profileNotifier.refreshStatuses,
+        onEnsureOnlyMedia: (_) {},
+        onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+      ),
+    );
+
+    // Likes
+    tabs.add(const Tab(text: 'Likes'));
+    views.add(_buildLikesTab(isSelf));
+
+    // Favorites
+    tabs.add(const Tab(text: 'Favorites'));
+    views.add(_buildBookmarksTab(isSelf));
+
+    // Boosts
+    tabs.add(const Tab(text: 'Boosts'));
+    // Per API: boosts are statuses where the `reblog` attribute is not null.
+    // In our model, `reblog` maps to `rebloggedStatus`.
+    final boosts = profileState.statuses
+        .where((s) => s.rebloggedStatus != null)
+        .toList();
+    views.add(
+      PostsTab(
+        statuses: boosts,
+        isLoading: profileState.isLoadingStatuses,
+        hasError: profileState.hasError,
+        errorMessage: profileState.errorMessage,
+        hasMore: false,
+        isPixelfed: false,
+        onlyMedia: false,
+        onLoadMore: () {},
+        onRefresh: profileNotifier.refreshStatuses,
+        onEnsureOnlyMedia: (_) {},
+        onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+      ),
+    );
+
+    return DefaultTabController(
+      length: tabs.length,
+      child: Column(
+        children: [
+          Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: tabs,
+            ),
+          ),
+          Expanded(
+            child: TabBarView(children: views),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLikesTab(bool isSelf) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final timelineService = ref.watch(timelineServiceProvider);
+
+    if (!isSelf) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('Likes are private and only visible for your own profile.'),
+        ),
+      );
+    }
+
+    if (_likesFuture == null) {
+      if (activeInstance?.domain != null) {
+        _likesFuture = timelineService.getFavourites(activeInstance!.domain, limit: 40);
+      }
+    }
+
+    return FutureBuilder<List<model.Status>>(
+      future: _likesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Failed to load likes: ${snapshot.error}'));
+        }
+        final data = snapshot.data ?? const <model.Status>[];
+        return FeedList(
+          statuses: data,
+          isLoading: false,
+          hasError: false,
+          hasMore: false,
+          onLoadMore: null,
+          onRefresh: () async {
+            if (activeInstance?.domain != null) {
+              _likesFuture = timelineService.getFavourites(activeInstance!.domain, limit: 40);
+              setState(() {});
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBookmarksTab(bool isSelf) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final timelineService = ref.watch(timelineServiceProvider);
+
+    if (!isSelf) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('Favorites are private and only visible for your own profile.'),
+        ),
+      );
+    }
+
+    if (_bookmarksFuture == null) {
+      if (activeInstance?.domain != null) {
+        _bookmarksFuture = timelineService.getBookmarks(activeInstance!.domain, limit: 40);
+      }
+    }
+
+    return FutureBuilder<List<model.Status>>(
+      future: _bookmarksFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Failed to load favorites: ${snapshot.error}'));
+        }
+        final data = snapshot.data ?? const <model.Status>[];
+        return FeedList(
+          statuses: data,
+          isLoading: false,
+          hasError: false,
+          hasMore: false,
+          onLoadMore: null,
+          onRefresh: () async {
+            if (activeInstance?.domain != null) {
+              _bookmarksFuture = timelineService.getBookmarks(activeInstance!.domain, limit: 40);
+              setState(() {});
+            }
+          },
+        );
+      },
+    );
+  }
+}
 
 /// About section content moved from the About tab to below profile description
 class _AboutSection extends StatelessWidget {
@@ -530,32 +720,6 @@ class _AboutSection extends StatelessWidget {
             ...account.fields!.map((field) => ProfileFieldItem(field: field)),
             const SizedBox(height: 16),
           ],
-          const Text(
-            'Account Information',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          InfoItem(
-            label: 'Account created',
-            value: account.createdAt != null
-                ? '${account.createdAt!.day}/${account.createdAt!.month}/${account.createdAt!.year}'
-                : 'Unknown',
-          ),
-          if (account.lastStatusAt != null)
-            InfoItem(
-              label: 'Last post',
-              value:
-                  '${account.lastStatusAt!.day}/${account.lastStatusAt!.month}/${account.lastStatusAt!.year}',
-            ),
-          InfoItem(label: 'Posts', value: account.statusesCount.toString()),
-          InfoItem(label: 'Following', value: account.followingCount.toString()),
-          InfoItem(label: 'Followers', value: account.followersCount.toString()),
-          if (account.bot) const InfoItem(label: 'Bot account', value: 'Yes'),
-          if (account.locked) const InfoItem(label: 'Private account', value: 'Yes'),
-          const SizedBox(height: 8),
         ],
       ),
     );

@@ -173,6 +173,54 @@ class TimelineService {
     }
   }
   
+  /// Fetch favorites (likes) of the current user
+  Future<List<Status>> getFavourites(
+    String domain, {
+    int? limit,
+    String? maxId,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/favourites',
+        queryParameters: {
+          if (limit != null) 'limit': limit,
+          if (maxId != null) 'max_id': maxId,
+        },
+        cancelToken: cancelToken,
+      );
+      return (response.data as List)
+          .map((json) => Status.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Fetch bookmarks of the current user
+  Future<List<Status>> getBookmarks(
+    String domain, {
+    int? limit,
+    String? maxId,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/bookmarks',
+        queryParameters: {
+          if (limit != null) 'limit': limit,
+          if (maxId != null) 'max_id': maxId,
+        },
+        cancelToken: cancelToken,
+      );
+      return (response.data as List)
+          .map((json) => Status.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Fetch trending statuses (Mastodon-like). Falls back to public timeline with onlyMedia=true when unsupported.
   Future<List<Status>> getTrendingStatuses(
     String domain, {

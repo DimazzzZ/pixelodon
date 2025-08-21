@@ -7,8 +7,8 @@ class AppTheme {
   static const String fontFamily = 'Inter';
   
   // Common colors
-  static const Color primaryColor = Color(0xFF5C6BC0);
-  static const Color secondaryColor = Color(0xFF26A69A);
+  static const Color primaryColor = Color(0xFF2C8AD7);
+  static const Color secondaryColor = Color(0xFF2C8AD7);
   static const Color errorColor = Color(0xFFE53935);
   static const Color warningColor = Color(0xFFFFB74D);
   static const Color successColor = Color(0xFF66BB6A);

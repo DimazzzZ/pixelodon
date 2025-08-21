@@ -8,21 +8,23 @@ class ProfileStatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           count,
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
             color: Colors.grey[600],
-            fontSize: 14,
+            fontSize: 12,
           ),
         ),
       ],
@@ -33,11 +35,11 @@ class ProfileStatItem extends StatelessWidget {
           ? InkWell(
               onTap: onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: content,
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Center(child: content),
               ),
             )
-          : content,
+          : Center(child: content),
     );
   }
 }

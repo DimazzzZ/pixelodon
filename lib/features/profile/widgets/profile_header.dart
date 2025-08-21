@@ -67,34 +67,100 @@ class ProfileHeader extends StatelessWidget {
                     color: theme.colorScheme.primary.withOpacity(0.1),
                   ),
 
-                Positioned(
-                  bottom: 8,
-                  right: 16,
-                  child: FollowButton(
-                    isCurrentUser: isCurrentUser,
-                    isFollowing: isFollowing,
-                    isFollowRequestPending: isFollowRequestPending,
-                    onFollow: onFollow,
-                    onUnfollow: onUnfollow,
-                    onEditProfile: onEditProfile,
+                if (!isCurrentUser)
+                  Positioned(
+                    bottom: 8,
+                    right: 16,
+                    child: FollowButton(
+                      isCurrentUser: isCurrentUser,
+                      isFollowing: isFollowing,
+                      isFollowRequestPending: isFollowRequestPending,
+                      onFollow: onFollow,
+                      onUnfollow: onUnfollow,
+                      onEditProfile: onEditProfile,
+                    ),
                   ),
-                ),
               ],
             ),
 
-            const SizedBox(height: 160),
+            const SizedBox(height: 4),
 
-            // Profile info
+            // Avatar + Profile info in one container
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    account.displayName,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Material(
+                      elevation: 4,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: theme.scaffoldBackgroundColor,
+                            width: 3,
+                          ),
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            if (account.avatar != null && account.avatar!.isNotEmpty) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ImageViewerScreen(
+                                    imageUrls: [account.avatar!],
+                                    initialIndex: 0,
+                                    heroTagPrefix: 'profile_avatar_${account.id}',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundImage: account.avatar != null
+                                ? CachedNetworkImageProvider(account.avatar!)
+                                : null,
+                            child: account.avatar == null
+                                ? Text(
+                                    account.displayName.isNotEmpty ? account.displayName[0] : '?',
+                                    style: const TextStyle(fontSize: 32),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
                     ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Profile info
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          account.displayName,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isCurrentUser)
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          ),
+                          onPressed: onEditProfile,
+                          child: const Text('Edit'),
+                        ),
+                    ],
                   ),
                   Text(
                     AccountUtils.formatHandle(
@@ -142,53 +208,6 @@ class ProfileHeader extends StatelessWidget {
               ),
             ),
           ],
-        ),
-
-        // Avatar (topmost)
-        Positioned(
-          top: 110,
-          left: 16,
-          child: Material(
-            elevation: 8,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: theme.scaffoldBackgroundColor,
-                  width: 4,
-                ),
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  if (account.avatar != null && account.avatar!.isNotEmpty) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ImageViewerScreen(
-                          imageUrls: [account.avatar!],
-                          initialIndex: 0,
-                          heroTagPrefix: 'profile_avatar_${account.id}',
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: CircleAvatar(
-                  radius: 80,
-                  backgroundImage: account.avatar != null
-                      ? CachedNetworkImageProvider(account.avatar!)
-                      : null,
-                  child: account.avatar == null
-                      ? Text(
-                          account.displayName[0],
-                          style: const TextStyle(fontSize: 64),
-                        )
-                      : null,
-                ),
-              ),
-            ),
-          ),
         ),
       ],
     );
