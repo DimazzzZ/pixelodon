@@ -15,15 +15,14 @@ import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
     
     // Global redirect function to handle authentication
     redirect: (context, state) {
-      // Check if the user is authenticated
+      // Check if the user is authenticated using ref.read to avoid circular dependency
+      final authRepository = ref.read(authRepositoryProvider);
       final isLoggedIn = authRepository.instances.isNotEmpty;
       final isLoggingIn = state.matchedLocation.startsWith('/auth');
       final isOAuthCallback = state.matchedLocation == '/oauth/callback';

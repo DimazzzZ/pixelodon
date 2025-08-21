@@ -167,14 +167,16 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   }
   
   /// Load the account's statuses
-  Future<void> loadStatuses({int retryCount = 0}) async {
+  Future<void> loadStatuses({int retryCount = 0, bool isRetry = false}) async {
     if (domain == null) return;
     
-    // Only cancel if there's an ongoing request
-    if (_cancelToken != null && !_cancelToken!.isCancelled) {
-      _cancelToken!.cancel('New status request');
+    // Only cancel if this is NOT a retry attempt - let retries use existing token
+    if (!isRetry) {
+      if (_cancelToken != null && !_cancelToken!.isCancelled) {
+        _cancelToken!.cancel('New status request');
+      }
+      _cancelToken = CancelToken();
     }
-    _cancelToken = CancelToken();
     
     state = state.copyWith(
       isLoadingStatuses: true,
@@ -204,11 +206,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         maxId: maxId,
       );
     } catch (e) {
-      // Automatic retry for cancellation errors with exponential backoff
+      // Automatic retry for cancellation errors with longer delays to allow network requests to complete
       if (e is CancellationException && retryCount < 3) {
-        final delay = Duration(milliseconds: 100 * (retryCount + 1)); // 100ms, 200ms, 300ms
+        final delay = Duration(milliseconds: 1000 * (retryCount + 1)); // 1s, 2s, 3s - more reasonable for network requests
         await Future.delayed(delay);
-        return loadStatuses(retryCount: retryCount + 1);
+        return loadStatuses(retryCount: retryCount + 1, isRetry: true);
       }
       
       state = state.copyWith(
@@ -582,7 +584,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ],
         ),
         
-        const SizedBox(height: 48),
+        const SizedBox(height: 80),
         
         // Profile info
         Padding(

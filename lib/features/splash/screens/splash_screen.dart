@@ -21,17 +21,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initializeAndNavigate() async {
-    // Wait at least 2 seconds to show the splash screen
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      // Check authentication status and navigate accordingly
+    try {
+      // Initialize authentication repository to load stored accounts
       final authRepository = ref.read(authRepositoryProvider);
-      final isLoggedIn = authRepository.instances.isNotEmpty;
+      await authRepository.initialize();
       
-      if (isLoggedIn) {
-        context.go('/home');
-      } else {
+      // Wait at least 2 seconds to show the splash screen
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        // Check authentication status and navigate accordingly
+        final isLoggedIn = authRepository.instances.isNotEmpty;
+        
+        if (isLoggedIn) {
+          context.go('/home');
+        } else {
+          context.go('/auth/login');
+        }
+      }
+    } catch (e) {
+      // If initialization fails, still allow navigation to login
+      debugPrint('Failed to initialize auth repository: $e');
+      
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
         context.go('/auth/login');
       }
     }
