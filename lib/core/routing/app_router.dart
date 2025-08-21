@@ -154,7 +154,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
               return MaterialPage(
-                key: state.pageKey,
+                key: UniqueKey(),
                 child: ProfileScreen(accountId: accountId),
               );
             },
@@ -179,7 +179,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
           return MaterialPage(
-            key: state.pageKey,
+            key: UniqueKey(),
             child: StatusDetailScreen(statusId: statusId),
           );
         },
@@ -191,7 +191,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final tag = state.pathParameters['tag']!;
           return MaterialPage(
-            key: state.pageKey,
+            key: UniqueKey(),
             child: TagTimelineScreen(tag: tag),
           );
         },

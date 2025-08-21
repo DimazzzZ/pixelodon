@@ -1,7 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:pixelodon/models/account.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/profile/widgets/follow_button.dart';

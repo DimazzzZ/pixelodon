@@ -173,6 +173,42 @@ class TimelineService {
     }
   }
   
+  /// Fetch trending statuses (Mastodon-like). Falls back to public timeline with onlyMedia=true when unsupported.
+  Future<List<Status>> getTrendingStatuses(
+    String domain, {
+    int? limit,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/trends/statuses',
+        queryParameters: {
+          if (limit != null) 'limit': limit,
+        },
+        cancelToken: cancelToken,
+      );
+      return (response.data as List)
+          .map((json) => Status.fromJson(json))
+          .toList();
+    } catch (e) {
+      // Fallback if endpoint is not available (e.g., Pixelfed or old Mastodon)
+      // NotFoundException indicates trends are not supported
+      if (e is NotFoundException) {
+        try {
+          return await getPublicTimeline(
+            domain,
+            limit: limit ?? 20,
+            onlyMedia: true,
+            cancelToken: cancelToken,
+          );
+        } catch (ee) {
+          throw _handleError(ee);
+        }
+      }
+      throw _handleError(e);
+    }
+  }
+  
   /// Fetch a status by ID
   Future<Status> getStatus(String domain, String id) async {
     try {

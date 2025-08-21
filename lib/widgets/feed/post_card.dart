@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
+import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/media_gallery.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
@@ -229,20 +230,7 @@ class _PostCardState extends ConsumerState<PostCard> {
             // Post header
             ListTile(
               leading: GestureDetector(
-                onTap: () {
-                  final avatarUrl = _status.account?.avatar;
-                  if (avatarUrl != null && avatarUrl.isNotEmpty) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ImageViewerScreen(
-                          imageUrls: [avatarUrl],
-                          initialIndex: 0,
-                          heroTagPrefix: 'avatar_${_status.account?.id ?? ''}',
-                        ),
-                      ),
-                    );
-                  }
-                },
+                onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
                 child: CircleAvatar(
                   backgroundImage: _status.account?.avatar != null
                       ? CachedNetworkImageProvider(_status.account!.avatar!)

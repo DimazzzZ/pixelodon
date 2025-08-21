@@ -346,14 +346,41 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     child: TabBar(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                       indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      unselectedLabelStyle: const TextStyle(fontSize: 12),
+                      labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      unselectedLabelStyle: const TextStyle(fontSize: 13),
                       tabs: const [
-                        Tab(icon: Icon(Icons.home_outlined, size: 18), text: 'Following'),
-                        Tab(icon: Icon(Icons.apartment_outlined, size: 18), text: 'Local'),
-                        Tab(icon: Icon(Icons.public, size: 18), text: 'Federated'),
+                        Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.home_outlined, size: 18),
+                              SizedBox(width: 6),
+                              Text('Following'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.apartment_outlined, size: 18),
+                              SizedBox(width: 6),
+                              Text('Local'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.public, size: 18),
+                              SizedBox(width: 6),
+                              Text('Federated'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),

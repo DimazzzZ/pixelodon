@@ -6,6 +6,7 @@ import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
+import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 
 /// Provider for the public timeline
@@ -249,12 +250,11 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
   }
 }
 
-/// Provider for trending hashtags
+/// Provider for trending hashtags (kept simple; can be wired to API later)
 final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
-  // This would normally fetch trending hashtags from the API
-  // For now, we'll return a mock list
-  await Future.delayed(const Duration(seconds: 1));
-  return [
+  // TODO: Replace with real endpoint (e.g., /api/v1/trends/tags) when available
+  await Future.delayed(const Duration(milliseconds: 300));
+  return const [
     'photography',
     'art',
     'nature',
@@ -266,6 +266,20 @@ final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
     'sports',
     'science',
   ];
+});
+
+/// Provider for trending posts
+final trendingPostsProvider = FutureProvider<List<Status>>((ref) async {
+  final timelineService = ref.watch(timelineServiceProvider);
+  final activeInstance = ref.watch(activeInstanceProvider);
+  final domain = activeInstance?.domain;
+  if (domain == null) return [];
+  try {
+    return await timelineService.getTrendingStatuses(domain, limit: 20);
+  } catch (_) {
+    // Fail safely
+    return [];
+  }
 });
 
 /// Screen for exploring content
@@ -354,10 +368,38 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  // TODO: Implement search
+              onSubmitted: (value) async {
+                final query = value.trim();
+                if (query.isEmpty) return;
+                // If hashtag, go to tag timeline
+                if (query.startsWith('#')) {
+                  final tag = query.substring(1).trim();
+                  if (tag.isNotEmpty) context.push('/tag/$tag');
+                  return;
                 }
+                // Try account search (e.g., @user or user@domain). If found, open first result.
+                try {
+                  final container = ProviderScope.containerOf(context);
+                  final active = container.read(activeInstanceProvider);
+                  final domain = active?.domain;
+                  if (domain != null) {
+                    final acctQuery = query.startsWith('@') ? query.substring(1) : query;
+                    final accountService = container.read(accountServiceProvider);
+                    final accounts = await accountService.searchAccounts(
+                      domain,
+                      query: acctQuery,
+                      limit: 1,
+                      resolve: true,
+                    );
+                    if (accounts.isNotEmpty) {
+                      if (mounted) context.push('/profile/${accounts.first.id}');
+                      return;
+                    }
+                  }
+                } catch (_) {}
+                // Fallback: navigate to tag timeline attempting to use the query as tag
+                final fallbackTag = query.replaceAll('#', '').split(' ').first;
+                if (fallbackTag.isNotEmpty) context.push('/tag/$fallbackTag');
               },
             ),
           ),
@@ -457,7 +499,44 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               ),
             ),
             const SizedBox(height: 16),
-            // TODO: Add trending posts
+            // Trending posts
+            Consumer(builder: (context, ref, _) {
+              final posts = ref.watch(trendingPostsProvider);
+              final activeInstance = ref.watch(activeInstanceProvider);
+              return posts.when(
+                data: (statuses) {
+                  if (statuses.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text('No trending posts available right now.'),
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: statuses.length,
+                    itemBuilder: (context, index) {
+                      final status = statuses[index];
+                      return PostCard(
+                        status: status,
+                        domain: activeInstance?.domain ?? '',
+                        onLiked: (_) {},
+                        onReblogged: (_) {},
+                        onBookmarked: (_) {},
+                      );
+                    },
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, st) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text('Failed to load trending posts: $e'),
+                ),
+              );
+            }),
           ],
         );
       },
