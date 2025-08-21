@@ -119,11 +119,12 @@ class AccountService {
   /// Follow an account
   Future<Account> followAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/follow',
       );
-      
-      return Account.fromJson(response.data);
+      // The follow endpoint returns a Relationship, not an Account.
+      // To keep the app logic simple, refetch the updated account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }
@@ -132,11 +133,11 @@ class AccountService {
   /// Unfollow an account
   Future<Account> unfollowAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/unfollow',
       );
-      
-      return Account.fromJson(response.data);
+      // The unfollow endpoint returns a Relationship; refetch the account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }
@@ -145,11 +146,11 @@ class AccountService {
   /// Block an account
   Future<Account> blockAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/block',
       );
-      
-      return Account.fromJson(response.data);
+      // The block endpoint returns a Relationship; refetch the account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }
@@ -158,11 +159,11 @@ class AccountService {
   /// Unblock an account
   Future<Account> unblockAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/unblock',
       );
-      
-      return Account.fromJson(response.data);
+      // The unblock endpoint returns a Relationship; refetch the account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }
@@ -171,11 +172,11 @@ class AccountService {
   /// Mute an account
   Future<Account> muteAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/mute',
       );
-      
-      return Account.fromJson(response.data);
+      // The mute endpoint returns a Relationship; refetch the account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }
@@ -184,11 +185,11 @@ class AccountService {
   /// Unmute an account
   Future<Account> unmuteAccount(String domain, String id) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         'https://$domain/api/v1/accounts/$id/unmute',
       );
-      
-      return Account.fromJson(response.data);
+      // The unmute endpoint returns a Relationship; refetch the account.
+      return await getAccount(domain, id);
     } catch (e) {
       throw _handleError(e);
     }

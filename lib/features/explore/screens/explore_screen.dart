@@ -8,6 +8,7 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/core/network/api_service.dart';
+import 'package:pixelodon/services/timeline_service.dart';
 
 /// Provider for the public timeline
 final publicTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, TimelineState>((ref) {
@@ -268,19 +269,159 @@ final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
   ];
 });
 
-/// Provider for trending posts
-final trendingPostsProvider = FutureProvider<List<Status>>((ref) async {
+/// Trending posts timeline provider backed by a notifier for pagination
+final trendingTimelineProvider = StateNotifierProvider<TrendingPostsNotifier, TimelineState>((ref) {
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
-  final domain = activeInstance?.domain;
-  if (domain == null) return [];
-  try {
-    return await timelineService.getTrendingStatuses(domain, limit: 20);
-  } catch (_) {
-    // Fail safely
-    return [];
-  }
+  return TrendingPostsNotifier(
+    timelineService: timelineService,
+    domain: activeInstance?.domain,
+  );
 });
+
+class TrendingPostsNotifier extends StateNotifier<TimelineState> {
+  final TimelineService timelineService;
+  final String? domain;
+  CancelToken? _cancelToken;
+  bool _isFallbackMode = false; // true when using public timeline onlyMedia=true
+  int _currentLimit = 20; // used for growing-window when trends endpoint exists
+
+  TrendingPostsNotifier({
+    required this.timelineService,
+    required this.domain,
+  }) : super(TimelineState(onlyMedia: true)) {
+    if (domain != null) {
+      loadInitial();
+    }
+  }
+
+  @override
+  void dispose() {
+    _cancelToken?.cancel('Trending navigation cancelled');
+    super.dispose();
+  }
+
+  Future<void> loadInitial() async {
+    if (domain == null) return;
+    // Cancel ongoing
+    _cancelToken?.cancel('Trending initial');
+    _cancelToken = CancelToken();
+
+    state = state.copyWith(
+      isLoading: true,
+      hasError: false,
+      errorMessage: null,
+    );
+
+    _currentLimit = 20;
+    _isFallbackMode = false;
+
+    try {
+      // Try real trends endpoint first
+      final statuses = await timelineService.getTrendingStatuses(
+        domain!,
+        limit: _currentLimit,
+        cancelToken: _cancelToken,
+      );
+
+      state = state.copyWith(
+        statuses: statuses,
+        isLoading: false,
+        // trends endpoint typically has no pagination; we simulate via growing window
+        hasMore: true,
+        maxId: statuses.isNotEmpty ? statuses.last.id : null,
+      );
+    } catch (e) {
+      // Fallback to public timeline with only_media=true for real pagination
+      _isFallbackMode = true;
+      try {
+        final statuses = await timelineService.getPublicTimeline(
+          domain!,
+          limit: 20,
+          onlyMedia: true,
+          cancelToken: _cancelToken,
+        );
+        state = state.copyWith(
+          statuses: statuses,
+          isLoading: false,
+          hasMore: statuses.length >= 20,
+          maxId: statuses.isNotEmpty ? statuses.last.id : null,
+        );
+      } catch (ee) {
+        state = state.copyWith(
+          isLoading: false,
+          hasError: true,
+          errorMessage: 'Failed to load trending posts: $ee',
+        );
+      }
+    }
+  }
+
+  Future<void> refresh() async {
+    await loadInitial();
+  }
+
+  Future<void> loadMore() async {
+    if (domain == null || state.isLoading || !state.hasMore) return;
+
+    _cancelToken?.cancel('Trending load more');
+    _cancelToken = CancelToken();
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      if (_isFallbackMode) {
+        final statuses = await timelineService.getPublicTimeline(
+          domain!,
+          limit: 20,
+          maxId: state.maxId,
+          onlyMedia: true,
+          cancelToken: _cancelToken,
+        );
+        final nextMaxId = statuses.isNotEmpty ? statuses.last.id : state.maxId;
+        state = state.copyWith(
+          statuses: [...state.statuses, ...statuses],
+          isLoading: false,
+          hasMore: statuses.length >= 20,
+          maxId: nextMaxId,
+        );
+      } else {
+        // Growing window approach for trends endpoint
+        _currentLimit += 20;
+        final fetched = await timelineService.getTrendingStatuses(
+          domain!,
+          limit: _currentLimit,
+          cancelToken: _cancelToken,
+        );
+        // Append only new items (by id)
+        final existingIds = state.statuses.map((s) => s.id).toSet();
+        final newItems = fetched.where((s) => !existingIds.contains(s.id)).toList();
+        final combined = [...state.statuses, ...newItems];
+        state = state.copyWith(
+          statuses: combined,
+          isLoading: false,
+          hasMore: fetched.length > state.statuses.length,
+          maxId: combined.isNotEmpty ? combined.last.id : state.maxId,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Failed to load more trending posts: $e',
+      );
+    }
+  }
+
+  void updateStatus(Status status) {
+    final index = state.statuses.indexWhere((s) => s.id == status.id);
+    if (index != -1) {
+      final updated = List<Status>.from(state.statuses);
+      updated[index] = status;
+      state = state.copyWith(statuses: updated);
+    }
+  }
+}
 
 /// Screen for exploring content
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -463,11 +604,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   /// Build the Trending tab
   Widget _buildTrendingTab() {
     final trendingHashtags = ref.watch(trendingHashtagsProvider);
-    
-    return trendingHashtags.when(
+    final trendingState = ref.watch(trendingTimelineProvider);
+    final trendingNotifier = ref.read(trendingTimelineProvider.notifier);
+
+    Widget hashtagsHeader = trendingHashtags.when(
       data: (hashtags) {
-        return ListView(
-          padding: const EdgeInsets.all(16),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Trending Hashtags',
@@ -484,7 +627,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                 return ActionChip(
                   label: Text('#$tag'),
                   onPressed: () {
-                    // Navigate to hashtag timeline
                     context.push('/tag/$tag');
                   },
                 );
@@ -498,54 +640,58 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
-            // Trending posts
-            Consumer(builder: (context, ref, _) {
-              final posts = ref.watch(trendingPostsProvider);
-              final activeInstance = ref.watch(activeInstanceProvider);
-              return posts.when(
-                data: (statuses) {
-                  if (statuses.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text('No trending posts available right now.'),
-                    );
-                  }
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: statuses.length,
-                    itemBuilder: (context, index) {
-                      final status = statuses[index];
-                      return PostCard(
-                        status: status,
-                        domain: activeInstance?.domain ?? '',
-                        onLiked: (_) {},
-                        onReblogged: (_) {},
-                        onBookmarked: (_) {},
-                      );
-                    },
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, st) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Failed to load trending posts: $e'),
-                ),
-              );
-            }),
+            const SizedBox(height: 8),
           ],
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Text('Loading trending hashtags...'),
+          ],
+        ),
       ),
-      error: (error, stackTrace) => Center(
-        child: Text('Error loading trending content: $error'),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Failed to load trending hashtags: $error'),
       ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: hashtagsHeader,
+        ),
+        Expanded(
+          child: FeedList(
+            statuses: trendingState.statuses,
+            isLoading: trendingState.isLoading,
+            hasError: trendingState.hasError,
+            errorMessage: trendingState.errorMessage,
+            hasMore: trendingState.hasMore,
+            onLoadMore: trendingNotifier.loadMore,
+            onRefresh: trendingNotifier.refresh,
+            onPostLiked: (status, liked) {
+              trendingNotifier.updateStatus(status);
+            },
+            onPostReblogged: (status, reblogged) {
+              trendingNotifier.updateStatus(status);
+            },
+            onPostBookmarked: (status, bookmarked) {
+              trendingNotifier.updateStatus(status);
+            },
+          ),
+        ),
+      ],
     );
   }
   
