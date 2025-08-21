@@ -8,15 +8,17 @@ import 'package:pixelodon/models/status.dart' hide Visibility, Card;
 import 'package:pixelodon/models/status.dart' as status_model;
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
+import 'package:pixelodon/services/notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 
 /// Provider for notifications
 final notificationsProvider = StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
-  final accountService = ref.watch(accountServiceProvider);
+  final notificationService = ref.watch(notificationServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
   
   return NotificationsNotifier(
-    accountService: accountService,
+    notificationService: notificationService,
     domain: activeInstance?.domain,
   );
 });
@@ -64,13 +66,14 @@ class NotificationsState {
 
 /// Notifier for notifications
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
-  final dynamic accountService;
+  final NotificationService _notificationService;
   final String? domain;
   
   NotificationsNotifier({
-    required this.accountService,
+    required NotificationService notificationService,
     this.domain,
-  }) : super(NotificationsState()) {
+  }) : _notificationService = notificationService,
+       super(NotificationsState()) {
     if (domain != null) {
       loadNotifications();
     }
@@ -98,11 +101,11 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     );
     
     try {
-      // This would normally call the API to get notifications
-      // For now, we'll return mock data
-      await Future.delayed(const Duration(seconds: 1));
-      
-      final notifications = _getMockNotifications();
+      final notifications = await _notificationService.getNotifications(
+        domain!,
+        limit: 20,
+        excludeTypes: state.excludeTypes,
+      );
       
       String? maxId;
       if (notifications.isNotEmpty) {
@@ -129,11 +132,11 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     if (domain == null) return;
     
     try {
-      // This would normally call the API to get notifications
-      // For now, we'll return mock data
-      await Future.delayed(const Duration(seconds: 1));
-      
-      final notifications = _getMockNotifications();
+      final notifications = await _notificationService.getNotifications(
+        domain!,
+        limit: 20,
+        excludeTypes: state.excludeTypes,
+      );
       
       String? maxId;
       if (notifications.isNotEmpty) {
@@ -164,11 +167,12 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     );
     
     try {
-      // This would normally call the API to get more notifications
-      // For now, we'll return mock data
-      await Future.delayed(const Duration(seconds: 1));
-      
-      final notifications = _getMockNotifications();
+      final notifications = await _notificationService.getNotifications(
+        domain!,
+        limit: 20,
+        maxId: state.maxId,
+        excludeTypes: state.excludeTypes,
+      );
       
       String? maxId;
       if (notifications.isNotEmpty) {
@@ -195,8 +199,9 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     if (domain == null) return;
     
     try {
-      // This would normally call the API to mark all notifications as read
-      // For now, we'll just update the state
+      await _notificationService.markNotificationsAsRead(domain!);
+      
+      // Update local state to reflect the change
       final updatedNotifications = state.notifications.map((notification) {
         return notification.copyWith(read: true);
       }).toList();
@@ -212,70 +217,6 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     }
   }
   
-  /// Get mock notifications for development
-  List<model.Notification> _getMockNotifications() {
-    final now = DateTime.now();
-    
-    return [
-      model.Notification(
-        id: '1',
-        type: model.NotificationType.follow,
-        createdAt: now.subtract(const Duration(minutes: 5)),
-        account: _getMockAccount('1', 'Alice', 'alice'),
-      ),
-      model.Notification(
-        id: '2',
-        type: model.NotificationType.mention,
-        createdAt: now.subtract(const Duration(hours: 1)),
-        account: _getMockAccount('2', 'Bob', 'bob'),
-        status: _getMockStatus('1', 'Hello @user!', now.subtract(const Duration(hours: 1))),
-      ),
-      model.Notification(
-        id: '3',
-        type: model.NotificationType.reblog,
-        createdAt: now.subtract(const Duration(hours: 2)),
-        account: _getMockAccount('3', 'Charlie', 'charlie'),
-        status: _getMockStatus('2', 'This is a post that was boosted', now.subtract(const Duration(hours: 2))),
-      ),
-      model.Notification(
-        id: '4',
-        type: model.NotificationType.favourite,
-        createdAt: now.subtract(const Duration(hours: 3)),
-        account: _getMockAccount('4', 'Diana', 'diana'),
-        status: _getMockStatus('3', 'This is a post that was liked', now.subtract(const Duration(hours: 3))),
-      ),
-      model.Notification(
-        id: '5',
-        type: model.NotificationType.poll,
-        createdAt: now.subtract(const Duration(hours: 4)),
-        account: _getMockAccount('5', 'Evan', 'evan'),
-        status: _getMockStatus('4', 'This is a poll that ended', now.subtract(const Duration(hours: 4))),
-      ),
-    ];
-  }
-  
-  /// Get a mock account for development
-  Account _getMockAccount(String id, String displayName, String username) {
-    return Account(
-      id: id,
-      username: username,
-      acct: username,
-      displayName: displayName,
-      avatar: 'https://i.pravatar.cc/150?u=$username',
-    );
-  }
-  
-  /// Get a mock status for development
-  Status _getMockStatus(String id, String content, DateTime createdAt) {
-    return Status(
-      id: id,
-      uri: 'https://example.com/status/$id',
-      createdAt: createdAt,
-      account: _getMockAccount('user', 'User', 'user'),
-      content: content,
-      visibility: status_model.Visibility.public,
-    );
-  }
 }
 
 /// Screen for displaying notifications
@@ -516,10 +457,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
-                Text(
-                  notification.status!.content,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                SafeHtmlWidget(
+                  htmlContent: notification.status!.content,
                 ),
                 if (notification.status!.mediaAttachments.isNotEmpty) ...[
                   const SizedBox(height: 8),

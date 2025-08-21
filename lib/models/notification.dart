@@ -5,6 +5,42 @@ import 'status.dart';
 part 'notification.freezed.dart';
 part 'notification.g.dart';
 
+/// Converter for handling both string and integer values in JSON
+class StringOrIntConverter implements JsonConverter<String?, dynamic> {
+  const StringOrIntConverter();
+
+  @override
+  String? fromJson(dynamic json) {
+    if (json == null) return null;
+    if (json is String) return json;
+    if (json is int) return json.toString();
+    if (json is double) return json.toInt().toString();
+    return json.toString();
+  }
+
+  @override
+  dynamic toJson(String? object) => object;
+}
+
+/// Converter for handling both boolean and string boolean values in JSON
+class BoolConverter implements JsonConverter<bool, dynamic> {
+  const BoolConverter();
+
+  @override
+  bool fromJson(dynamic json) {
+    if (json == null) return false;
+    if (json is bool) return json;
+    if (json is String) {
+      return json.toLowerCase() == 'true' || json == '1';
+    }
+    if (json is int) return json != 0;
+    return false;
+  }
+
+  @override
+  dynamic toJson(bool object) => object;
+}
+
 /// Represents a notification on Mastodon or Pixelfed
 @freezed
 class Notification with _$Notification {
@@ -16,6 +52,7 @@ class Notification with _$Notification {
     required NotificationType type,
     
     /// When the notification was created
+    @JsonKey(name: 'created_at')
     required DateTime createdAt,
     
     /// The account that triggered the notification
@@ -25,13 +62,19 @@ class Notification with _$Notification {
     Status? status,
     
     /// The ID of the status associated with the notification (if applicable)
+    @JsonKey(name: 'status_id')
+    @StringOrIntConverter()
     String? statusId,
     
     /// The ID of the report associated with the notification (if applicable)
+    @JsonKey(name: 'report_id')
+    @StringOrIntConverter()
     String? reportId,
     
     /// Whether the notification has been read
-    @Default(false) bool read,
+    @Default(false)
+    @BoolConverter()
+    bool read,
     
     /// The domain of the instance that sent the notification
     String? domain,

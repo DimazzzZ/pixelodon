@@ -3,12 +3,44 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'account.freezed.dart';
 part 'account.g.dart';
 
+/// Converter for handling both string and integer values in JSON
+class StringOrIntConverter implements JsonConverter<String, dynamic> {
+  const StringOrIntConverter();
+
+  @override
+  String fromJson(dynamic json) {
+    if (json == null) return '';
+    if (json is String) return json;
+    if (json is int) return json.toString();
+    if (json is double) return json.toInt().toString();
+    return json.toString();
+  }
+
+  @override
+  dynamic toJson(String object) => object;
+}
+
+/// Converter that turns null into empty string
+class NullToEmptyStringConverter implements JsonConverter<String, dynamic> {
+  const NullToEmptyStringConverter();
+
+  @override
+  String fromJson(dynamic json) {
+    if (json == null) return '';
+    if (json is String) return json;
+    return json.toString();
+  }
+
+  @override
+  dynamic toJson(String object) => object;
+}
+
 /// Represents a user account on a Mastodon or Pixelfed instance
 @freezed
 class Account with _$Account {
   const factory Account({
     /// The account ID
-    required String id,
+    @StringOrIntConverter() required String id,
     
     /// The username of the account
     required String username,
@@ -17,7 +49,7 @@ class Account with _$Account {
     required String acct,
     
     /// The display name of the account
-    @JsonKey(name: 'display_name') required String displayName,
+    @JsonKey(name: 'display_name') @NullToEmptyStringConverter() required String displayName,
     
     /// Whether the account is locked (private)
     @Default(false) bool locked,

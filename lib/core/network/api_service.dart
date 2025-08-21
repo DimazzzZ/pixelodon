@@ -78,7 +78,8 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
@@ -104,7 +105,8 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
@@ -130,7 +132,8 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
@@ -152,7 +155,8 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
@@ -178,7 +182,8 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
@@ -215,12 +220,13 @@ class ApiService {
       );
       return response;
     } catch (e) {
-      return _handleError(e);
+      _handleError(e);
+      rethrow;
     }
   }
   
   /// Handle errors
-  Future<Response> _handleError(dynamic error) async {
+  void _handleError(dynamic error) {
     if (error is DioException) {
       if (error.type == DioExceptionType.cancel) {
         throw CancellationException('Request was cancelled');
