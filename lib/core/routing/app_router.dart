@@ -12,6 +12,7 @@ import 'package:pixelodon/features/profile/screens/profile_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -162,10 +163,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/compose',
         builder: (context, state) => const ComposeScreen(),
       ),
-
+      
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      
+      // Status detail route
+      GoRoute(
+        path: '/status/:statusId',
+        builder: (context, state) {
+          final statusId = state.pathParameters['statusId']!;
+          return StatusDetailScreen(statusId: statusId);
+        },
       ),
       
       // Fallback route

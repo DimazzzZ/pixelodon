@@ -186,14 +186,22 @@ class _PostCardState extends ConsumerState<PostCard> {
     
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-      child: Material(
-        elevation: 1.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        onTap: () {
+          // Navigate to status details when tapping the card
+          if (_status.id.isNotEmpty) {
+            context.push('/status/${_status.id}');
+          }
+        },
+        child: Material(
+          elevation: 1.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Reblog header
             if (isReblog) ...[
               Padding(
@@ -207,7 +215,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${widget.status.account?.displayName ?? 'Someone'} boosted',
+                      "${widget.status.account?.displayName ?? 'Someone'} boosted",
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey,
                       ),
@@ -405,7 +413,8 @@ class _PostCardState extends ConsumerState<PostCard> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
   
   /// Build a stat button with count

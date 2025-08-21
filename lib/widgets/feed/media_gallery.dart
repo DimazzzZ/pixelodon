@@ -109,9 +109,7 @@ class _MediaGalleryState extends State<MediaGallery> {
     return GestureDetector(
       onTap: () => widget.onTap?.call(0),
       child: Container(
-        constraints: BoxConstraints(
-          maxHeight: widget.maxHeight,
-        ),
+        height: widget.maxHeight,
         margin: const EdgeInsets.symmetric(horizontal: 16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
@@ -124,9 +122,7 @@ class _MediaGalleryState extends State<MediaGallery> {
   /// Build a grid layout for 2-4 attachments
   Widget _buildGridLayout() {
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: widget.maxHeight,
-      ),
+      height: widget.maxHeight,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -138,9 +134,12 @@ class _MediaGalleryState extends State<MediaGallery> {
             for (int i = 0; i < widget.attachments.length; i++)
               StaggeredGridTile.fit(
                 crossAxisCellCount: 1,
-                child: GestureDetector(
-                  onTap: () => widget.onTap?.call(i),
-                  child: _buildAttachmentWidget(widget.attachments[i]),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: GestureDetector(
+                    onTap: () => widget.onTap?.call(i),
+                    child: _buildAttachmentWidget(widget.attachments[i]),
+                  ),
                 ),
               ),
           ],
@@ -152,7 +151,7 @@ class _MediaGalleryState extends State<MediaGallery> {
   /// Build a carousel layout for more than 4 attachments
   Widget _buildCarouselLayout() {
     return Container(
-      height: 200,
+      height: widget.maxHeight,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,

@@ -515,127 +515,133 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     final account = state.account!;
     final theme = Theme.of(context);
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        // Header image
-        Stack(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            if (account.header != null)
-              CachedNetworkImage(
-                imageUrl: account.header!,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 150,
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 150,
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                ),
-              )
-            else
-              Container(
-                height: 150,
-                color: theme.colorScheme.primary.withOpacity(0.1),
-              ),
-            
-            // Avatar
-            Positioned(
-              bottom: -40,
-              left: 16,
-              child: Material(
-                elevation: 8,
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: theme.scaffoldBackgroundColor,
-                      width: 4,
+            // Header image
+            Stack(
+              children: [
+                // Header
+                if (account.header != null)
+                  CachedNetworkImage(
+                    imageUrl: account.header!,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      height: 150,
+                      color: theme.colorScheme.primary.withOpacity(0.1),
                     ),
+                    errorWidget: (context, url, error) => Container(
+                      height: 150,
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                    ),
+                  )
+                else
+                  Container(
+                    height: 150,
+                    color: theme.colorScheme.primary.withOpacity(0.1),
                   ),
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundImage: account.avatar != null
-                        ? CachedNetworkImageProvider(account.avatar!)
-                        : null,
-                    child: account.avatar == null
-                        ? Text(
-                            account.displayName[0],
-                            style: const TextStyle(fontSize: 32),
-                          )
-                        : null,
-                  ),
+                
+                
+                // Follow button
+                Positioned(
+                  bottom: 8,
+                  right: 16,
+                  child: _buildFollowButton(state, notifier),
                 ),
-              ),
+              ],
             ),
             
-            // Follow button
-            Positioned(
-              bottom: 8,
-              right: 16,
-              child: _buildFollowButton(state, notifier),
+            const SizedBox(height: 80),
+            
+            // Profile info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Display name and username
+                  Text(
+                    account.displayName,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '@${account.username}${account.domain != null ? '@${account.domain}' : ''}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  
+                  if (account.note != null && account.note!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    SafeHtmlWidget(htmlContent: account.note!),
+                  ],
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Stats
+                  Row(
+                    children: [
+                      _buildStatItem(
+                        context,
+                        account.statusesCount.toString(),
+                        isPixelfed ? 'Posts' : 'Toots',
+                      ),
+                      _buildStatItem(
+                        context,
+                        account.followingCount.toString(),
+                        'Following',
+                      ),
+                      _buildStatItem(
+                        context,
+                        account.followersCount.toString(),
+                        'Followers',
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ],
         ),
         
-        const SizedBox(height: 80),
-        
-        // Profile info
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display name and username
-              Text(
-                account.displayName,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+        // Avatar (topmost)
+        Positioned(
+          top: 110,
+          left: 16,
+          child: Material(
+            elevation: 8,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.scaffoldBackgroundColor,
+                  width: 4,
                 ),
               ),
-              Text(
-                '@${account.username}${account.domain != null ? '@${account.domain}' : ''}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey,
-                ),
+              child: CircleAvatar(
+                radius: 40,
+                backgroundImage: account.avatar != null
+                    ? CachedNetworkImageProvider(account.avatar!)
+                    : null,
+                child: account.avatar == null
+                    ? Text(
+                        account.displayName[0],
+                        style: const TextStyle(fontSize: 32),
+                      )
+                    : null,
               ),
-              
-              if (account.note != null && account.note!.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                SafeHtmlWidget(htmlContent: account.note!),
-              ],
-              
-              const SizedBox(height: 16),
-              
-              // Stats
-              Row(
-                children: [
-                  _buildStatItem(
-                    context,
-                    account.statusesCount.toString(),
-                    isPixelfed ? 'Posts' : 'Toots',
-                  ),
-                  _buildStatItem(
-                    context,
-                    account.followingCount.toString(),
-                    'Following',
-                  ),
-                  _buildStatItem(
-                    context,
-                    account.followersCount.toString(),
-                    'Followers',
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         ),
       ],
