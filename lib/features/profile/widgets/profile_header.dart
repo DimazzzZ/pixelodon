@@ -82,7 +82,7 @@ class ProfileHeader extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 80),
+            const SizedBox(height: 160),
 
             // Profile info
             Padding(
@@ -175,14 +175,14 @@ class ProfileHeader extends StatelessWidget {
                   }
                 },
                 child: CircleAvatar(
-                  radius: 40,
+                  radius: 80,
                   backgroundImage: account.avatar != null
                       ? CachedNetworkImageProvider(account.avatar!)
                       : null,
                   child: account.avatar == null
                       ? Text(
                           account.displayName[0],
-                          style: const TextStyle(fontSize: 32),
+                          style: const TextStyle(fontSize: 64),
                         )
                       : null,
                 ),

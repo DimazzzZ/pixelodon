@@ -454,28 +454,40 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
-                SafeHtmlWidget(
-                  htmlContent: notification.status!.content,
-                ),
-                if (notification.status!.mediaAttachments.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.photo,
-                        size: 16,
-                        color: Colors.grey,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text/content on the left
+                    Expanded(
+                      child: SafeHtmlWidget(
+                        htmlContent: notification.status!.content,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${notification.status!.mediaAttachments.length} media attachment${notification.status!.mediaAttachments.length > 1 ? 's' : ''}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
+                    ),
+                    // Thumbnail preview on the right (first media only)
+                    if (notification.status!.mediaAttachments.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 64,
+                          height: 64,
+                          child: CachedNetworkImage(
+                            imageUrl: notification.status!.mediaAttachments.first.previewUrl
+                                    ?? notification.status!.mediaAttachments.first.url,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[300],
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                            ),
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ],
+                  ],
+                ),
               ],
             ],
           ),

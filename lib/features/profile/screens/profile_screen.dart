@@ -8,10 +8,10 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
-import 'package:pixelodon/features/profile/widgets/sliver_tab_bar_delegate.dart';
 import 'package:pixelodon/features/profile/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
-import 'package:pixelodon/features/profile/widgets/about_tab.dart';
+import 'package:pixelodon/features/profile/widgets/info_item.dart';
+import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
 
 /// Provider for a user profile
 final profileProvider =
@@ -413,21 +413,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -492,46 +478,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 },
                               ),
                             ),
-                            SliverPersistentHeader(
-                              delegate: SliverTabBarDelegate(
-                                TabBar(
-                                  controller: _tabController,
-                                  tabs: [
-                                    Tab(text: isPixelfed ? 'Media' : 'Posts'),
-                                    const Tab(text: 'About'),
-                                  ],
-                                ),
-                              ),
-                              pinned: true,
+                            // About section moved below description
+                            SliverToBoxAdapter(
+                              child: _AboutSection(account: profileState.account!),
                             ),
                           ];
                         },
-                        body: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            // Posts / Media tab
-                            PostsTab(
-                              statuses: profileState.statuses,
-                              isLoading: profileState.isLoadingStatuses,
-                              hasError: profileState.hasError,
-                              errorMessage: profileState.errorMessage,
-                              hasMore: profileState.hasMore,
-                              isPixelfed: isPixelfed,
-                              onlyMedia: profileState.onlyMedia,
-                              onLoadMore: profileNotifier.loadMoreStatuses,
-                              onRefresh: profileNotifier.refreshStatuses,
-                              onEnsureOnlyMedia: (onlyMedia) => profileNotifier
-                                  .setFilters(onlyMedia: onlyMedia),
-                              onStatusUpdated: (status) =>
-                                  profileNotifier.updateStatus(status),
-                            ),
-
-                            // About tab
-                            AboutTab(account: profileState.account!),
-                          ],
+                        body: PostsTab(
+                          statuses: profileState.statuses,
+                          isLoading: profileState.isLoadingStatuses,
+                          hasError: profileState.hasError,
+                          errorMessage: profileState.errorMessage,
+                          hasMore: profileState.hasMore,
+                          isPixelfed: isPixelfed,
+                          onlyMedia: profileState.onlyMedia,
+                          onLoadMore: profileNotifier.loadMoreStatuses,
+                          onRefresh: profileNotifier.refreshStatuses,
+                          onEnsureOnlyMedia: (onlyMedia) =>
+                              profileNotifier.setFilters(onlyMedia: onlyMedia),
+                          onStatusUpdated: (status) =>
+                              profileNotifier.updateStatus(status),
                         ),
                       ),
                     ),
+    );
+  }
+}
+
+
+/// About section content moved from the About tab to below profile description
+class _AboutSection extends StatelessWidget {
+  final Account account;
+  const _AboutSection({required this.account});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (account.fields != null && account.fields!.isNotEmpty) ...[
+            const Text(
+              'Profile Fields',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...account.fields!.map((field) => ProfileFieldItem(field: field)),
+            const SizedBox(height: 16),
+          ],
+          const Text(
+            'Account Information',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InfoItem(
+            label: 'Account created',
+            value: account.createdAt != null
+                ? '${account.createdAt!.day}/${account.createdAt!.month}/${account.createdAt!.year}'
+                : 'Unknown',
+          ),
+          if (account.lastStatusAt != null)
+            InfoItem(
+              label: 'Last post',
+              value:
+                  '${account.lastStatusAt!.day}/${account.lastStatusAt!.month}/${account.lastStatusAt!.year}',
+            ),
+          InfoItem(label: 'Posts', value: account.statusesCount.toString()),
+          InfoItem(label: 'Following', value: account.followingCount.toString()),
+          InfoItem(label: 'Followers', value: account.followersCount.toString()),
+          if (account.bot) const InfoItem(label: 'Bot account', value: 'Yes'),
+          if (account.locked) const InfoItem(label: 'Private account', value: 'Yes'),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

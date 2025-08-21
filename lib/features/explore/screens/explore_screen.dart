@@ -8,6 +8,7 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/core/network/api_service.dart';
+import 'package:pixelodon/providers/api_provider.dart' as api_providers;
 import 'package:pixelodon/services/timeline_service.dart';
 
 /// Provider for the public timeline
@@ -251,22 +252,35 @@ class PublicTimelineNotifier extends StateNotifier<TimelineState> {
   }
 }
 
-/// Provider for trending hashtags (kept simple; can be wired to API later)
+/// Provider for trending hashtags (fetches from /api/v1/trends/tags when available)
 final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
-  // TODO: Replace with real endpoint (e.g., /api/v1/trends/tags) when available
-  await Future.delayed(const Duration(milliseconds: 300));
-  return const [
-    'photography',
-    'art',
-    'nature',
-    'technology',
-    'travel',
-    'food',
-    'music',
-    'fashion',
-    'sports',
-    'science',
-  ];
+  final activeInstance = ref.watch(activeInstanceProvider);
+  final domain = activeInstance?.domain;
+  if (domain == null) return const <String>[];
+
+  // Use ApiService directly to query the trends/tags endpoint
+  final api = ref.watch(api_providers.apiServiceProvider);
+  try {
+    final response = await api.get('https://$domain/api/v1/trends/tags', queryParameters: {
+      'limit': 10,
+    });
+    final data = response.data;
+    if (data is List) {
+      final names = data
+          .map((e) => (e is Map && e['name'] is String) ? (e['name'] as String) : null)
+          .whereType<String>()
+          .toList();
+      return names;
+    }
+    return const <String>[];
+  } catch (e) {
+    // Instances that do not support trends/tags should not break the UI
+    if (e is NotFoundException) {
+      return const <String>[];
+    }
+    // Re-throw other errors so the UI can show an error state
+    rethrow;
+  }
 });
 
 /// Trending posts timeline provider backed by a notifier for pagination
