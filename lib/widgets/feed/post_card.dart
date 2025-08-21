@@ -8,6 +8,7 @@ import 'package:pixelodon/widgets/feed/media_gallery.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/utils/link_tap_handler.dart';
+import 'package:pixelodon/utils/account_utils.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Widget for displaying a post in a feed
@@ -242,28 +243,36 @@ class _PostCardState extends ConsumerState<PostCard> {
                       : null,
                 ),
               ),
-              title: Row(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
-                      child: Text(
-                        _status.account?.displayName ?? 'Unknown User',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  GestureDetector(
+                    onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                    child: Text(
+                      _status.account?.displayName ?? 'Unknown User',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text(
-                    '@${_status.account?.username ?? 'unknown'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                  const SizedBox(height: 2),
+                  GestureDetector(
+                    onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                    child: Text(
+                      AccountUtils.formatHandle(
+                        acct: _status.account?.acct ?? '',
+                        username: _status.account?.username,
+                        accountDomain: _status.account?.domain,
+                        fallbackDomain: widget.domain,
+                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

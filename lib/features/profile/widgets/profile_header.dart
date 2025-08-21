@@ -1,11 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/profile/widgets/follow_button.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
+import 'package:pixelodon/utils/account_utils.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Account account;
@@ -13,6 +15,7 @@ class ProfileHeader extends StatelessWidget {
   final bool isCurrentUser;
   final bool isFollowing;
   final bool isFollowRequestPending;
+  final String? activeDomain;
   final VoidCallback onFollow;
   final VoidCallback onUnfollow;
   final VoidCallback onEditProfile;
@@ -24,6 +27,7 @@ class ProfileHeader extends StatelessWidget {
     required this.isCurrentUser,
     required this.isFollowing,
     required this.isFollowRequestPending,
+    this.activeDomain,
     required this.onFollow,
     required this.onUnfollow,
     required this.onEditProfile,
@@ -93,7 +97,12 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '@${account.username}${account.domain != null ? '@${account.domain}' : ''}',
+                    AccountUtils.formatHandle(
+                      acct: account.acct,
+                      username: account.username,
+                      accountDomain: account.domain,
+                      fallbackDomain: activeDomain,
+                    ),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey,
                     ),
@@ -118,10 +127,12 @@ class ProfileHeader extends StatelessWidget {
                       ProfileStatItem(
                         count: account.followingCount.toString(),
                         label: 'Following',
+                        onTap: () => context.push('/profile/${account.id}/following'),
                       ),
                       ProfileStatItem(
                         count: account.followersCount.toString(),
                         label: 'Followers',
+                        onTap: () => context.push('/profile/${account.id}/followers'),
                       ),
                     ],
                   ),

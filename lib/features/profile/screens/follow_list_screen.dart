@@ -1,0 +1,193 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/service_providers.dart';
+import 'package:pixelodon/features/profile/widgets/compact_account_tile.dart';
+
+enum FollowListType { following, followers }
+
+class FollowListScreen extends ConsumerStatefulWidget {
+  final String accountId;
+  final FollowListType type;
+
+  const FollowListScreen({super.key, required this.accountId, required this.type});
+
+  @override
+  ConsumerState<FollowListScreen> createState() => _FollowListScreenState();
+}
+
+class _FollowListScreenState extends ConsumerState<FollowListScreen> {
+  final List<Account> _accounts = [];
+  bool _isLoading = false;
+  bool _isRefreshing = false;
+  bool _hasError = false;
+  String? _errorMessage;
+  String? _maxId;
+  bool _hasMore = true;
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+    _loadInitial();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadInitial() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = null;
+      _accounts.clear();
+      _maxId = null;
+      _hasMore = true;
+    });
+    await _fetch();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _isRefreshing = true;
+      _hasError = false;
+      _errorMessage = null;
+      _accounts.clear();
+      _maxId = null;
+      _hasMore = true;
+    });
+    await _fetch();
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() {
+      _isLoading = true;
+    });
+    await _fetch();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetch() async {
+    final domain = ref.read(activeInstanceProvider)?.domain;
+    if (domain == null) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'No active instance';
+      });
+      return;
+    }
+    try {
+      final accountService = ref.read(accountServiceProvider);
+      final list = widget.type == FollowListType.following
+          ? await accountService.getFollowing(domain, widget.accountId, limit: 40, maxId: _maxId)
+          : await accountService.getFollowers(domain, widget.accountId, limit: 40, maxId: _maxId);
+      if (list.isNotEmpty) {
+        _maxId = list.last.id;
+      }
+      setState(() {
+        _accounts.addAll(list);
+        _hasMore = list.length >= 40;
+      });
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Failed to load list: $e';
+      });
+    }
+  }
+
+  String _title() => widget.type == FollowListType.following ? 'Following' : 'Followers';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_title()),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildBody(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_isLoading && _accounts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_hasError && _accounts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 8),
+            Text(_errorMessage ?? 'Failed to load'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: _loadInitial,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        if (index < _accounts.length) {
+          final acc = _accounts[index];
+          return CompactAccountTile(
+            account: acc,
+            onTap: () => context.push('/profile/${acc.id}'),
+            onFollowChanged: (updated) {
+              setState(() {
+                _accounts[index] = updated;
+              });
+            },
+          );
+        }
+        // Loader at end
+        if (_isLoading) {
+          return const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemCount: _accounts.length + (_isLoading ? 1 : 0),
+    );
+  }
+}

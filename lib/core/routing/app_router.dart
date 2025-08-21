@@ -9,6 +9,7 @@ import 'package:pixelodon/features/explore/screens/explore_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
 import 'package:pixelodon/features/notifications/screens/notifications_screen.dart';
 import 'package:pixelodon/features/profile/screens/profile_screen.dart';
+import 'package:pixelodon/features/profile/screens/follow_list_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
@@ -156,6 +157,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               return MaterialPage(
                 key: UniqueKey(),
                 child: ProfileScreen(accountId: accountId),
+              );
+            },
+          ),
+
+          // Following list
+          GoRoute(
+            path: '/profile/:accountId/following',
+            pageBuilder: (context, state) {
+              final accountId = state.pathParameters['accountId']!;
+              return MaterialPage(
+                key: UniqueKey(),
+                child: FollowListScreen(accountId: accountId, type: FollowListType.following),
+              );
+            },
+          ),
+
+          // Followers list
+          GoRoute(
+            path: '/profile/:accountId/followers',
+            pageBuilder: (context, state) {
+              final accountId = state.pathParameters['accountId']!;
+              return MaterialPage(
+                key: UniqueKey(),
+                child: FollowListScreen(accountId: accountId, type: FollowListType.followers),
               );
             },
           ),

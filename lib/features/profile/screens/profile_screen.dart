@@ -484,6 +484,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 isFollowing: profileState.isFollowing,
                                 isFollowRequestPending:
                                     profileState.isFollowRequestPending,
+                                activeDomain: activeInstance?.domain,
                                 onFollow: profileNotifier.followAccount,
                                 onUnfollow: profileNotifier.unfollowAccount,
                                 onEditProfile: () {
