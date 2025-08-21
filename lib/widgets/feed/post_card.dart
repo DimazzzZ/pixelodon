@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
-import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/media_gallery.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Widget for displaying a post in a feed
@@ -342,56 +342,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: SafeHtmlWidget(
                   htmlContent: _status.content,
-                  onLinkTap: (url) async {
-                    if (url == null) return;
-                    final uri = Uri.tryParse(url);
-                    if (uri == null) return;
-
-                    // 1) Hashtags: navigate to /tag/:tag
-                    final tagMatch = RegExp(r"/tags/([^/?#]+)").firstMatch(uri.path);
-                    if (tagMatch != null) {
-                      final tag = tagMatch.group(1)!;
-                      if (tag.isNotEmpty) {
-                        if (mounted) context.push('/tag/$tag');
-                        return;
-                      }
-                    }
-
-                    // 2) Mentions: try match by status.mentions URL -> account id
-                    final matchedMention = _status.mentions.where((m) => m.url == url);
-                    if (matchedMention.isNotEmpty) {
-                      final m = matchedMention.first;
-                      if (m.id.isNotEmpty) {
-                        if (mounted) context.push('/profile/${m.id}');
-                        return;
-                      }
-                    }
-
-                    // 3) Fallback: parse /@username and resolve account via search
-                    final atPath = RegExp(r"/@([A-Za-z0-9_\.]+)").firstMatch(uri.path);
-                    if (atPath != null) {
-                      final username = atPath.group(1)!;
-                      final host = uri.host;
-                      final container = ProviderScope.containerOf(context);
-                      final active = container.read(activeInstanceProvider);
-                      final acct = host.isNotEmpty && host != (active?.domain ?? '') ? '$username@$host' : username;
-                      try {
-                        final accountService = container.read(accountServiceProvider);
-                        final results = await accountService.searchAccounts(
-                          active?.domain ?? host,
-                          query: acct,
-                          limit: 1,
-                          resolve: true,
-                        );
-                        if (results.isNotEmpty) {
-                          if (mounted) context.push('/profile/${results.first.id}');
-                          return;
-                        }
-                      } catch (_) {}
-                    }
-
-                    // 4) Otherwise: ignore or handle externally in future.
-                  },
+                  onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url, mentions: _status.mentions),
                 ),
               ),
             ],

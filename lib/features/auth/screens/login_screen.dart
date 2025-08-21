@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:pixelodon/services/browser_service.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -79,25 +79,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final domain = _discoveredInstance!.domain;
       final authInfo = await ref.read(authRepositoryProvider).startOAuthFlow(domain);
       
-      // Launch the authorization URL
-      final url = Uri.parse(authInfo['url']!);
-      if (await canLaunchUrl(url)) {
-        // Use externalApplication mode so the OAuth flow happens in the system browser
-        // which can properly handle the custom URL scheme redirect back to the app
-        final result = await launchUrl(url, mode: LaunchMode.externalApplication);
-        debugPrint('URL launch result: $result');
-        
-        // Navigate to the callback screen
-        if (mounted) {
-          context.push('/oauth/callback', extra: {
-            'domain': domain,
-            'state': authInfo['state'],
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Could not launch the browser for authentication.';
-          _isLoading = false;
+      // Launch the authorization URL via centralized BrowserService
+      final browser = BrowserService();
+      await browser.launchURL(authInfo['url']!);
+
+      // Navigate to the callback screen
+      if (mounted) {
+        context.push('/oauth/callback', extra: {
+          'domain': domain,
+          'state': authInfo['state'],
         });
       }
     } catch (e) {

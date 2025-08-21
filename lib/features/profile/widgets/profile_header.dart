@@ -1,11 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/account.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/profile/widgets/follow_button.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
@@ -106,49 +103,7 @@ class ProfileHeader extends StatelessWidget {
                     const SizedBox(height: 16),
                     SafeHtmlWidget(
                       htmlContent: account.note!,
-                      onLinkTap: (url) async {
-                        if (url == null) return;
-                        final uri = Uri.tryParse(url);
-                        if (uri == null) return;
-
-                        // Hashtag
-                        final tagMatch = RegExp(r"/tags/([^/?#]+)").firstMatch(uri.path);
-                        if (tagMatch != null) {
-                          final tag = tagMatch.group(1)!;
-                          if (tag.isNotEmpty) {
-                            if (context.mounted) {
-                              context.push('/tag/$tag');
-                            }
-                          }
-                        }
-
-                        // Mention: try to resolve by search
-                        final atPath = RegExp(r"/@([A-Za-z0-9_\.]+)").firstMatch(uri.path);
-                        if (atPath != null) {
-                          final username = atPath.group(1)!;
-                          final host = uri.host;
-                          final container = ProviderScope.containerOf(context);
-                          final active = container.read(activeInstanceProvider);
-                          final acct = host.isNotEmpty && host != (active?.domain ?? '') ? '$username@$host' : username;
-                          try {
-                            final accountService = container.read(accountServiceProvider);
-                            final results = await accountService.searchAccounts(
-                              active?.domain ?? host,
-                              query: acct,
-                              limit: 1,
-                              resolve: true,
-                            );
-                            if (results.isNotEmpty) {
-                              if (context.mounted) {
-                                // Use go_router if available
-                                // ignore: use_build_context_synchronously
-                                context.push('/profile/${results.first.id}');
-                              }
-                              return;
-                            }
-                          } catch (_) {}
-                        }
-                      },
+                      onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
                     ),
                   ],
 
