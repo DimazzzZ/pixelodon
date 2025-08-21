@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' as model;
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 
@@ -73,7 +74,10 @@ class PostsTab extends StatelessWidget {
 
           return GestureDetector(
             onTap: () {
-              // TODO: Navigate to post detail
+              // Navigate to post detail
+              if (status.id.isNotEmpty) {
+                context.push('/status/${status.id}');
+              }
             },
             child: CachedNetworkImage(
               imageUrl: attachment.previewUrl ?? attachment.url,

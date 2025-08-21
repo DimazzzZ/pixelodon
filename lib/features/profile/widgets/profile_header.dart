@@ -4,6 +4,7 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/profile/widgets/follow_button.dart';
+import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Account account;
@@ -144,17 +145,32 @@ class ProfileHeader extends StatelessWidget {
                   width: 4,
                 ),
               ),
-              child: CircleAvatar(
-                radius: 40,
-                backgroundImage: account.avatar != null
-                    ? CachedNetworkImageProvider(account.avatar!)
-                    : null,
-                child: account.avatar == null
-                    ? Text(
-                        account.displayName[0],
-                        style: const TextStyle(fontSize: 32),
-                      )
-                    : null,
+              child: GestureDetector(
+                onTap: () {
+                  if (account.avatar != null && account.avatar!.isNotEmpty) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ImageViewerScreen(
+                          imageUrls: [account.avatar!],
+                          initialIndex: 0,
+                          heroTagPrefix: 'profile_avatar_${account.id}',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundImage: account.avatar != null
+                      ? CachedNetworkImageProvider(account.avatar!)
+                      : null,
+                  child: account.avatar == null
+                      ? Text(
+                          account.displayName[0],
+                          style: const TextStyle(fontSize: 32),
+                        )
+                      : null,
+                ),
               ),
             ),
           ),

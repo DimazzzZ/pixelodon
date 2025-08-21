@@ -14,11 +14,13 @@ import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
 import 'package:pixelodon/features/profile/widgets/about_tab.dart';
 
 /// Provider for a user profile
-final profileProvider = StateNotifierProvider.family<ProfileNotifier, ProfileState, String>((ref, accountId) {
+final profileProvider =
+    StateNotifierProvider.family<ProfileNotifier, ProfileState, String>(
+        (ref, accountId) {
   final accountService = ref.watch(accountServiceProvider);
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
-  
+
   return ProfileNotifier(
     accountService: accountService,
     timelineService: timelineService,
@@ -43,7 +45,7 @@ class ProfileState {
   final bool pinned;
   final bool isFollowing;
   final bool isFollowRequestPending;
-  
+
   ProfileState({
     this.account,
     this.statuses = const [],
@@ -60,7 +62,7 @@ class ProfileState {
     this.isFollowing = false,
     this.isFollowRequestPending = false,
   });
-  
+
   ProfileState copyWith({
     Account? account,
     List<model.Status>? statuses,
@@ -91,7 +93,8 @@ class ProfileState {
       excludeReblogs: excludeReblogs ?? this.excludeReblogs,
       pinned: pinned ?? this.pinned,
       isFollowing: isFollowing ?? this.isFollowing,
-      isFollowRequestPending: isFollowRequestPending ?? this.isFollowRequestPending,
+      isFollowRequestPending:
+          isFollowRequestPending ?? this.isFollowRequestPending,
     );
   }
 }
@@ -103,7 +106,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final String? domain;
   final String accountId;
   CancelToken? _cancelToken;
-  
+
   ProfileNotifier({
     required this.accountService,
     required this.timelineService,
@@ -114,13 +117,13 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       loadProfile();
     }
   }
-  
+
   @override
   void dispose() {
     _cancelToken?.cancel('Profile navigation cancelled');
     super.dispose();
   }
-  
+
   /// Set timeline filters
   void setFilters({
     bool? onlyMedia,
@@ -134,30 +137,30 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       excludeReblogs: excludeReblogs,
       pinned: pinned,
     );
-    
+
     loadStatuses();
   }
-  
+
   /// Load the profile
   Future<void> loadProfile() async {
     if (domain == null) return;
-    
+
     state = state.copyWith(
       isLoading: true,
       hasError: false,
       errorMessage: null,
     );
-    
+
     try {
       final account = await accountService.getAccount(domain!, accountId);
-      
+
       state = state.copyWith(
         account: account,
         isLoading: false,
         isFollowing: account.following,
         isFollowRequestPending: account.requested,
       );
-      
+
       loadStatuses();
     } catch (e) {
       state = state.copyWith(
@@ -167,11 +170,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Load the account's statuses
   Future<void> loadStatuses({int retryCount = 0, bool isRetry = false}) async {
     if (domain == null) return;
-    
+
     // Only cancel if this is NOT a retry attempt - let retries use existing token
     if (!isRetry) {
       if (_cancelToken != null && !_cancelToken!.isCancelled) {
@@ -179,11 +182,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       }
       _cancelToken = CancelToken();
     }
-    
+
     state = state.copyWith(
       isLoadingStatuses: true,
     );
-    
+
     try {
       final statuses = await timelineService.getAccountStatuses(
         domain!,
@@ -195,12 +198,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         pinned: state.pinned,
         cancelToken: _cancelToken,
       );
-      
+
       String? maxId;
       if (statuses.isNotEmpty) {
         maxId = statuses.last.id;
       }
-      
+
       state = state.copyWith(
         statuses: statuses,
         isLoadingStatuses: false,
@@ -210,11 +213,14 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       // Automatic retry for cancellation errors with longer delays to allow network requests to complete
       if (e is CancellationException && retryCount < 3) {
-        final delay = Duration(milliseconds: 1000 * (retryCount + 1)); // 1s, 2s, 3s - more reasonable for network requests
+        final delay = Duration(
+            milliseconds: 1000 *
+                (retryCount +
+                    1)); // 1s, 2s, 3s - more reasonable for network requests
         await Future.delayed(delay);
         return loadStatuses(retryCount: retryCount + 1, isRetry: true);
       }
-      
+
       state = state.copyWith(
         isLoadingStatuses: false,
         hasError: true,
@@ -222,14 +228,14 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Refresh the profile and statuses
   Future<void> refreshProfile() async {
     if (domain == null) return;
-    
+
     try {
       final account = await accountService.getAccount(domain!, accountId);
-      
+
       state = state.copyWith(
         account: account,
         isFollowing: account.following,
@@ -237,7 +243,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         hasError: false,
         errorMessage: null,
       );
-      
+
       await refreshStatuses();
     } catch (e) {
       state = state.copyWith(
@@ -246,11 +252,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Refresh the account's statuses
   Future<void> refreshStatuses() async {
     if (domain == null) return;
-    
+
     try {
       final statuses = await timelineService.getAccountStatuses(
         domain!,
@@ -261,12 +267,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         excludeReblogs: state.excludeReblogs,
         pinned: state.pinned,
       );
-      
+
       String? maxId;
       if (statuses.isNotEmpty) {
         maxId = statuses.last.id;
       }
-      
+
       state = state.copyWith(
         statuses: statuses,
         hasMore: statuses.length >= 20,
@@ -281,15 +287,15 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Load more statuses
   Future<void> loadMoreStatuses() async {
     if (domain == null || state.isLoadingStatuses || !state.hasMore) return;
-    
+
     state = state.copyWith(
       isLoadingStatuses: true,
     );
-    
+
     try {
       final statuses = await timelineService.getAccountStatuses(
         domain!,
@@ -301,12 +307,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         excludeReblogs: state.excludeReblogs,
         pinned: state.pinned,
       );
-      
+
       String? maxId;
       if (statuses.isNotEmpty) {
         maxId = statuses.last.id;
       }
-      
+
       state = state.copyWith(
         statuses: [...state.statuses, ...statuses],
         isLoadingStatuses: false,
@@ -321,19 +327,19 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Follow the account
   Future<void> followAccount() async {
     if (domain == null || state.account == null) return;
-    
+
     state = state.copyWith(
       isFollowRequestPending: state.account!.locked,
       isFollowing: !state.account!.locked,
     );
-    
+
     try {
       final account = await accountService.followAccount(domain!, accountId);
-      
+
       state = state.copyWith(
         account: account,
         isFollowing: account.following,
@@ -349,19 +355,19 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Unfollow the account
   Future<void> unfollowAccount() async {
     if (domain == null || state.account == null) return;
-    
+
     state = state.copyWith(
       isFollowing: false,
       isFollowRequestPending: false,
     );
-    
+
     try {
       final account = await accountService.unfollowAccount(domain!, accountId);
-      
+
       state = state.copyWith(
         account: account,
         isFollowing: account.following,
@@ -376,15 +382,15 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     }
   }
-  
+
   /// Update a status in the timeline
   void updateStatus(model.Status status) {
     final index = state.statuses.indexWhere((s) => s.id == status.id);
-    
+
     if (index != -1) {
       final updatedStatuses = List<model.Status>.from(state.statuses);
       updatedStatuses[index] = status;
-      
+
       state = state.copyWith(
         statuses: updatedStatuses,
       );
@@ -396,7 +402,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 class ProfileScreen extends ConsumerStatefulWidget {
   /// The ID of the account to display
   final String accountId;
-  
+
   /// Constructor
   const ProfileScreen({
     super.key,
@@ -407,28 +413,30 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider(widget.accountId));
-    final profileNotifier = ref.read(profileProvider(widget.accountId).notifier);
+    final profileNotifier =
+        ref.read(profileProvider(widget.accountId).notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
     final isPixelfed = activeInstance?.isPixelfed ?? false;
-    
+
     return Scaffold(
       body: profileState.isLoading
           ? const Center(
@@ -470,12 +478,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                               child: ProfileHeader(
                                 account: profileState.account!,
                                 isPixelfed: isPixelfed,
-                                isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),
+                                isCurrentUser:
+                                    (ref.read(activeAccountProvider)?.id ==
+                                        widget.accountId),
                                 isFollowing: profileState.isFollowing,
-                                isFollowRequestPending: profileState.isFollowRequestPending,
+                                isFollowRequestPending:
+                                    profileState.isFollowRequestPending,
                                 onFollow: profileNotifier.followAccount,
                                 onUnfollow: profileNotifier.unfollowAccount,
-                                onEditProfile: () {/* TODO: Navigate to edit profile */},
+                                onEditProfile: () {
+                                  /* TODO: Navigate to edit profile */
+                                },
                               ),
                             ),
                             SliverPersistentHeader(
@@ -506,8 +519,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                               onlyMedia: profileState.onlyMedia,
                               onLoadMore: profileNotifier.loadMoreStatuses,
                               onRefresh: profileNotifier.refreshStatuses,
-                              onEnsureOnlyMedia: (onlyMedia) => profileNotifier.setFilters(onlyMedia: onlyMedia),
-                              onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+                              onEnsureOnlyMedia: (onlyMedia) => profileNotifier
+                                  .setFilters(onlyMedia: onlyMedia),
+                              onStatusUpdated: (status) =>
+                                  profileNotifier.updateStatus(status),
                             ),
 
                             // About tab
@@ -518,6 +533,4 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                     ),
     );
   }
-  
-
 }

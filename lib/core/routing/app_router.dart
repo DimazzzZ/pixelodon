@@ -150,9 +150,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // Profile route - specific user
           GoRoute(
             path: '/profile/:accountId',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
-              return ProfileScreen(accountId: accountId);
+              return MaterialPage(
+                key: state.pageKey,
+                child: ProfileScreen(accountId: accountId),
+              );
             },
           ),
         ],
@@ -172,9 +175,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Status detail route
       GoRoute(
         path: '/status/:statusId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
-          return StatusDetailScreen(statusId: statusId);
+          return MaterialPage(
+            key: state.pageKey,
+            child: StatusDetailScreen(statusId: statusId),
+          );
         },
       ),
       

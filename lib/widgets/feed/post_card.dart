@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/media_gallery.dart';
+import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -228,7 +229,20 @@ class _PostCardState extends ConsumerState<PostCard> {
             // Post header
             ListTile(
               leading: GestureDetector(
-                onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                onTap: () {
+                  final avatarUrl = _status.account?.avatar;
+                  if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ImageViewerScreen(
+                          imageUrls: [avatarUrl],
+                          initialIndex: 0,
+                          heroTagPrefix: 'avatar_${_status.account?.id ?? ''}',
+                        ),
+                      ),
+                    );
+                  }
+                },
                 child: CircleAvatar(
                   backgroundImage: _status.account?.avatar != null
                       ? CachedNetworkImageProvider(_status.account!.avatar!)
@@ -357,7 +371,23 @@ class _PostCardState extends ConsumerState<PostCard> {
                 attachments: _status.mediaAttachments,
                 sensitive: _status.sensitive,
                 onTap: (index) {
-                  // TODO: Open media viewer
+                  // Open media viewer for image attachments
+                  final images = _status.mediaAttachments
+                      .where((a) => a.type == AttachmentType.image || a.type == AttachmentType.gifv)
+                      .map((a) => a.url)
+                      .toList();
+                  if (images.isNotEmpty) {
+                    final initial = index.clamp(0, images.length - 1);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ImageViewerScreen(
+                          imageUrls: images,
+                          initialIndex: initial,
+                          heroTagPrefix: 'post_${_status.id}',
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
             ],
