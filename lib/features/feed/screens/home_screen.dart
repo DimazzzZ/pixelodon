@@ -340,12 +340,22 @@ class HomeScreen extends ConsumerWidget {
               length: 3,
               child: Column(
                 children: [
-                  const TabBar(
-                    tabs: [
-                      Tab(icon: Icon(Icons.home_outlined), text: 'Following'),
-                      Tab(icon: Icon(Icons.apartment_outlined), text: 'Local'),
-                      Tab(icon: Icon(Icons.public), text: 'Federated'),
-                    ],
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: TabBar(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      unselectedLabelStyle: const TextStyle(fontSize: 12),
+                      tabs: const [
+                        Tab(icon: Icon(Icons.home_outlined, size: 18), text: 'Following'),
+                        Tab(icon: Icon(Icons.apartment_outlined, size: 18), text: 'Local'),
+                        Tab(icon: Icon(Icons.public, size: 18), text: 'Federated'),
+                      ],
+                    ),
                   ),
                   Expanded(
                     child: TabBarView(

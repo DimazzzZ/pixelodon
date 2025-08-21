@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
@@ -441,7 +442,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                 return ActionChip(
                   label: Text('#$tag'),
                   onPressed: () {
-                    // TODO: Navigate to hashtag timeline
+                    // Navigate to hashtag timeline
+                    context.push('/tag/$tag');
                   },
                 );
               }).toList(),
