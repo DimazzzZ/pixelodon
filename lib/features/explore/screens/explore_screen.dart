@@ -68,7 +68,7 @@ class TimelineState {
 
 /// Notifier for the public timeline
 class PublicTimelineNotifier extends StateNotifier<TimelineState> {
-  final timelineService;
+  final TimelineService timelineService;
   final String? domain;
   CancelToken? _cancelToken;
   
@@ -546,14 +546,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                       resolve: true,
                     );
                     if (accounts.isNotEmpty) {
-                      if (mounted) context.push('/profile/${accounts.first.id}');
+                      if (context.mounted) {
+                        context.push('/profile/${accounts.first.id}');
+                      }
                       return;
                     }
                   }
                 } catch (_) {}
                 // Fallback: navigate to tag timeline attempting to use the query as tag
                 final fallbackTag = query.replaceAll('#', '').split(' ').first;
-                if (fallbackTag.isNotEmpty) context.push('/tag/$fallbackTag');
+                if (fallbackTag.isNotEmpty && context.mounted) {
+                  context.push('/tag/$fallbackTag');
+                }
               },
             ),
           ),

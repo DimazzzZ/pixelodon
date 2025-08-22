@@ -7,16 +7,10 @@ import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
-import 'app_shell_test.mocks.dart';
 
 @GenerateMocks([GoRouter])
 void main() {
   group('AppShell Tests', () {
-    late MockGoRouter mockRouter;
-    
-    setUp(() {
-      mockRouter = MockGoRouter();
-    });
 
     testWidgets('should display app title when no active instance', (WidgetTester tester) async {
       await tester.pumpWidget(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 
 class DeepLinkService {
   final AppLinks _appLinks;
@@ -19,7 +20,7 @@ class DeepLinkService {
     // Listen for links while app is running
     _appLinks.uriLinkStream.listen(
       (uri) => _linkStreamController.add(uri),
-      onError: (err) => print('Deep link error: $err'),
+      onError: (err) => debugPrint('Deep link error: $err'),
     );
   }
 

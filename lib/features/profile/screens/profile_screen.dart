@@ -512,7 +512,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
   Widget _buildProfileBody(BuildContext context, bool isPixelfed, ProfileState profileState, ProfileNotifier profileNotifier) {
-    final activeInstance = ref.watch(activeInstanceProvider);
     final isSelf = (ref.read(activeAccountProvider)?.id == widget.accountId);
 
     final tabs = <Tab>[];
@@ -636,7 +635,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return _LazyTabContent<model.Status>(
       tabIndex: tabIndex,
       initialFuture: _likesFuture,
-      onFutureCreated: (future) => setState(() => _likesFuture = future),
+      onFutureCreated: (future) => setState(() { _likesFuture = future; }),
       loader: () {
         if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
         return timelineService.getFavourites(activeInstance!.domain, limit: 40);
@@ -674,7 +673,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return _LazyTabContent<model.Status>(
       tabIndex: tabIndex,
       initialFuture: _bookmarksFuture,
-      onFutureCreated: (future) => setState(() => _bookmarksFuture = future),
+      onFutureCreated: (future) => setState(() { _bookmarksFuture = future; }),
       loader: () {
         if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
         return timelineService.getBookmarks(activeInstance!.domain, limit: 40);
@@ -795,7 +794,9 @@ class _LazyTabContentState<T> extends State<_LazyTabContent<T>> {
     setState(() {
       _future = fut;
     });
-    await fut.catchError((_) {});
+    try {
+      await fut;
+    } catch (_) {}
   }
 
   @override

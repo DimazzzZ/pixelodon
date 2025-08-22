@@ -37,11 +37,22 @@ void main() {
     });
 
     group('Router Configuration', () {
-      test('should create GoRouter with correct initial location', () {
+      testWidgets('should create GoRouter with correct initial location', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
         final router = container.read(appRouterProvider);
-        
         expect(router, isA<GoRouter>());
-        expect(router.routerDelegate.currentConfiguration.uri.toString(), '/auth/login');
+        expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
       });
 
       test('should have debug diagnostics enabled', () {
@@ -53,30 +64,66 @@ void main() {
     });
 
     group('Route Definitions', () {
-      test('should have login route defined', () {
+      testWidgets('should have login route defined', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
         final router = container.read(appRouterProvider);
-        
         // Navigate to login route
         router.go('/auth/login');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
       });
 
-      test('should have OAuth callback route defined', () {
+      testWidgets('should have OAuth callback route defined', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
         final router = container.read(appRouterProvider);
-        
         // Navigate to OAuth callback route
         router.go('/oauth/callback?domain=example.com&state=test&code=123');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/oauth/callback');
       });
 
-      test('should have home route defined', () {
+      testWidgets('should have home route defined', (WidgetTester tester) async {
         // Mock logged in state
         when(mockAuthRepository.instances).thenReturn([]);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
         
         final router = container.read(appRouterProvider);
-        
         // Navigate to home route
         router.go('/home');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
       });
 

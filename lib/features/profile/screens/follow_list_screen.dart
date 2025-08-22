@@ -21,7 +21,6 @@ class FollowListScreen extends ConsumerStatefulWidget {
 class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   final List<Account> _accounts = [];
   bool _isLoading = false;
-  bool _isRefreshing = false;
   bool _hasError = false;
   String? _errorMessage;
   String? _maxId;
@@ -67,7 +66,6 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   Future<void> _refresh() async {
     setState(() {
-      _isRefreshing = true;
       _hasError = false;
       _errorMessage = null;
       _accounts.clear();
@@ -75,11 +73,6 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
       _hasMore = true;
     });
     await _fetch();
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-      });
-    }
   }
 
   Future<void> _loadMore() async {

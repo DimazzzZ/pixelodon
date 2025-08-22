@@ -4,6 +4,7 @@ import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
+import 'package:pixelodon/services/timeline_service.dart';
 
 /// Provider for the home timeline
 final homeTimelineProvider = StateNotifierProvider<TimelineNotifier, TimelineState>((ref) {
@@ -55,7 +56,7 @@ class TimelineState {
 
 /// Notifier for a timeline
 class TimelineNotifier extends StateNotifier<TimelineState> {
-  final timelineService;
+  final TimelineService timelineService;
   final String? domain;
   
   TimelineNotifier({

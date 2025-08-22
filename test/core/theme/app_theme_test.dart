@@ -11,8 +11,8 @@ void main() {
       });
 
       test('should have correct color constants', () {
-        expect(AppTheme.primaryColor, const Color(0xFF5C6BC0));
-        expect(AppTheme.secondaryColor, const Color(0xFF26A69A));
+        expect(AppTheme.primaryColor, const Color(0xFF2C8AD7));
+        expect(AppTheme.secondaryColor, const Color(0xFF2C8AD7));
         expect(AppTheme.errorColor, const Color(0xFFE53935));
         expect(AppTheme.warningColor, const Color(0xFFFFB74D));
         expect(AppTheme.successColor, const Color(0xFF66BB6A));

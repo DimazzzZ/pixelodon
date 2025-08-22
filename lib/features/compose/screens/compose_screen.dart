@@ -424,7 +424,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
             onPressed: composeState.canSubmit && !composeState.isSubmitting
                 ? () async {
                     final success = await composeNotifier.submitPost();
-                    if (success && mounted) {
+                    if (success && context.mounted) {
                       context.pop();
                     }
                   }

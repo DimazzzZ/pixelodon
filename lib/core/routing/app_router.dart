@@ -16,11 +16,15 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: '/splash',
+  final router = GoRouter(
+    initialLocation: '/auth/login',
     debugLogDiagnostics: true,
+    navigatorKey: _rootNavigatorKey,
     
     // Global redirect function to handle authentication
     redirect: (context, state) {
@@ -36,9 +40,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
       
-      // If on root path, redirect to splash
+      // If on root path, redirect to home
       if (state.matchedLocation == '/') {
-        return '/splash';
+        return '/home';
       }
       
       // If the user is not logged in and not on the login screen or OAuth callback, redirect to login
@@ -114,6 +118,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       
       // Main app shell route
       ShellRoute(
+        navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           // Home route
@@ -139,7 +144,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             redirect: (context, state) {
               // Get current user's account ID from provider
-              final container = ProviderScope.containerOf(context);
+              final container = ProviderScope.containerOf(context, listen: false);
               final activeAccount = container.read(activeAccountProvider);
               if (activeAccount != null) {
                 return '/profile/${activeAccount.id}';
@@ -155,7 +160,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
               return MaterialPage(
-                key: UniqueKey(),
                 child: ProfileScreen(accountId: accountId),
               );
             },
@@ -167,7 +171,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
               return MaterialPage(
-                key: UniqueKey(),
                 child: FollowListScreen(accountId: accountId, type: FollowListType.following),
               );
             },
@@ -179,7 +182,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
               return MaterialPage(
-                key: UniqueKey(),
                 child: FollowListScreen(accountId: accountId, type: FollowListType.followers),
               );
             },
@@ -204,7 +206,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
           return MaterialPage(
-            key: UniqueKey(),
             child: StatusDetailScreen(statusId: statusId),
           );
         },
@@ -216,7 +217,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final tag = state.pathParameters['tag']!;
           return MaterialPage(
-            key: UniqueKey(),
             child: TagTimelineScreen(tag: tag),
           );
         },
@@ -229,6 +229,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // Ensure initial configuration is set for tests and non-widget contexts
+  // This makes router.routerDelegate.currentConfiguration available immediately
+  // without needing a MaterialApp.router to mount the router.
+  router.go('/auth/login');
+  return router;
 });
 
 /// Helper function to build the OAuth callback screen

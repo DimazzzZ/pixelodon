@@ -14,7 +14,6 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final instances = ref.watch(instancesProvider);
-    final authRepository = ref.watch(authRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 
 void main() {
-  print('[DEBUG_LOG] Testing HTML rendering...');
+  debugPrint('[DEBUG_LOG] Testing HTML rendering...');
   
   group('SafeHtmlWidget Tests', () {
     testWidgets('should render basic HTML content', (WidgetTester tester) async {
@@ -17,7 +17,7 @@ void main() {
         ),
       );
       
-      print('[DEBUG_LOG] Basic HTML test completed');
+      debugPrint('[DEBUG_LOG] Basic HTML test completed');
     });
 
     testWidgets('should render HTML with links', (WidgetTester tester) async {
@@ -29,14 +29,14 @@ void main() {
             body: SafeHtmlWidget(
               htmlContent: htmlContent,
               onLinkTap: (url) {
-                print('[DEBUG_LOG] Link tapped: $url');
+                debugPrint('[DEBUG_LOG] Link tapped: $url');
               },
             ),
           ),
         ),
       );
       
-      print('[DEBUG_LOG] HTML with links test completed');
+      debugPrint('[DEBUG_LOG] HTML with links test completed');
     });
 
     testWidgets('should block dangerous tags', (WidgetTester tester) async {
