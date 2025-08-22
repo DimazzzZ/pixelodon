@@ -11,8 +11,9 @@ enum FollowListType { following, followers }
 class FollowListScreen extends ConsumerStatefulWidget {
   final String accountId;
   final FollowListType type;
+  final String? domainOverride;
 
-  const FollowListScreen({super.key, required this.accountId, required this.type});
+  const FollowListScreen({super.key, required this.accountId, required this.type, this.domainOverride});
 
   @override
   ConsumerState<FollowListScreen> createState() => _FollowListScreenState();
@@ -66,6 +67,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   Future<void> _refresh() async {
     setState(() {
+      _isLoading = true;
       _hasError = false;
       _errorMessage = null;
       _accounts.clear();
@@ -73,6 +75,11 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
       _hasMore = true;
     });
     await _fetch();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadMore() async {
@@ -89,24 +96,58 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   }
 
   Future<void> _fetch() async {
-    final domain = ref.read(activeInstanceProvider)?.domain;
-    if (domain == null) {
+    final activeDomain = ref.read(activeInstanceProvider)?.domain;
+    String? targetDomain = widget.domainOverride ?? activeDomain;
+    if (targetDomain == null) {
       setState(() {
         _hasError = true;
         _errorMessage = 'No active instance';
       });
       return;
     }
+
+    String targetAccountId = widget.accountId;
+
     try {
       final accountService = ref.read(accountServiceProvider);
+
+      // If we have an override domain different from active domain, resolve remote account id
+      if (widget.domainOverride != null && activeDomain != null && widget.domainOverride != activeDomain) {
+        try {
+          // Fetch local account to get username/acct to build a resolvable query
+          final localAccount = await accountService.getAccount(activeDomain, widget.accountId);
+
+          // Prefer acct if it contains domain, else compose username@targetDomain
+          String query;
+          if ((localAccount.acct).contains('@')) {
+            query = localAccount.acct;
+          } else {
+            query = '${localAccount.username}@$targetDomain';
+          }
+
+          final results = await accountService.searchAccounts(
+            targetDomain,
+            query: query,
+            limit: 1,
+            resolve: true,
+          );
+          if (results.isNotEmpty) {
+            targetAccountId = results.first.id;
+          }
+        } catch (_) {
+          // If resolution fails, continue with original id and targetDomain; may 404 but we'll show error.
+        }
+      }
+
       final list = widget.type == FollowListType.following
-          ? await accountService.getFollowing(domain, widget.accountId, limit: 40, maxId: _maxId)
-          : await accountService.getFollowers(domain, widget.accountId, limit: 40, maxId: _maxId);
+          ? await accountService.getFollowing(targetDomain, targetAccountId, limit: 40, maxId: _maxId)
+          : await accountService.getFollowers(targetDomain, targetAccountId, limit: 40, maxId: _maxId);
+
       if (list.isNotEmpty) {
         _maxId = list.last.id;
       }
       setState(() {
-        _accounts.addAll(list);
+        _accounts.addAll(list.map((a) => a.copyWith(domain: targetDomain, isPixelfed: false)).toList());
         _hasMore = list.length >= 40;
       });
     } catch (e) {

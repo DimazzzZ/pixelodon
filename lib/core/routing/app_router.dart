@@ -164,6 +164,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final pix = qp['isPixelfed'];
               final isPix = pix == '1' || pix == 'true';
               return MaterialPage(
+                key: state.pageKey,
                 child: ProfileScreen(
                   accountId: accountId,
                   domainOverride: domain,
@@ -178,8 +179,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile/:accountId/following',
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
+              final domain = state.uri.queryParameters['domain'];
               return MaterialPage(
-                child: FollowListScreen(accountId: accountId, type: FollowListType.following),
+                key: state.pageKey,
+                child: FollowListScreen(accountId: accountId, type: FollowListType.following, domainOverride: domain),
               );
             },
           ),
@@ -189,8 +192,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile/:accountId/followers',
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
+              final domain = state.uri.queryParameters['domain'];
               return MaterialPage(
-                child: FollowListScreen(accountId: accountId, type: FollowListType.followers),
+                key: state.pageKey,
+                child: FollowListScreen(accountId: accountId, type: FollowListType.followers, domainOverride: domain),
               );
             },
           ),
@@ -214,6 +219,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
           return MaterialPage(
+            key: state.pageKey,
             child: StatusDetailScreen(statusId: statusId),
           );
         },
@@ -225,6 +231,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final tag = state.pathParameters['tag']!;
           return MaterialPage(
+            key: state.pageKey,
             child: TagTimelineScreen(tag: tag),
           );
         },

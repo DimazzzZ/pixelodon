@@ -5,6 +5,7 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/utils/account_utils.dart';
+import 'package:pixelodon/features/profile/widgets/follow_button.dart';
 
 class CompactAccountTile extends ConsumerStatefulWidget {
   final Account account;
@@ -33,7 +34,7 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     return withoutTags.replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
   }
 
-  Future<void> _toggleFollow() async {
+  Future<void> _follow() async {
     final domain = ref.read(activeInstanceProvider)?.domain;
     if (domain == null) return;
     if (_isBusy) return;
@@ -42,12 +43,7 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     });
     try {
       final accountService = ref.read(accountServiceProvider);
-      Account updated;
-      if (_account.following) {
-        updated = await accountService.unfollowAccount(domain, _account.id);
-      } else {
-        updated = await accountService.followAccount(domain, _account.id);
-      }
+      final updated = await accountService.followAccount(domain, _account.id);
       setState(() {
         _account = _account.copyWith(
           following: updated.following,
@@ -60,7 +56,41 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to ${_account.following ? 'unfollow' : 'follow'}: $e')),
+          SnackBar(content: Text('Failed to follow: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _unfollow() async {
+    final domain = ref.read(activeInstanceProvider)?.domain;
+    if (domain == null) return;
+    if (_isBusy) return;
+    setState(() {
+      _isBusy = true;
+    });
+    try {
+      final accountService = ref.read(accountServiceProvider);
+      final updated = await accountService.unfollowAccount(domain, _account.id);
+      setState(() {
+        _account = _account.copyWith(
+          following: updated.following,
+          requested: updated.requested,
+          followersCount: updated.followersCount,
+          followingCount: updated.followingCount,
+        );
+      });
+      widget.onFollowChanged?.call(_account);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to unfollow: $e')),
         );
       }
     } finally {
@@ -148,16 +178,13 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
         ),
       );
     }
-    final isFollowing = _account.following;
-    final isRequested = _account.requested;
-    return OutlinedButton(
-      onPressed: _toggleFollow,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        side: BorderSide(color: isFollowing ? Colors.grey : theme.colorScheme.primary),
-        foregroundColor: isFollowing ? Colors.grey[800] : theme.colorScheme.primary,
-      ),
-      child: Text(isRequested ? 'Requested' : (isFollowing ? 'Following' : 'Follow')),
+    return FollowButton(
+      isCurrentUser: false,
+      isFollowing: _account.following,
+      isFollowRequestPending: _account.requested,
+      onFollow: _follow,
+      onUnfollow: _unfollow,
+      onEditProfile: () {},
     );
   }
 }

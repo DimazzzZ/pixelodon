@@ -7,6 +7,7 @@ import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/utils/account_utils.dart';
+import 'package:pixelodon/features/profile/widgets/follow_button.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Account account;
@@ -146,30 +147,14 @@ class ProfileHeader extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isCurrentUser)
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          ),
-                          onPressed: onEditProfile,
-                          child: const Text('Edit'),
-                        )
-                      else
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          ),
-                          onPressed: isFollowRequestPending
-                              ? null
-                              : (isFollowing ? onUnfollow : onFollow),
-                          child: Text(
-                            isFollowRequestPending
-                                ? 'Requested'
-                                : (isFollowing ? 'Following' : 'Follow'),
-                          ),
-                        ),
+                      FollowButton(
+                        isCurrentUser: isCurrentUser,
+                        isFollowing: isFollowing,
+                        isFollowRequestPending: isFollowRequestPending,
+                        onFollow: onFollow,
+                        onUnfollow: onUnfollow,
+                        onEditProfile: onEditProfile,
+                      ),
                     ],
                   ),
                   Text(
@@ -203,12 +188,18 @@ class ProfileHeader extends StatelessWidget {
                       ProfileStatItem(
                         count: account.followingCount.toString(),
                         label: 'Following',
-                        onTap: () => context.push('/profile/${account.id}/following'),
+                        onTap: () {
+                          final qp = (account.domain != null && account.domain!.isNotEmpty) ? '?domain=${account.domain}' : '';
+                          context.push('/profile/${account.id}/following$qp');
+                        },
                       ),
                       ProfileStatItem(
                         count: account.followersCount.toString(),
                         label: 'Followers',
-                        onTap: () => context.push('/profile/${account.id}/followers'),
+                        onTap: () {
+                          final qp = (account.domain != null && account.domain!.isNotEmpty) ? '?domain=${account.domain}' : '';
+                          context.push('/profile/${account.id}/followers$qp');
+                        },
                       ),
                     ],
                   ),
