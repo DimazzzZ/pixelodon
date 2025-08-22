@@ -57,7 +57,7 @@ void main() {
         ),
       );
       
-      print('[DEBUG_LOG] Security test completed - dangerous tags should be blocked');
+      debugPrint('[DEBUG_LOG] Security test completed - dangerous tags should be blocked');
     });
 
     testWidgets('should handle empty content', (WidgetTester tester) async {
@@ -71,9 +71,9 @@ void main() {
         ),
       );
       
-      print('[DEBUG_LOG] Empty content test completed');
+      debugPrint('[DEBUG_LOG] Empty content test completed');
     });
   });
   
-  print('[DEBUG_LOG] All HTML rendering tests completed successfully');
+  debugPrint('[DEBUG_LOG] All HTML rendering tests completed successfully');
 }

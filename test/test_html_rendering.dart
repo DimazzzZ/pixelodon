@@ -36,9 +36,9 @@ void main() {
     // Verify that the widget builds without errors
     expect(find.byType(PostCard), findsOneWidget);
     
-    // Print debug information
-    print('[DEBUG_LOG] HTML content rendering test completed');
-    print('[DEBUG_LOG] Original content length: ${htmlContent.length}');
-    print('[DEBUG_LOG] Widget found: ${find.byType(PostCard)}');
+    // Debug information
+    debugPrint('[DEBUG_LOG] HTML content rendering test completed');
+    debugPrint('[DEBUG_LOG] Original content length: ${htmlContent.length}');
+    debugPrint('[DEBUG_LOG] Widget found: ${find.byType(PostCard)}');
   });
 }
