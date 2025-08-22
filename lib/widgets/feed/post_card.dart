@@ -52,6 +52,7 @@ class _PostCardState extends ConsumerState<PostCard> {
   bool _isReblogged = false;
   bool _isBookmarked = false;
   bool _isExpanded = false;
+  bool _isNavigatingToProfile = false;
   
   @override
   void initState() {
@@ -191,8 +192,8 @@ class _PostCardState extends ConsumerState<PostCard> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       child: InkWell(
         borderRadius: BorderRadius.circular(12.0),
-        onTap: () {
-          // Navigate to status details when tapping the card
+        onTap: widget.showFullContent ? null : () {
+          // Navigate to status details when tapping the card (disabled in full content mode to avoid nested taps)
           if (_status.id.isNotEmpty) {
             context.push('/status/${_status.id}');
           }
@@ -231,7 +232,7 @@ class _PostCardState extends ConsumerState<PostCard> {
             // Post header
             ListTile(
               leading: GestureDetector(
-                onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                onTap: () => _onProfileTap(context),
                 child: CircleAvatar(
                   backgroundImage: _status.account?.avatar != null
                       ? CachedNetworkImageProvider(_status.account!.avatar!)
@@ -247,7 +248,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                    onTap: () => _onProfileTap(context),
                     child: Text(
                       _status.account?.displayName ?? 'Unknown User',
                       style: const TextStyle(
@@ -259,7 +260,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                   ),
                   const SizedBox(height: 2),
                   GestureDetector(
-                    onTap: () => context.push('/profile/${_status.account?.id ?? ''}'),
+                    onTap: () => _onProfileTap(context),
                     child: Text(
                       AccountUtils.formatHandle(
                         acct: _status.account?.acct ?? '',
@@ -437,6 +438,32 @@ class _PostCardState extends ConsumerState<PostCard> {
       ),
     ),
   );
+  }
+  
+  Future<void> _onProfileTap(BuildContext context) async {
+    if (_isNavigatingToProfile) return;
+    final id = _status.account?.id ?? '';
+    if (id.isEmpty) return;
+    if (mounted) {
+      setState(() {
+        _isNavigatingToProfile = true;
+      });
+    } else {
+      _isNavigatingToProfile = true;
+    }
+    try {
+      await context.push('/profile/$id');
+    } catch (_) {
+      // ignore errors
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNavigatingToProfile = false;
+        });
+      } else {
+        _isNavigatingToProfile = false;
+      }
+    }
   }
   
   /// Build a stat button with count

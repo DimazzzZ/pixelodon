@@ -4,6 +4,7 @@ import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/media_service.dart';
 import 'package:pixelodon/services/notification_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
+import 'package:pixelodon/services/account_statuses_cache.dart';
 
 /// Provider for the AccountService
 final accountServiceProvider = Provider<AccountService>((ref) {
@@ -27,4 +28,9 @@ final mediaServiceProvider = Provider<MediaService>((ref) {
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   return NotificationService(apiService: apiService);
+});
+
+/// Provider for the AccountStatusesCache (in-memory TTL cache for profile statuses)
+final accountStatusesCacheProvider = Provider<AccountStatusesCache>((ref) {
+  return AccountStatusesCache();
 });

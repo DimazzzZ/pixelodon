@@ -19,6 +19,9 @@ final composeProvider = StateNotifierProvider.autoDispose<ComposeNotifier, Compo
     timelineService: timelineService,
     mediaService: mediaService,
     domain: activeInstance?.domain,
+    isPixelfed: activeInstance?.isPixelfed ?? false,
+    maxCharacters: activeInstance?.maxCharsPerPost,
+    maxMediaAttachments: activeInstance?.maxMediaAttachments,
   );
 });
 
@@ -36,6 +39,10 @@ class ComposeState {
   final model.Status? replyToStatus;
   final model.Status? editStatus;
   
+  // Instance-based limits
+  final int maxCharacters; // default 500
+  final int maxMediaAttachments; // default 4
+  
   ComposeState({
     this.text = '',
     this.mediaFiles = const [],
@@ -48,6 +55,8 @@ class ComposeState {
     this.errorMessage,
     this.replyToStatus,
     this.editStatus,
+    this.maxCharacters = 500,
+    this.maxMediaAttachments = 4,
   });
   
   ComposeState copyWith({
@@ -62,6 +71,8 @@ class ComposeState {
     String? errorMessage,
     model.Status? replyToStatus,
     model.Status? editStatus,
+    int? maxCharacters,
+    int? maxMediaAttachments,
   }) {
     return ComposeState(
       text: text ?? this.text,
@@ -75,6 +86,8 @@ class ComposeState {
       errorMessage: errorMessage ?? this.errorMessage,
       replyToStatus: replyToStatus ?? this.replyToStatus,
       editStatus: editStatus ?? this.editStatus,
+      maxCharacters: maxCharacters ?? this.maxCharacters,
+      maxMediaAttachments: maxMediaAttachments ?? this.maxMediaAttachments,
     );
   }
   
@@ -83,7 +96,7 @@ class ComposeState {
   bool get hasMedia => mediaFiles.isNotEmpty || uploadedMedia.isNotEmpty;
   bool get canSubmit => text.isNotEmpty || hasMedia;
   bool get showContentWarning => contentWarning != null;
-  int get remainingCharacters => 500 - text.length;
+  int get remainingCharacters => maxCharacters - text.length;
   bool get isOverCharacterLimit => remainingCharacters < 0;
 }
 
@@ -92,11 +105,17 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   final dynamic timelineService;
   final dynamic mediaService;
   final String? domain;
+  final bool isPixelfed;
+  final int? maxCharacters;
+  final int? maxMediaAttachments;
   
   ComposeNotifier({
     required this.timelineService,
     required this.mediaService,
     this.domain,
+    required this.isPixelfed,
+    this.maxCharacters,
+    this.maxMediaAttachments,
     model.Status? replyToStatus,
     model.Status? editStatus,
   }) : super(ComposeState(
@@ -107,6 +126,8 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
           isSensitive: editStatus?.sensitive ?? false,
           visibility: editStatus?.visibility ?? model.Visibility.public,
           uploadedMedia: editStatus?.mediaAttachments ?? [],
+          maxCharacters: maxCharacters ?? 500,
+          maxMediaAttachments: maxMediaAttachments ?? 4,
         ));
   
   /// Update the post text
@@ -148,10 +169,10 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   
   /// Add media from gallery
   Future<void> addMediaFromGallery() async {
-    if (state.mediaFiles.length + state.uploadedMedia.length >= 4) {
+    if (state.mediaFiles.length + state.uploadedMedia.length >= state.maxMediaAttachments) {
       state = state.copyWith(
         hasError: true,
-        errorMessage: 'Maximum of 4 media attachments allowed',
+        errorMessage: 'Maximum of ${state.maxMediaAttachments} media attachments allowed',
       );
       return;
     }
@@ -171,10 +192,10 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   
   /// Add media from camera
   Future<void> addMediaFromCamera() async {
-    if (state.mediaFiles.length + state.uploadedMedia.length >= 4) {
+    if (state.mediaFiles.length + state.uploadedMedia.length >= state.maxMediaAttachments) {
       state = state.copyWith(
         hasError: true,
-        errorMessage: 'Maximum of 4 media attachments allowed',
+        errorMessage: 'Maximum of ${state.maxMediaAttachments} media attachments allowed',
       );
       return;
     }
@@ -248,6 +269,15 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   /// Submit the post
   Future<bool> submitPost() async {
     if (domain == null) return false;
+    
+    // Pixelfed requires media for top-level posts
+    if (isPixelfed && !state.isEditing && !state.isReplying && !state.hasMedia) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Pixelfed requires at least one media attachment for new posts. Please add a photo or video.',
+      );
+      return false;
+    }
     
     if (state.text.isEmpty && !state.hasMedia) {
       state = state.copyWith(
@@ -686,7 +716,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           // Media button
           IconButton(
             icon: const Icon(Icons.photo),
-            onPressed: state.mediaFiles.length + state.uploadedMedia.length < 4
+            onPressed: state.mediaFiles.length + state.uploadedMedia.length < state.maxMediaAttachments
                 ? () {
                     _showMediaPickerDialog(context, notifier);
                   }

@@ -251,7 +251,15 @@ class ApiService {
         }
         
         if (statusCode == 403) {
-          throw ForbiddenException('Forbidden');
+          // Try to surface a helpful server message when available
+          dynamic raw = data;
+          String message = 'Forbidden';
+          if (raw is Map) {
+            message = (raw['error'] ?? raw['message'] ?? raw['error_description'] ?? 'Forbidden').toString();
+          } else if (raw is String && raw.trim().isNotEmpty) {
+            message = raw.trim();
+          }
+          throw ForbiddenException(message);
         }
         
         if (statusCode == 404) {

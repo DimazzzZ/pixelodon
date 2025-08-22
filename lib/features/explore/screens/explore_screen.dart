@@ -6,7 +6,6 @@ import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
-import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/providers/api_provider.dart' as api_providers;
 import 'package:pixelodon/services/timeline_service.dart';

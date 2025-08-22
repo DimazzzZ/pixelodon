@@ -8,6 +8,7 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
+import 'package:pixelodon/services/account_statuses_cache.dart';
 import 'package:pixelodon/features/profile/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
 import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
@@ -20,11 +21,14 @@ final profileProvider =
   final accountService = ref.watch(accountServiceProvider);
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
+  final cache = ref.watch(accountStatusesCacheProvider);
 
   return ProfileNotifier(
     accountService: accountService,
     timelineService: timelineService,
+    cache: cache,
     domain: activeInstance?.domain,
+    isPixelfed: activeInstance?.isPixelfed ?? false,
     accountId: accountId,
   );
 });
@@ -56,8 +60,8 @@ class ProfileState {
     this.hasMore = true,
     this.maxId,
     this.onlyMedia = false,
-    this.excludeReplies = false,
-    this.excludeReblogs = false,
+    this.excludeReplies = true,
+    this.excludeReblogs = true,
     this.pinned = false,
     this.isFollowing = false,
     this.isFollowRequestPending = false,
@@ -103,14 +107,18 @@ class ProfileState {
 class ProfileNotifier extends StateNotifier<ProfileState> {
   final AccountService accountService;
   final TimelineService timelineService;
+  final AccountStatusesCache cache;
   final String? domain;
+  final bool isPixelfed;
   final String accountId;
   CancelToken? _cancelToken;
 
   ProfileNotifier({
     required this.accountService,
     required this.timelineService,
+    required this.cache,
     this.domain,
+    required this.isPixelfed,
     required this.accountId,
   }) : super(ProfileState()) {
     if (domain != null) {
@@ -131,11 +139,23 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     bool? excludeReblogs,
     bool? pinned,
   }) {
+    final newOnlyMedia = onlyMedia ?? state.onlyMedia;
+    final newExcludeReplies = excludeReplies ?? state.excludeReplies;
+    final newExcludeReblogs = excludeReblogs ?? state.excludeReblogs;
+    final newPinned = pinned ?? state.pinned;
+
+    // Avoid redundant reloads if nothing changed
+    final unchanged = newOnlyMedia == state.onlyMedia &&
+        newExcludeReplies == state.excludeReplies &&
+        newExcludeReblogs == state.excludeReblogs &&
+        newPinned == state.pinned;
+    if (unchanged) return;
+
     state = state.copyWith(
-      onlyMedia: onlyMedia,
-      excludeReplies: excludeReplies,
-      excludeReblogs: excludeReblogs,
-      pinned: pinned,
+      onlyMedia: newOnlyMedia,
+      excludeReplies: newExcludeReplies,
+      excludeReblogs: newExcludeReblogs,
+      pinned: newPinned,
     );
 
     loadStatuses();
@@ -535,6 +555,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     // Comments
+    final commentsIndex = tabs.length;
     tabs.add(const Tab(text: 'Comments'));
     views.add(
       PostsTab(
@@ -553,14 +574,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     // Likes
+    final likesIndex = tabs.length;
     tabs.add(const Tab(text: 'Likes'));
-    views.add(_buildLikesTab(isSelf));
+    views.add(_buildLikesTab(isSelf, likesIndex));
 
     // Favorites
+    final favIndex = tabs.length;
     tabs.add(const Tab(text: 'Favorites'));
-    views.add(_buildBookmarksTab(isSelf));
+    views.add(_buildBookmarksTab(isSelf, favIndex));
 
     // Boosts
+    final boostsIndex = tabs.length;
     tabs.add(const Tab(text: 'Boosts'));
     // Per API: boosts are statuses where the `reblog` attribute is not null.
     // In our model, `reblog` maps to `rebloggedStatus`.
@@ -585,25 +609,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return DefaultTabController(
       length: tabs.length,
-      child: Column(
-        children: [
-          Material(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              tabs: tabs,
-            ),
-          ),
-          Expanded(
-            child: TabBarView(children: views),
-          ),
-        ],
+      child: _ProfileTabContainer(
+        tabs: tabs,
+        views: views,
+        isPixelfed: isPixelfed,
+        commentsIndex: commentsIndex,
+        boostsIndex: boostsIndex,
+        notifier: profileNotifier,
       ),
     );
   }
 
-  Widget _buildLikesTab(bool isSelf) {
+  Widget _buildLikesTab(bool isSelf, int tabIndex) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final timelineService = ref.watch(timelineServiceProvider);
 
@@ -616,22 +633,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    if (_likesFuture == null) {
-      if (activeInstance?.domain != null) {
-        _likesFuture = timelineService.getFavourites(activeInstance!.domain, limit: 40);
-      }
-    }
-
-    return FutureBuilder<List<model.Status>>(
-      future: _likesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Failed to load likes: ${snapshot.error}'));
-        }
-        final data = snapshot.data ?? const <model.Status>[];
+    return _LazyTabContent<model.Status>(
+      tabIndex: tabIndex,
+      initialFuture: _likesFuture,
+      onFutureCreated: (future) => setState(() => _likesFuture = future),
+      loader: () {
+        if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
+        return timelineService.getFavourites(activeInstance!.domain, limit: 40);
+      },
+      builder: (context, data, refresh) {
         return FeedList(
           statuses: data,
           isLoading: false,
@@ -639,17 +649,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           hasMore: false,
           onLoadMore: null,
           onRefresh: () async {
-            if (activeInstance?.domain != null) {
-              _likesFuture = timelineService.getFavourites(activeInstance!.domain, limit: 40);
-              setState(() {});
-            }
+            await refresh();
           },
         );
       },
+      errorBuilder: (err) => Center(child: Text('Failed to load likes: $err')),
+      placeholder: const Center(child: SizedBox()),
     );
   }
 
-  Widget _buildBookmarksTab(bool isSelf) {
+  Widget _buildBookmarksTab(bool isSelf, int tabIndex) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final timelineService = ref.watch(timelineServiceProvider);
 
@@ -662,22 +671,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    if (_bookmarksFuture == null) {
-      if (activeInstance?.domain != null) {
-        _bookmarksFuture = timelineService.getBookmarks(activeInstance!.domain, limit: 40);
-      }
-    }
-
-    return FutureBuilder<List<model.Status>>(
-      future: _bookmarksFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Failed to load favorites: ${snapshot.error}'));
-        }
-        final data = snapshot.data ?? const <model.Status>[];
+    return _LazyTabContent<model.Status>(
+      tabIndex: tabIndex,
+      initialFuture: _bookmarksFuture,
+      onFutureCreated: (future) => setState(() => _bookmarksFuture = future),
+      loader: () {
+        if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
+        return timelineService.getBookmarks(activeInstance!.domain, limit: 40);
+      },
+      builder: (context, data, refresh) {
         return FeedList(
           statuses: data,
           isLoading: false,
@@ -685,13 +687,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           hasMore: false,
           onLoadMore: null,
           onRefresh: () async {
-            if (activeInstance?.domain != null) {
-              _bookmarksFuture = timelineService.getBookmarks(activeInstance!.domain, limit: 40);
-              setState(() {});
-            }
+            await refresh();
           },
         );
       },
+      errorBuilder: (err) => Center(child: Text('Failed to load favorites: $err')),
+      placeholder: const Center(child: SizedBox()),
     );
   }
 }
@@ -722,6 +723,212 @@ class _AboutSection extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+
+/// Lazily loads data for a tab only when it becomes active the first time.
+class _LazyTabContent<T> extends StatefulWidget {
+  final int tabIndex;
+  final Future<List<T>>? initialFuture;
+  final void Function(Future<List<T>> future) onFutureCreated;
+  final Future<List<T>> Function() loader;
+  final Widget Function(BuildContext context, List<T> data, Future<void> Function() refresh) builder;
+  final Widget Function(Object error) errorBuilder;
+  final Widget placeholder;
+
+  const _LazyTabContent({
+    required this.tabIndex,
+    required this.initialFuture,
+    required this.onFutureCreated,
+    required this.loader,
+    required this.builder,
+    required this.errorBuilder,
+    required this.placeholder,
+  });
+
+  @override
+  State<_LazyTabContent<T>> createState() => _LazyTabContentState<T>();
+}
+
+class _LazyTabContentState<T> extends State<_LazyTabContent<T>> {
+  Future<List<T>>? _future;
+  TabController? _controller;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _controller ??= DefaultTabController.of(context);
+
+    // Attach listener once
+    if (!_initialized && _controller != null) {
+      _initialized = true;
+      // If the tab is already selected, start loading immediately
+      if (_controller!.index == widget.tabIndex) {
+        _startLoading();
+      } else {
+        _future = widget.initialFuture;
+      }
+      _controller!.addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    if (_controller!.index == widget.tabIndex && _future == null) {
+      _startLoading();
+    }
+  }
+
+  void _startLoading() {
+    final fut = widget.loader();
+    widget.onFutureCreated(fut);
+    setState(() {
+      _future = fut;
+    });
+  }
+
+  Future<void> _refresh() async {
+    final fut = widget.loader();
+    widget.onFutureCreated(fut);
+    setState(() {
+      _future = fut;
+    });
+    await fut.catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_future == null) {
+      return widget.placeholder;
+    }
+
+    return FutureBuilder<List<T>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return widget.errorBuilder(snapshot.error!);
+        }
+        final data = snapshot.data ?? <T>[];
+        return widget.builder(context, data, _refresh);
+      },
+    );
+  }
+}
+
+/// Container that handles TabBar/TabBarView and switches timeline filters
+/// only when Comments or Boosts tabs are selected.
+class _ProfileTabContainer extends StatefulWidget {
+  final List<Tab> tabs;
+  final List<Widget> views;
+  final bool isPixelfed;
+  final int commentsIndex;
+  final int boostsIndex;
+  final ProfileNotifier notifier;
+
+  const _ProfileTabContainer({
+    required this.tabs,
+    required this.views,
+    required this.isPixelfed,
+    required this.commentsIndex,
+    required this.boostsIndex,
+    required this.notifier,
+  });
+
+  @override
+  State<_ProfileTabContainer> createState() => _ProfileTabContainerState();
+}
+
+class _ProfileTabContainerState extends State<_ProfileTabContainer> {
+  TabController? _controller;
+  String _appliedKey = 'posts';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _controller ??= DefaultTabController.of(context);
+    if (_controller != null) {
+      _controller!.addListener(_handleTabChange);
+      // Ensure initial key matches default filters (exclude replies & reblogs)
+      _appliedKey = 'posts';
+      // Apply initial filters right away respecting Pixelfed Media default
+      widget.notifier.setFilters(
+        excludeReplies: true,
+        excludeReblogs: true,
+        onlyMedia: widget.isPixelfed,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_handleTabChange);
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (!_controller!.indexIsChanging) {
+      final idx = _controller!.index;
+
+      String key = 'posts';
+      bool? excludeReplies = true;
+      bool? excludeReblogs = true;
+      bool? onlyMedia;
+
+      if (idx == widget.commentsIndex) {
+        key = 'comments';
+        excludeReplies = false; // include replies
+        excludeReblogs = true;  // keep boosts excluded
+        onlyMedia = false;      // comments likely have no media
+      } else if (idx == widget.boostsIndex) {
+        key = 'boosts';
+        excludeReplies = true;  // exclude replies to reduce extra data
+        excludeReblogs = false; // include boosts
+        onlyMedia = false;
+      } else {
+        key = 'posts';
+        excludeReplies = true;
+        excludeReblogs = true;
+        onlyMedia = widget.isPixelfed ? true : null; // onlyMedia true for Pixelfed Media tab
+      }
+
+      if (key != _appliedKey) {
+        _appliedKey = key;
+        widget.notifier.setFilters(
+          excludeReplies: excludeReplies,
+          excludeReblogs: excludeReblogs,
+          onlyMedia: onlyMedia,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: widget.tabs,
+          ),
+        ),
+        Expanded(
+          child: TabBarView(children: widget.views),
+        ),
+      ],
     );
   }
 }

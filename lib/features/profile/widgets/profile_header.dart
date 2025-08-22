@@ -49,21 +49,21 @@ class ProfileHeader extends StatelessWidget {
                 if (account.header != null)
                   CachedNetworkImage(
                     imageUrl: account.header!,
-                    height: 150,
+                    height: 75,
                     width: double.infinity,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      height: 150,
+                      height: 75,
                       color: theme.colorScheme.primary.withOpacity(0.1),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      height: 150,
+                      height: 75,
                       color: theme.colorScheme.primary.withOpacity(0.1),
                     ),
                   )
                 else
                   Container(
-                    height: 150,
+                    height: 75,
                     color: theme.colorScheme.primary.withOpacity(0.1),
                   ),
 

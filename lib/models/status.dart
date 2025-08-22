@@ -155,7 +155,7 @@ class MediaAttachment with _$MediaAttachment {
     required String id,
     
     /// The type of the attachment
-    required AttachmentType type,
+    @JsonKey(unknownEnumValue: AttachmentType.unknown) required AttachmentType type,
     
     /// The URL of the attachment
     required String url,

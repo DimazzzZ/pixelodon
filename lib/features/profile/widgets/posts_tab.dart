@@ -43,56 +43,73 @@ class PostsTab extends StatelessWidget {
     }
 
     if (isPixelfed) {
-      // Grid for Pixelfed
+      // Grid for Pixelfed with pull-to-refresh
       if (statuses.isEmpty) {
-        return Center(
-          child: isLoading ? const CircularProgressIndicator() : const Text('No posts yet'),
+        // Provide a scrollable to enable pull-to-refresh even with no items
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              const SizedBox(height: 120),
+              Center(
+                child: isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('No posts yet'),
+              ),
+              const SizedBox(height: 120),
+            ],
+          ),
         );
       }
 
-      return MasonryGridView.count(
-        crossAxisCount: 3,
-        mainAxisSpacing: 4,
-        crossAxisSpacing: 4,
-        itemCount: statuses.length + (isLoading && hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == statuses.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: MasonryGridView.count(
+          crossAxisCount: 3,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: statuses.length + (isLoading && hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == statuses.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final status = statuses[index];
+            if (status.mediaAttachments.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            final attachment = status.mediaAttachments.first;
+
+            return GestureDetector(
+              onTap: () {
+                // Navigate to post detail
+                if (status.id.isNotEmpty) {
+                  context.push('/status/${status.id}');
+                }
+              },
+              child: CachedNetworkImage(
+                imageUrl: attachment.previewUrl ?? attachment.url,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: Icon(Icons.error)),
+                ),
               ),
             );
-          }
-
-          final status = statuses[index];
-          if (status.mediaAttachments.isEmpty) {
-            return const SizedBox.shrink();
-          }
-
-          final attachment = status.mediaAttachments.first;
-
-          return GestureDetector(
-            onTap: () {
-              // Navigate to post detail
-              if (status.id.isNotEmpty) {
-                context.push('/status/${status.id}');
-              }
-            },
-            child: CachedNetworkImage(
-              imageUrl: attachment.previewUrl ?? attachment.url,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[300],
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.error)),
-              ),
-            ),
-          );
-        },
+          },
+        ),
       );
     }
 

@@ -143,6 +143,7 @@ class TimelineService {
     String? maxId,
     String? sinceId,
     String? minId,
+    int? offset,
     bool? onlyMedia,
     bool? excludeReplies,
     bool? excludeReblogs,
@@ -157,6 +158,7 @@ class TimelineService {
           if (maxId != null) 'max_id': maxId,
           if (sinceId != null) 'since_id': sinceId,
           if (minId != null) 'min_id': minId,
+          if (offset != null) 'offset': offset,
           if (onlyMedia != null) 'only_media': onlyMedia,
           if (excludeReplies != null) 'exclude_replies': excludeReplies,
           if (excludeReblogs != null) 'exclude_reblogs': excludeReblogs,
@@ -308,19 +310,24 @@ class TimelineService {
     Map<String, dynamic>? poll,
   }) async {
     try {
+      // Mastodon/Pixelfed expect application/x-www-form-urlencoded for this endpoint
+      final Map<String, dynamic> body = {
+        'status': status,
+        if (inReplyToId != null) 'in_reply_to_id': inReplyToId,
+        // Use media_ids[] to ensure proper array encoding
+        if (mediaIds != null && mediaIds.isNotEmpty) 'media_ids[]': mediaIds,
+        if (sensitive != null) 'sensitive': sensitive.toString(),
+        if (spoilerText != null) 'spoiler_text': spoilerText,
+        if (visibility != null) 'visibility': _visibilityToString(visibility),
+        if (scheduledAt != null) 'scheduled_at': scheduledAt,
+        if (language != null) 'language': language,
+        if (poll != null) 'poll': poll,
+      };
+
       final response = await _apiService.post(
         'https://$domain/api/v1/statuses',
-        data: {
-          'status': status,
-          if (inReplyToId != null) 'in_reply_to_id': inReplyToId,
-          if (mediaIds != null && mediaIds.isNotEmpty) 'media_ids': mediaIds,
-          if (sensitive != null) 'sensitive': sensitive,
-          if (spoilerText != null) 'spoiler_text': spoilerText,
-          if (visibility != null) 'visibility': _visibilityToString(visibility),
-          if (scheduledAt != null) 'scheduled_at': scheduledAt,
-          if (language != null) 'language': language,
-          if (poll != null) 'poll': poll,
-        },
+        data: body,
+        options: Options(contentType: Headers.formUrlEncodedContentType),
       );
       
       return Status.fromJson(response.data);
