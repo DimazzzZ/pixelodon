@@ -5,7 +5,6 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
-import 'package:pixelodon/features/profile/widgets/follow_button.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/utils/account_utils.dart';
 
@@ -46,40 +45,36 @@ class ProfileHeader extends StatelessWidget {
             // Header image
             Stack(
               children: [
-                if (account.header != null && account.header!.isNotEmpty)
-                  CachedNetworkImage(
-                    imageUrl: account.header!,
-                    height: 75,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
+                Builder(
+                  builder: (context) {
+                    final headerUrl = (account.header != null && account.header!.isNotEmpty)
+                        ? account.header!
+                        : ((account.headerStatic != null && account.headerStatic!.isNotEmpty)
+                            ? account.headerStatic!
+                            : '');
+                    if (headerUrl.isNotEmpty) {
+                      return CachedNetworkImage(
+                        imageUrl: headerUrl,
+                        height: 75,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          height: 75,
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          height: 75,
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                        ),
+                      );
+                    }
+                    return Container(
                       height: 75,
                       color: theme.colorScheme.primary.withOpacity(0.1),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 75,
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                    ),
-                  )
-                else
-                  Container(
-                    height: 75,
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                  ),
+                    );
+                  },
+                ),
 
-                if (!isCurrentUser)
-                  Positioned(
-                    bottom: 8,
-                    right: 16,
-                    child: FollowButton(
-                      isCurrentUser: isCurrentUser,
-                      isFollowing: isFollowing,
-                      isFollowRequestPending: isFollowRequestPending,
-                      onFollow: onFollow,
-                      onUnfollow: onUnfollow,
-                      onEditProfile: onEditProfile,
-                    ),
-                  ),
               ],
             ),
 
@@ -159,6 +154,21 @@ class ProfileHeader extends StatelessWidget {
                           ),
                           onPressed: onEditProfile,
                           child: const Text('Edit'),
+                        )
+                      else
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          ),
+                          onPressed: isFollowRequestPending
+                              ? null
+                              : (isFollowing ? onUnfollow : onFollow),
+                          child: Text(
+                            isFollowRequestPending
+                                ? 'Requested'
+                                : (isFollowing ? 'Following' : 'Follow'),
+                          ),
                         ),
                     ],
                   ),
@@ -188,7 +198,7 @@ class ProfileHeader extends StatelessWidget {
                     children: [
                       ProfileStatItem(
                         count: account.statusesCount.toString(),
-                        label: isPixelfed ? 'Posts' : 'Toots',
+                        label: 'Posts',
                       ),
                       ProfileStatItem(
                         count: account.followingCount.toString(),

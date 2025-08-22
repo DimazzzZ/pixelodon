@@ -56,3 +56,6 @@ pubspec.lock
 
 reference
 /.output.txt
+
+# Environment files
+.env

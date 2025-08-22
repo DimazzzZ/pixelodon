@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/core/config/tech_account_config.dart';
 
 /// Enhanced service for handling authentication with Mastodon and Pixelfed instances
 /// This is a new implementation with improved features and error handling
@@ -518,10 +519,32 @@ class AuthService {
           return tokens[domain] as String;
         }
       }
+
+      // Fallback: use technical Mastodon account token if configured and domain matches
+      try {
+        // Import deferred to avoid cyclic deps at file top; using string import not possible here.
+        // We will reference via a helper to keep code clean.
+      } catch (_) {}
       
-      return null;
+      return await _getTechTokenFallback(domain);
     } catch (e) {
       debugPrint('Failed to get access token: $e');
+      return await _getTechTokenFallback(domain);
+    }
+  }
+
+  Future<String?> _getTechTokenFallback(String domain) async {
+    try {
+      // Late import to avoid top-level coupling
+      // ignore: avoid_dynamic_calls
+      // Use direct import
+      // Note: This helper simply reads from env via TechAccountConfig
+      // and applies only when domains match.
+      //
+      // Import placed at top of file normally, but keeping helper separated for clarity.
+      // Will rely on direct import addition at file header.
+      return (TechAccountConfig.domain == domain) ? TechAccountConfig.accessToken : null;
+    } catch (_) {
       return null;
     }
   }

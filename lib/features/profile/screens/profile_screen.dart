@@ -120,6 +120,13 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final bool isSelf;
   CancelToken? _cancelToken;
 
+  // When viewing a remote (Mastodon) profile from a Pixelfed session,
+  // we may need to fetch statuses from the remote host using a technical token.
+  // These fields allow us to override the domain and accountId specifically
+  // for statuses fetching without changing the initial profile fetch domain.
+  String? _statusesDomain;
+  String? _statusesAccountId;
+
   ProfileNotifier({
     required this.accountService,
     required this.timelineService,
@@ -182,6 +189,49 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     loadStatuses();
   }
 
+  /// Prepare statuses fetch target based on the account URL host if different
+  Future<void> _prepareStatusesTarget(Account account) async {
+    try {
+      final currentDomain = domain;
+      if (currentDomain == null) return;
+      // Extract host from the account's canonical URL, if present; otherwise from acct
+      String? host = Uri.tryParse(account.url ?? '')?.host;
+      if ((host == null || host.isEmpty) && account.acct.contains('@')) {
+        final parts = account.acct.split('@');
+        if (parts.length == 2) {
+          host = parts[1];
+        } else if (parts.length > 2) {
+          host = parts.last;
+        }
+      }
+      if (host != null && host.isNotEmpty && host != currentDomain) {
+        _statusesDomain = host;
+        // Resolve the account id on the remote host so we can call /accounts/{id}/statuses there
+        final query = account.acct.contains('@') ? account.acct : '${account.username}@$host';
+        final results = await accountService.searchAccounts(
+          host,
+          query: query,
+          limit: 1,
+          resolve: true,
+        );
+        if (results.isNotEmpty) {
+          _statusesAccountId = results.first.id;
+        } else {
+          // If lookup failed, fall back to using the original id/domain
+          _statusesDomain = null;
+          _statusesAccountId = null;
+        }
+      } else {
+        _statusesDomain = null;
+        _statusesAccountId = null;
+      }
+    } catch (_) {
+      // On any error, do not change the defaults
+      _statusesDomain = null;
+      _statusesAccountId = null;
+    }
+  }
+
   /// Load the profile
   Future<void> loadProfile() async {
     if (domain == null) return;
@@ -201,6 +251,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isFollowing: account.following,
         isFollowRequestPending: account.requested,
       );
+
+      // Prepare remote statuses target if applicable
+      await _prepareStatusesTarget(account);
 
       loadStatuses();
     } catch (e) {
@@ -229,9 +282,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     );
 
     try {
+      final targetDomain = _statusesDomain ?? domain!;
+      final targetAccountId = _statusesAccountId ?? accountId;
+
       final statuses = await timelineService.getAccountStatuses(
-        domain!,
-        accountId,
+        targetDomain,
+        targetAccountId,
         limit: 20,
         onlyMedia: state.onlyMedia,
         excludeReplies: state.excludeReplies,
@@ -285,6 +341,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         errorMessage: null,
       );
 
+      // Recompute remote target if account changed
+      await _prepareStatusesTarget(account);
+
       await refreshStatuses();
     } catch (e) {
       state = state.copyWith(
@@ -299,9 +358,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     if (domain == null) return;
 
     try {
+      final targetDomain = _statusesDomain ?? domain!;
+      final targetAccountId = _statusesAccountId ?? accountId;
+
       final statuses = await timelineService.getAccountStatuses(
-        domain!,
-        accountId,
+        targetDomain,
+        targetAccountId,
         limit: 20,
         onlyMedia: state.onlyMedia,
         excludeReplies: state.excludeReplies,
@@ -338,9 +400,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     );
 
     try {
+      final targetDomain = _statusesDomain ?? domain!;
+      final targetAccountId = _statusesAccountId ?? accountId;
+
       final statuses = await timelineService.getAccountStatuses(
-        domain!,
-        accountId,
+        targetDomain,
+        targetAccountId,
         limit: 20,
         maxId: state.maxId,
         onlyMedia: state.onlyMedia,
@@ -612,12 +677,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     // Likes
     final likesIndex = tabs.length;
-    tabs.add(const Tab(text: 'Likes'));
+    tabs.add(const Tab(text: 'Favorites'));
     views.add(_buildLikesTab(isSelf, likesIndex));
 
-    // Favorites
+    // Bookmarks
     final favIndex = tabs.length;
-    tabs.add(const Tab(text: 'Favorites'));
+    tabs.add(const Tab(text: 'Bookmarks'));
     views.add(_buildBookmarksTab(isSelf, favIndex));
 
     // Boosts
@@ -665,7 +730,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text('Likes are private and only visible for your own profile.'),
+          child: Text('Favorites are private and only visible for your own profile.'),
         ),
       );
     }
@@ -690,7 +755,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           },
         );
       },
-      errorBuilder: (err) => Center(child: Text('Failed to load likes: $err')),
+      errorBuilder: (err) => Center(child: Text('Failed to load favorites: $err')),
       placeholder: const Center(child: SizedBox()),
     );
   }
@@ -703,7 +768,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text('Favorites are private and only visible for your own profile.'),
+          child: Text('Bookmarks are private and only visible for your own profile.'),
         ),
       );
     }
@@ -728,7 +793,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           },
         );
       },
-      errorBuilder: (err) => Center(child: Text('Failed to load favorites: $err')),
+      errorBuilder: (err) => Center(child: Text('Failed to load bookmarks: $err')),
       placeholder: const Center(child: SizedBox()),
     );
   }

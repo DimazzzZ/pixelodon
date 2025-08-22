@@ -3,9 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 import 'package:pixelodon/services/deep_link_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables (non-fatal if missing)
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // Ignore if .env is absent; defaults will apply
+  }
   
   // Initialize deep link handling
   await DeepLinkService().init();

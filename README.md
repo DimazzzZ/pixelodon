@@ -107,6 +107,31 @@ flutter config --enable-windows-desktop
 flutter config --enable-linux-desktop
 ```
 
+## Technical Mastodon account (optional)
+If you want the app to optionally use a technical Mastodon account for requests to a specific Mastodon instance (e.g., when a user opens a Mastodon profile while they are currently authenticated on a Pixelfed instance), you can provide a token via environment variables.
+
+1) Create your local .env from the example:
+
+```bash
+cp .env.example .env
+```
+
+2) Fill in the variables in .env:
+
+```
+TECH_MASTODON_DOMAIN=your-mastodon-instance.tld
+TECH_MASTODON_ACCESS_TOKEN=YOUR_LONG_ACCESS_TOKEN
+```
+
+Notes:
+- The token is only used for Mastodon-powered instances/profiles.
+- .env is already git-ignored; never commit your secrets.
+- The app loads .env at startup. If no .env is present, it proceeds without the technical account.
+- This does not “proxy” to arbitrary Mastodon instances: a token from one instance cannot authorize requests to another instance.
+
+Behavior in app:
+- When any API request targets https://TECH_MASTODON_DOMAIN/ and there is no user token for that domain, the app will attach TECH_MASTODON_ACCESS_TOKEN automatically. This enables fetching public or authorized data on that instance without asking the user to log in there.
+
 ## Running the app
 General
 
