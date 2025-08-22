@@ -55,7 +55,7 @@ void main() {
 
         final router = container.read(appRouterProvider);
         expect(router, isA<GoRouter>());
-        expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
+        expect(router.routerDelegate.currentConfiguration.uri.path, '/splash');
       });
 
       test('should have debug diagnostics enabled', () {

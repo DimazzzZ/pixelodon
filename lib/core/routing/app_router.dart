@@ -22,7 +22,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/auth/login',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     navigatorKey: _rootNavigatorKey,
     
@@ -240,7 +240,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // Ensure initial configuration is set for tests and non-widget contexts
   // This makes router.routerDelegate.currentConfiguration available immediately
   // without needing a MaterialApp.router to mount the router.
-  router.go('/auth/login');
+  // Do not force navigation here; let initialLocation and SplashScreen control the flow.
   return router;
 });
 

@@ -116,6 +116,25 @@ class AccountService {
     }
   }
   
+  /// Get relationship with an account (following/requested) for the authenticated user on the given domain
+  Future<Map<String, dynamic>> getRelationship(String domain, String id) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/accounts/relationships',
+        queryParameters: {
+          'id[]': id,
+        },
+      );
+      final list = response.data as List;
+      if (list.isNotEmpty && list.first is Map) {
+        return Map<String, dynamic>.from(list.first as Map);
+      }
+      return <String, dynamic>{};
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
   /// Follow an account
   Future<Account> followAccount(String domain, String id) async {
     try {

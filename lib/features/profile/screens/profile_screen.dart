@@ -255,6 +255,29 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       // Prepare remote statuses target if applicable
       await _prepareStatusesTarget(account);
 
+      // If viewing a remote Mastodon profile, enrich with remote account data and relationship via tech token
+      if (_statusesDomain != null && _statusesAccountId != null) {
+        try {
+          final remoteAcc = await accountService.getAccount(_statusesDomain!, _statusesAccountId!);
+          // Try to fetch relationship to set Follow/Requested flags correctly
+          bool following = state.isFollowing;
+          bool requested = state.isFollowRequestPending;
+          try {
+            final rel = await accountService.getRelationship(_statusesDomain!, _statusesAccountId!);
+            following = (rel['following'] == true);
+            requested = (rel['requested'] == true);
+          } catch (_) {}
+
+          state = state.copyWith(
+            account: remoteAcc.copyWith(domain: _statusesDomain, isPixelfed: false),
+            isFollowing: following,
+            isFollowRequestPending: requested,
+          );
+        } catch (_) {
+          // ignore remote enrichment errors, keep initial account
+        }
+      }
+
       loadStatuses();
     } catch (e) {
       state = state.copyWith(
@@ -343,6 +366,25 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
       // Recompute remote target if account changed
       await _prepareStatusesTarget(account);
+
+      // If remote target detected, refresh account details and relationship from remote host
+      if (_statusesDomain != null && _statusesAccountId != null) {
+        try {
+          final remoteAcc = await accountService.getAccount(_statusesDomain!, _statusesAccountId!);
+          bool following = state.isFollowing;
+          bool requested = state.isFollowRequestPending;
+          try {
+            final rel = await accountService.getRelationship(_statusesDomain!, _statusesAccountId!);
+            following = (rel['following'] == true);
+            requested = (rel['requested'] == true);
+          } catch (_) {}
+          state = state.copyWith(
+            account: remoteAcc.copyWith(domain: _statusesDomain, isPixelfed: false),
+            isFollowing: following,
+            isFollowRequestPending: requested,
+          );
+        } catch (_) {}
+      }
 
       await refreshStatuses();
     } catch (e) {
