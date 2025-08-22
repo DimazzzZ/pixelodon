@@ -201,3 +201,38 @@ Issues and pull requests are welcome. Please run tests and keep changes minimal,
 
 ## License
 This project is licensed under the MIT License. See LICENSE for details.
+
+
+## App icon generation
+You can generate all mandatory icons for Android, iOS, Web, macOS, Windows, and Linux from a single source image at `assets/images/logo.png`.
+
+Requirements:
+- Flutter SDK installed and available in your PATH
+- Source icon at `assets/images/logo.png` (512x512 or larger PNG with transparent background recommended)
+
+Using the provided scripts:
+- macOS/Linux:
+  
+  ```bash
+  ./scripts/generate_icons.sh
+  ```
+
+- Windows (PowerShell):
+  
+  ```powershell
+  ./scripts/generate_icons.ps1
+  ```
+
+What this does:
+- Runs `flutter pub get`
+- Runs `flutter pub run flutter_launcher_icons`
+- Uses the configuration in `pubspec.yaml` under `flutter_launcher_icons` to generate the icons for all supported platforms.
+
+Notes:
+- Android: Generates all required mipmap densities. We use a single image for both legacy and adaptive icons with a white background by default (customize via `web.background_color` etc. in `pubspec.yaml`). If you want a distinct adaptive foreground/background, replace `image_path` with `adaptive_icon_foreground` and `adaptive_icon_background` under the Android config.
+- iOS: `remove_alpha_ios: true` is set to avoid App Store warnings. Make sure your logo looks correct without the alpha channel if needed.
+- Web: Favicon and manifest icons are updated under `web/`.
+- Desktop: macOS, Windows, and Linux icons are generated into their respective platform directories.
+
+Changing the source image:
+- Replace `assets/images/logo.png` with your new image (ideally square, >=1024x1024 for best quality), then re-run the script.

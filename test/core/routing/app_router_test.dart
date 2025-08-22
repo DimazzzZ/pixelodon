@@ -127,19 +127,43 @@ void main() {
         expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
       });
 
-      test('should have settings route defined', () {
+      testWidgets('should have settings route defined', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
         final router = container.read(appRouterProvider);
-        
         // Navigate to settings route
         router.go('/settings');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/settings');
       });
 
-      test('should have compose route defined', () {
+      testWidgets('should have compose route defined', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: container.read(appRouterProvider),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
         final router = container.read(appRouterProvider);
-        
         // Navigate to compose route
         router.go('/compose');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/compose');
       });
 
