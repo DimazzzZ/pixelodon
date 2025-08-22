@@ -42,7 +42,11 @@ class LinkTapHandler {
       if (matched.isNotEmpty) {
         final m = matched.first;
         if (m.id.isNotEmpty && context.mounted) {
-          context.push('/profile/${m.id}');
+          // Pass the origin host so profile screen fetches from the correct instance
+          final mUri = Uri.tryParse(m.url ?? '');
+          final mHost = mUri?.host;
+          final qp = (mHost != null && mHost.isNotEmpty) ? '?domain=$mHost' : '';
+          context.push('/profile/${m.id}$qp');
           return;
         }
       }
@@ -65,7 +69,14 @@ class LinkTapHandler {
           resolve: true,
         );
         if (results.isNotEmpty && context.mounted) {
-          context.push('/profile/${results.first.id}');
+          final acc = results.first;
+          String? host;
+          try {
+            final u = Uri.tryParse(acc.url ?? '');
+            host = u?.host;
+          } catch (_) {}
+          final qp = (host != null && host.isNotEmpty) ? '?domain=$host' : '';
+          context.push('/profile/${acc.id}$qp');
           return;
         }
       } catch (_) {

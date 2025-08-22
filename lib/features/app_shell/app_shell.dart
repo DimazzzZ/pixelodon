@@ -26,31 +26,31 @@ class _AppShellState extends ConsumerState<AppShell> {
   final List<_NavigationDestination> _destinations = [
     _NavigationDestination(
       icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
+      selectedIcon: Icons.home_outlined,
       label: 'Home',
       path: '/home',
     ),
     _NavigationDestination(
       icon: Icons.search_outlined,
-      selectedIcon: Icons.search,
+      selectedIcon: Icons.search_outlined,
       label: 'Explore',
       path: '/explore',
     ),
     _NavigationDestination(
       icon: Icons.add_circle_outline,
-      selectedIcon: Icons.add_circle,
+      selectedIcon: Icons.add_circle_outline,
       label: 'New Post',
       path: '/compose',
     ),
     _NavigationDestination(
       icon: Icons.notifications_outlined,
-      selectedIcon: Icons.notifications,
+      selectedIcon: Icons.notifications_outlined,
       label: 'Notifications',
       path: '/notifications',
     ),
     _NavigationDestination(
       icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      selectedIcon: Icons.person_outline,
       label: 'Profile',
       path: '/profile',
     ),

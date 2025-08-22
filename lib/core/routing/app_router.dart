@@ -159,8 +159,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile/:accountId',
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
+              final qp = state.uri.queryParameters;
+              final domain = qp['domain'];
+              final pix = qp['isPixelfed'];
+              final isPix = pix == '1' || pix == 'true';
               return MaterialPage(
-                child: ProfileScreen(accountId: accountId),
+                child: ProfileScreen(
+                  accountId: accountId,
+                  domainOverride: domain,
+                  isPixelfedOverride: qp.containsKey('isPixelfed') ? isPix : null,
+                ),
               );
             },
           ),

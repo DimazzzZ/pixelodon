@@ -705,8 +705,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    notifier.setFilters(excludeTypes: excludeTypes);
                     Navigator.of(context).pop();
+                    notifier.setFilters(excludeTypes: excludeTypes);
                   },
                   child: const Text('Apply'),
                 ),

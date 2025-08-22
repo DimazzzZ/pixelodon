@@ -8,20 +8,23 @@ import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
+import 'package:pixelodon/models/user.dart';
 import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
 import 'app_router_test.mocks.dart';
 
-@GenerateMocks([AuthRepository])
+@GenerateMocks([AuthRepository, User])
 void main() {
   group('AppRouter Tests', () {
     late MockAuthRepository mockAuthRepository;
     late ProviderContainer container;
+    late User mockUser;
 
     setUp(() {
       mockAuthRepository = MockAuthRepository();
-      
+      mockUser = User(id: 'mock_id', username: 'mock_user', email: 'mock_user@example.com');
+
       // Mock empty instances (not logged in)
       when(mockAuthRepository.instances).thenReturn([]);
       
@@ -106,7 +109,7 @@ void main() {
 
       testWidgets('should have home route defined', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -128,6 +131,9 @@ void main() {
       });
 
       testWidgets('should have settings route defined', (WidgetTester tester) async {
+        // Mock logged in state
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -148,6 +154,9 @@ void main() {
       });
 
       testWidgets('should have compose route defined', (WidgetTester tester) async {
+        // Mock logged in state
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -167,49 +176,97 @@ void main() {
         expect(router.routerDelegate.currentConfiguration.uri.path, '/compose');
       });
 
-      test('should redirect root path to home', () {
+      testWidgets('should redirect root path to home', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         final router = container.read(appRouterProvider);
         
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to root
         router.go('/');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
       });
     });
 
     group('Authentication Redirect Logic', () {
-      test('should redirect to login when not authenticated', () {
+      testWidgets('should redirect to login when not authenticated', (WidgetTester tester) async {
         // Mock not logged in state
         when(mockAuthRepository.instances).thenReturn([]);
         
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Try to navigate to protected route
         router.go('/home');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
       });
 
-      test('should redirect to home when authenticated and on login screen', () {
+      testWidgets('should redirect to home when authenticated and on login screen', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to login while authenticated
         router.go('/auth/login');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
       });
 
-      test('should not redirect OAuth callback when not authenticated', () {
+      testWidgets('should not redirect OAuth callback when not authenticated', (WidgetTester tester) async {
         // Mock not logged in state
         when(mockAuthRepository.instances).thenReturn([]);
         
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to OAuth callback
         router.go('/oauth/callback');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/oauth/callback');
       });
     });
@@ -262,6 +319,9 @@ void main() {
 
     group('Error Handling', () {
       testWidgets('should show error page for invalid routes', (WidgetTester tester) async {
+        // Mock logged in state to bypass auth redirect
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -281,11 +341,14 @@ void main() {
 
         // Should show error page
         expect(find.text('Page Not Found'), findsOneWidget);
-        expect(find.text('Page not found: /invalid/route'), findsOneWidget);
+        expect(find.text('The page /invalid/route was not found.'), findsOneWidget);
         expect(find.text('Go to Home'), findsOneWidget);
       });
 
       testWidgets('error page should navigate back to home', (WidgetTester tester) async {
+        // Mock logged in state to bypass auth redirect
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -307,16 +370,16 @@ void main() {
         await tester.tap(find.text('Go to Home'));
         await tester.pumpAndSettle();
 
-        // Should redirect to login (since not authenticated)
-        expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
+        // Should redirect to home (since now authenticated)
+        expect(router.routerDelegate.currentConfiguration.uri.path, '/home');
       });
     });
 
     group('Shell Route Structure', () {
       testWidgets('should wrap protected routes in AppShell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -338,36 +401,72 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      test('should have explore route in shell', () {
+      testWidgets('should have explore route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to explore route
         router.go('/explore');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/explore');
       });
 
-      test('should have notifications route in shell', () {
+      testWidgets('should have notifications route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to notifications route
         router.go('/notifications');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/notifications');
       });
 
-      test('should have profile route in shell', () {
+      testWidgets('should have profile route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([]);
-        
+        when(mockAuthRepository.instances).thenReturn([mockUser]);
+
         final router = container.read(appRouterProvider);
-        
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+            ),
+          ),
+        );
+
         // Navigate to profile route
         router.go('/profile');
+        await tester.pumpAndSettle();
         expect(router.routerDelegate.currentConfiguration.uri.path, '/profile');
       });
     });

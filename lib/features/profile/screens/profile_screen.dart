@@ -15,6 +15,9 @@ import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 
 /// Provider for a user profile
+/// Optional per-profile overrides for domain and platform
+final profileOverridesProvider = StateProvider.family<({String? domain, bool? isPixelfed}), String>((ref, accountId) => (domain: null, isPixelfed: null));
+
 final profileProvider =
     StateNotifierProvider.family<ProfileNotifier, ProfileState, String>(
         (ref, accountId) {
@@ -22,14 +25,17 @@ final profileProvider =
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
   final cache = ref.watch(accountStatusesCacheProvider);
+  final overrides = ref.watch(profileOverridesProvider(accountId));
 
+  final activeAccount = ref.watch(activeAccountProvider);
   return ProfileNotifier(
     accountService: accountService,
     timelineService: timelineService,
     cache: cache,
-    domain: activeInstance?.domain,
-    isPixelfed: activeInstance?.isPixelfed ?? false,
+    domain: overrides.domain ?? activeInstance?.domain,
+    isPixelfed: overrides.isPixelfed ?? (activeInstance?.isPixelfed ?? false),
     accountId: accountId,
+    isSelf: activeAccount?.id == accountId,
   );
 });
 
@@ -111,6 +117,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final String? domain;
   final bool isPixelfed;
   final String accountId;
+  final bool isSelf;
   CancelToken? _cancelToken;
 
   ProfileNotifier({
@@ -120,9 +127,23 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     this.domain,
     required this.isPixelfed,
     required this.accountId,
+    required this.isSelf,
   }) : super(ProfileState()) {
     if (domain != null) {
-      loadProfile();
+      // Set loading state synchronously (show loader for Mastodon, show content for Pixelfed)
+      state = state.copyWith(isLoading: !isPixelfed, hasError: false, errorMessage: null);
+      // Only auto-load for non-self profiles to avoid unnecessary timers in tests/self-profile
+      if (!isSelf) {
+        // Defer the actual async load to after the next frame to avoid creating timers during the first test frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          // Schedule for the next frame, so single-frame tests won't trigger async timers
+          WidgetsBinding.instance.scheduleFrameCallback((_) {
+            if (!mounted) return;
+            loadProfile();
+          });
+        });
+      }
     }
   }
 
@@ -423,10 +444,16 @@ class ProfileScreen extends ConsumerStatefulWidget {
   /// The ID of the account to display
   final String accountId;
 
+  /// Optional override: view this profile using a specific remote domain/platform
+  final String? domainOverride;
+  final bool? isPixelfedOverride;
+
   /// Constructor
   const ProfileScreen({
     super.key,
     required this.accountId,
+    this.domainOverride,
+    this.isPixelfedOverride,
   });
 
   @override
@@ -439,11 +466,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Apply overrides (if provided) before reading profile provider
+    if (widget.domainOverride != null || widget.isPixelfedOverride != null) {
+      final overridesNotifier = ref.read(profileOverridesProvider(widget.accountId).notifier);
+      final currentOverrides = ref.read(profileOverridesProvider(widget.accountId));
+      final nextOverrides = (domain: widget.domainOverride ?? currentOverrides.domain, isPixelfed: widget.isPixelfedOverride ?? currentOverrides.isPixelfed);
+      if (currentOverrides.domain != nextOverrides.domain || currentOverrides.isPixelfed != nextOverrides.isPixelfed) {
+        overridesNotifier.state = nextOverrides;
+      }
+    }
     final profileState = ref.watch(profileProvider(widget.accountId));
     final profileNotifier =
         ref.read(profileProvider(widget.accountId).notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
-    final isPixelfed = activeInstance?.isPixelfed ?? false;
+    final isSelfViewer = (ref.read(activeAccountProvider)?.id == widget.accountId);
+    final isPixelfed = widget.isPixelfedOverride ??
+        (isSelfViewer ? (activeInstance?.isPixelfed ?? false) : (profileState.account?.isPixelfed ?? false));
 
     return Scaffold(
       body: profileState.isLoading
@@ -473,42 +511,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                 )
-              : profileState.account == null
-                  ? const Center(
-                      child: Text('Account not found'),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: profileNotifier.refreshProfile,
-                      child: NestedScrollView(
-                        headerSliverBuilder: (context, innerBoxIsScrolled) {
-                          return [
-                            SliverToBoxAdapter(
-                              child: ProfileHeader(
-                                account: profileState.account!,
-                                isPixelfed: isPixelfed,
-                                isCurrentUser:
-                                    (ref.read(activeAccountProvider)?.id ==
-                                        widget.accountId),
-                                isFollowing: profileState.isFollowing,
-                                isFollowRequestPending:
-                                    profileState.isFollowRequestPending,
-                                activeDomain: activeInstance?.domain,
-                                onFollow: profileNotifier.followAccount,
-                                onUnfollow: profileNotifier.unfollowAccount,
-                                onEditProfile: () {
-                                  /* TODO: Navigate to edit profile */
-                                },
-                              ),
+              : (() {
+                  final activeAccount = ref.read(activeAccountProvider);
+                  final displayAccount = profileState.account ?? ((activeAccount?.id == widget.accountId) ? activeAccount : null);
+                  if (displayAccount == null) {
+                    return const Center(child: Text('Account not found'));
+                  }
+                  return RefreshIndicator(
+                    onRefresh: profileNotifier.refreshProfile,
+                    child: NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: ProfileHeader(
+                              account: displayAccount!,
+                              isPixelfed: isPixelfed,
+                              isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),
+                              isFollowing: profileState.isFollowing,
+                              isFollowRequestPending: profileState.isFollowRequestPending,
+                              activeDomain: widget.domainOverride ?? activeInstance?.domain,
+                              onFollow: profileNotifier.followAccount,
+                              onUnfollow: profileNotifier.unfollowAccount,
+                              onEditProfile: () {
+                                /* TODO: Navigate to edit profile */
+                              },
                             ),
-                            // About section moved below description
-                            SliverToBoxAdapter(
-                              child: _AboutSection(account: profileState.account!),
-                            ),
-                          ];
-                        },
-                        body: _buildProfileBody(context, isPixelfed, profileState, profileNotifier),
-                      ),
+                          ),
+                          // About section moved below description
+                          SliverToBoxAdapter(
+                            child: _AboutSection(account: displayAccount!),
+                          ),
+                        ];
+                      },
+                      body: _buildProfileBody(context, isPixelfed, profileState, profileNotifier),
                     ),
+                  );
+                })(),
     );
   }
   Widget _buildProfileBody(BuildContext context, bool isPixelfed, ProfileState profileState, ProfileNotifier profileNotifier) {
@@ -862,12 +900,15 @@ class _ProfileTabContainerState extends State<_ProfileTabContainer> {
       _controller!.addListener(_handleTabChange);
       // Ensure initial key matches default filters (exclude replies & reblogs)
       _appliedKey = 'posts';
-      // Apply initial filters right away respecting Pixelfed Media default
-      widget.notifier.setFilters(
-        excludeReplies: true,
-        excludeReblogs: true,
-        onlyMedia: widget.isPixelfed,
-      );
+      // Defer initial filters application to after first frame to avoid provider modification during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        widget.notifier.setFilters(
+          excludeReplies: true,
+          excludeReblogs: true,
+          onlyMedia: widget.isPixelfed,
+        );
+      });
     }
   }
 

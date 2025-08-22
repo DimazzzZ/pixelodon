@@ -46,7 +46,7 @@ class ProfileHeader extends StatelessWidget {
             // Header image
             Stack(
               children: [
-                if (account.header != null)
+                if (account.header != null && account.header!.isNotEmpty)
                   CachedNetworkImage(
                     imageUrl: account.header!,
                     height: 75,
