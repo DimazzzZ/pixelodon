@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/core/network/api_service.dart' show NotFoundException;
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 
@@ -29,20 +30,41 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
     if (instance == null) {
       throw Exception('No active instance');
     }
-    final domain = instance.domain;
     final tl = ref.read(timelineServiceProvider);
 
-    final status = await tl.getStatus(domain, widget.statusId);
-    final context = await tl.getStatusContext(domain, widget.statusId);
-    final ancestors = context['ancestors'] ?? <Status>[];
-    final descendants = context['descendants'] ?? <Status>[];
+    Future<_LoadedStatus> _fetchForDomain(String domain) async {
+      final ctx = await tl.getStatusContext(domain, widget.statusId);
+      final status = await tl.getStatus(domain, widget.statusId);
+      final ancestors = ctx['ancestors'] ?? <Status>[];
+      final descendants = ctx['descendants'] ?? <Status>[];
+      return _LoadedStatus(
+        domain: domain,
+        status: status,
+        ancestors: ancestors,
+        descendants: descendants,
+      );
+    }
 
-    return _LoadedStatus(
-      domain: domain,
-      status: status,
-      ancestors: ancestors,
-      descendants: descendants,
-    );
+    // Try with the active instance first
+    try {
+      return await _fetchForDomain(instance.domain);
+    } on NotFoundException catch (_) {
+      // If active instance is Pixelfed, try fallback to a Mastodon instance
+      if (instance.isPixelfed) {
+        final instances = ref.read(instancesProvider);
+        String? mastodonDomain;
+        for (final inst in instances) {
+          if (!inst.isPixelfed) {
+            mastodonDomain = inst.domain;
+            break;
+          }
+        }
+        if (mastodonDomain != null) {
+          return await _fetchForDomain(mastodonDomain);
+        }
+      }
+      rethrow;
+    }
   }
 
   @override

@@ -30,7 +30,7 @@ void main() {
       expect(find.text('Test Content'), findsOneWidget);
     });
 
-    testWidgets('should display instance name when active instance exists', (WidgetTester tester) async {
+    testWidgets('should display instance domain when active instance exists', (WidgetTester tester) async {
       const testInstance = Instance(
         domain: 'pixelfed.de',
         name: 'Pixelfed DE',
@@ -50,7 +50,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Pixelfed DE'), findsOneWidget);
+      expect(find.text('pixelfed.de'), findsOneWidget);
       expect(find.byType(CircleAvatar), findsOneWidget);
     });
 

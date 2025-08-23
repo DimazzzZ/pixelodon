@@ -8,6 +8,7 @@ import 'package:pixelodon/features/profile/widgets/profile_stat_item.dart';
 import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/utils/account_utils.dart';
 import 'package:pixelodon/features/profile/widgets/follow_button.dart';
+import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
 
 class ProfileHeader extends StatelessWidget {
   final Account account;
@@ -83,14 +84,14 @@ class ProfileHeader extends StatelessWidget {
 
             // Avatar + Profile info in one container
             Transform.translate(
-              offset: const Offset(0, -36),
+              offset: const Offset(0, -60),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Transform.translate(
-                    offset: const Offset(0, -36),
+                    offset: const Offset(0, -10),
                     child: Align(
                     alignment: Alignment.centerLeft,
                     child: Material(
@@ -182,7 +183,16 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ],
 
-                  const SizedBox(height: 16),
+                  // Additional Mastodon profile fields
+                  if ((account.fields?.isNotEmpty ?? false)) ...[
+                    const SizedBox(height: 12),
+                    Column(
+                      children: [
+                        for (final f in account.fields!) ProfileFieldItem(field: f),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   Row(
                     children: [

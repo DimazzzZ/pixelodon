@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/utils/link_tap_handler.dart';
 
 class ProfileFieldItem extends StatelessWidget {
   final Field field;
@@ -14,9 +16,9 @@ class ProfileFieldItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -27,14 +29,17 @@ class ProfileFieldItem extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
-                  field.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    field.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (field.verifiedAt != null) ...[
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   const Icon(
                     Icons.verified,
                     size: 16,
@@ -43,8 +48,11 @@ class ProfileFieldItem extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 4),
-            Text(field.value),
+            const SizedBox(height: 6),
+            SafeHtmlWidget(
+              htmlContent: field.value,
+              onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
+            ),
           ],
         ),
       ),

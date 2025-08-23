@@ -78,7 +78,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  activeInstance.name,
+                  activeInstance.domain, 
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
