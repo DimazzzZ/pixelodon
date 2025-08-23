@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/services/account_statuses_cache.dart';
+import 'package:pixelodon/services/account_follow_counts_cache.dart';
 import 'package:pixelodon/features/profile/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
 import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
@@ -28,10 +30,12 @@ final profileProvider =
   final overrides = ref.watch(profileOverridesProvider(accountId));
 
   final activeAccount = ref.watch(activeAccountProvider);
+  final followCountsCache = ref.watch(accountFollowCountsCacheProvider);
   return ProfileNotifier(
     accountService: accountService,
     timelineService: timelineService,
     cache: cache,
+    followCountsCache: followCountsCache,
     domain: overrides.domain ?? activeInstance?.domain,
     isPixelfed: overrides.isPixelfed ?? (activeInstance?.isPixelfed ?? false),
     accountId: accountId,
@@ -55,6 +59,10 @@ class ProfileState {
   final bool pinned;
   final bool isFollowing;
   final bool isFollowRequestPending;
+  // Computed follow counts (iterated API), cached up to 1 hour
+  final int? computedFollowersCount;
+  final int? computedFollowingCount;
+  final DateTime? countsFetchedAt;
 
   ProfileState({
     this.account,
@@ -71,6 +79,9 @@ class ProfileState {
     this.pinned = false,
     this.isFollowing = false,
     this.isFollowRequestPending = false,
+    this.computedFollowersCount,
+    this.computedFollowingCount,
+    this.countsFetchedAt,
   });
 
   ProfileState copyWith({
@@ -88,6 +99,9 @@ class ProfileState {
     bool? pinned,
     bool? isFollowing,
     bool? isFollowRequestPending,
+    int? computedFollowersCount,
+    int? computedFollowingCount,
+    DateTime? countsFetchedAt,
   }) {
     return ProfileState(
       account: account ?? this.account,
@@ -114,6 +128,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final AccountService accountService;
   final TimelineService timelineService;
   final AccountStatusesCache cache;
+  final AccountFollowCountsCache followCountsCache;
   final String? domain;
   final bool isPixelfed;
   final String accountId;
@@ -131,6 +146,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     required this.accountService,
     required this.timelineService,
     required this.cache,
+    required this.followCountsCache,
     this.domain,
     required this.isPixelfed,
     required this.accountId,
@@ -232,6 +248,59 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     }
   }
 
+  Future<void> _ensureFollowCounts({bool force = false}) async {
+    final d = domain;
+    if (d == null) return;
+    // Use cached
+    if (!force) {
+      final cached = followCountsCache.getFresh(d, accountId);
+      if (cached != null) {
+        state = state.copyWith(
+          computedFollowersCount: cached.followers,
+          computedFollowingCount: cached.following,
+          countsFetchedAt: cached.fetchedAt,
+        );
+        return;
+      }
+    }
+    // Compute by iterating API
+    int followers = 0;
+    int following = 0;
+    try {
+      // Followers
+      String? cursor;
+      const int pageSize = 80;
+      int safety = 0;
+      while (safety < 1000) { // safety cap ~80k max entries
+        final batch = await accountService.getFollowers(d, accountId, limit: pageSize, maxId: cursor);
+        if (batch.isEmpty) break;
+        followers += batch.length;
+        cursor = batch.last.id;
+        safety++;
+        if (batch.length < pageSize) break;
+      }
+      // Following
+      cursor = null;
+      safety = 0;
+      while (safety < 1000) {
+        final batch = await accountService.getFollowing(d, accountId, limit: pageSize, maxId: cursor);
+        if (batch.isEmpty) break;
+        following += batch.length;
+        cursor = batch.last.id;
+        safety++;
+        if (batch.length < pageSize) break;
+      }
+      followCountsCache.set(d, accountId, followers: followers, following: following);
+      state = state.copyWith(
+        computedFollowersCount: followers,
+        computedFollowingCount: following,
+        countsFetchedAt: DateTime.now(),
+      );
+    } catch (_) {
+      // Leave as is on error; no cache set
+    }
+  }
+
   /// Load the profile
   Future<void> loadProfile() async {
     if (domain == null) return;
@@ -254,6 +323,10 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
       // Prepare remote statuses target if applicable
       await _prepareStatusesTarget(account);
+
+      // Start ensuring follow counts (non-blocking)
+      // Do not block profile load; counts will appear once computed or from cache
+      unawaited(_ensureFollowCounts());
 
       // If viewing a remote Mastodon profile, enrich with remote account data and relationship via tech token
       if (_statusesDomain != null && _statusesAccountId != null) {
@@ -385,6 +458,10 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
           );
         } catch (_) {}
       }
+
+      // Force refresh counts by clearing cache and recomputing
+      try { followCountsCache.clear(domain!, accountId); } catch (_) {}
+      unawaited(_ensureFollowCounts(force: true));
 
       await refreshStatuses();
     } catch (e) {
