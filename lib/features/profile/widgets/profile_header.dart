@@ -83,14 +83,14 @@ class ProfileHeader extends StatelessWidget {
 
             // Avatar + Profile info in one container
             Transform.translate(
-              offset: const Offset(0, -24),
+              offset: const Offset(0, -36),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Transform.translate(
-                    offset: const Offset(0, -24),
+                    offset: const Offset(0, -36),
                     child: Align(
                     alignment: Alignment.centerLeft,
                     child: Material(
@@ -120,14 +120,14 @@ class ProfileHeader extends StatelessWidget {
                             }
                           },
                           child: CircleAvatar(
-                            radius: 48,
+                            radius: 72,
                             backgroundImage: account.avatar != null
                                 ? CachedNetworkImageProvider(account.avatar!)
                                 : null,
                             child: account.avatar == null
                                 ? Text(
                                     account.displayName.isNotEmpty ? account.displayName[0] : '?',
-                                    style: const TextStyle(fontSize: 32),
+                                    style: const TextStyle(fontSize: 64),
                                   )
                                 : null,
                           ),
@@ -135,6 +135,7 @@ class ProfileHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
 
                   const SizedBox(height: 6),
 

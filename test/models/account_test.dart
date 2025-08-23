@@ -166,6 +166,10 @@ void main() {
         expect(json['domain'], testDomain);
         expect(json['is_pixelfed'], true);
         expect(json['fields'], isA<List>());
+        expect(json['fields'][0]['name'], 'Website');
+        expect(json['fields'][0]['value'], 'https://example.com');
+        expect(json['created_at'], testCreatedAt.toIso8601String());
+        expect(json['last_status_at'], testLastStatusAt.toIso8601String());
       });
 
       test('should serialize to JSON correctly with minimal fields', () {
@@ -189,6 +193,8 @@ void main() {
         expect(json['following_count'], 0);
         expect(json['statuses_count'], 0);
         expect(json['is_pixelfed'], false);
+        expect(json.containsKey('created_at'), false);
+        expect(json.containsKey('domain'), false);
       });
     });
 
@@ -234,12 +240,12 @@ void main() {
         expect(account.locked, true);
         expect(account.bot, true);
         expect(account.discoverable, false);
-        expect(account.createdAt, testCreatedAt);
+        expect(account.createdAt?.toIso8601String(), testCreatedAt.toIso8601String());
         expect(account.note, testNote);
         expect(account.followersCount, 100);
         expect(account.followingCount, 50);
         expect(account.statusesCount, 25);
-        expect(account.lastStatusAt, testLastStatusAt);
+        expect(account.lastStatusAt?.toIso8601String(), testLastStatusAt.toIso8601String());
         expect(account.domain, testDomain);
         expect(account.isPixelfed, true);
         expect(account.fields?.length, 1);
