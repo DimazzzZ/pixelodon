@@ -8,26 +8,49 @@ import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
-import 'package:pixelodon/models/user.dart';
+import 'package:pixelodon/models/instance.dart';
+import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
 import 'app_router_test.mocks.dart';
 
-@GenerateMocks([AuthRepository, User])
+@GenerateMocks([AuthRepository])
 void main() {
   group('AppRouter Tests', () {
     late MockAuthRepository mockAuthRepository;
     late ProviderContainer container;
-    late User mockUser;
+    late Instance mockInstance;
+    late Account mockAccount;
 
     setUp(() {
       mockAuthRepository = MockAuthRepository();
-      mockUser = User(id: 'mock_id', username: 'mock_user', email: 'mock_user@example.com');
+      mockInstance = Instance(domain: 'example.com', name: 'Example Instance');
+      mockAccount = Account(
+        id: 'mock_account_id',
+        username: 'mock_user',
+        acct: 'mock_user@example.com',
+        displayName: 'Mock User',
+      );
 
       // Mock empty instances (not logged in)
       when(mockAuthRepository.instances).thenReturn([]);
       
+      // Mock activeInstance property
+      when(mockAuthRepository.activeInstance).thenReturn(null);
+
+      // Mock activeAccount property
+      when(mockAuthRepository.activeAccount).thenReturn(null);
+
+      // Mock getAccessToken method
+      when(mockAuthRepository.getAccessToken(any)).thenAnswer((_) async => 'mock_token');
+
+      // Mock validateAccessToken method to avoid network calls
+      when(mockAuthRepository.validateAccessToken(any)).thenAnswer((_) async => true);
+
+      // Mock isAuthenticated method
+      when(mockAuthRepository.isAuthenticated(any)).thenAnswer((_) async => false);
+
       container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
@@ -55,7 +78,8 @@ void main() {
 
         final router = container.read(appRouterProvider);
         expect(router, isA<GoRouter>());
-        expect(router.routerDelegate.currentConfiguration.uri.path, '/splash');
+        // Since we're not logged in, the router redirects to login
+        expect(router.routerDelegate.currentConfiguration.uri.path, '/auth/login');
       });
 
       test('should have debug diagnostics enabled', () {
@@ -109,7 +133,8 @@ void main() {
 
       testWidgets('should have home route defined', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -132,7 +157,8 @@ void main() {
 
       testWidgets('should have settings route defined', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -155,7 +181,8 @@ void main() {
 
       testWidgets('should have compose route defined', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -178,7 +205,8 @@ void main() {
 
       testWidgets('should redirect root path to home', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         final router = container.read(appRouterProvider);
         
@@ -226,7 +254,8 @@ void main() {
 
       testWidgets('should redirect to home when authenticated and on login screen', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         final router = container.read(appRouterProvider);
 
@@ -320,7 +349,8 @@ void main() {
     group('Error Handling', () {
       testWidgets('should show error page for invalid routes', (WidgetTester tester) async {
         // Mock logged in state to bypass auth redirect
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -347,7 +377,8 @@ void main() {
 
       testWidgets('error page should navigate back to home', (WidgetTester tester) async {
         // Mock logged in state to bypass auth redirect
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -378,7 +409,8 @@ void main() {
     group('Shell Route Structure', () {
       testWidgets('should wrap protected routes in AppShell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -403,7 +435,8 @@ void main() {
 
       testWidgets('should have explore route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         final router = container.read(appRouterProvider);
 
@@ -426,7 +459,8 @@ void main() {
 
       testWidgets('should have notifications route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         final router = container.read(appRouterProvider);
 
@@ -449,7 +483,8 @@ void main() {
 
       testWidgets('should have profile route in shell', (WidgetTester tester) async {
         // Mock logged in state
-        when(mockAuthRepository.instances).thenReturn([mockUser]);
+        when(mockAuthRepository.instances).thenReturn([mockInstance]);
+        when(mockAuthRepository.activeInstance).thenReturn(mockInstance);
 
         final router = container.read(appRouterProvider);
 

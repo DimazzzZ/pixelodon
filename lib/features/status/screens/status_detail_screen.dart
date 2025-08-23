@@ -118,7 +118,7 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
                         showFullContent: true,
                       ),
                     ),
-                  const Divider(height: 1),
+                  Divider(height: 1, thickness: 0.5, color: Colors.grey.shade300),
                 ],
 
                 // The main status
@@ -132,7 +132,7 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
                 ),
 
                 const SizedBox(height: 8),
-                const Divider(height: 1),
+                Divider(height: 1, thickness: 0.5, color: Colors.grey.shade300),
 
                 // Replies header
                 Padding(
@@ -154,16 +154,21 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                     ),
                   )
-                else
-                  for (final s in data.descendants)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: PostCard(
-                        status: s,
-                        domain: data.domain,
-                        showFullContent: true,
+                else ...[
+                  for (int i = 0; i < data.descendants.length; i++)
+                    _ThreadedReplyCard(
+                      isFirst: i == 0,
+                      isLast: i == data.descendants.length - 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: PostCard(
+                          status: data.descendants[i],
+                          domain: data.domain,
+                          showFullContent: true,
+                        ),
                       ),
                     ),
+                ]
               ],
             ),
           );
@@ -185,4 +190,88 @@ class _LoadedStatus {
     required this.ancestors,
     required this.descendants,
   });
+}
+
+
+/// A wrapper that draws a light-grey vertical connector line on the left side
+/// to visually connect reply cards like Bluesky.
+class _ThreadedReplyCard extends StatelessWidget {
+  final bool isFirst;
+  final bool isLast;
+  final Widget child;
+
+  const _ThreadedReplyCard({
+    super.key,
+    required this.isFirst,
+    required this.isLast,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color lineColor = Colors.grey.shade300;
+
+    return Stack(
+      children: [
+        // Left gutter with the vertical connector line
+        Positioned.fill(
+          left: 8, // gutter offset left of the card padding so the line stays in the gutter
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _ThreadConnectorPainter(
+                color: lineColor,
+                topGap: isFirst ? 8.0 : 0.0,
+                bottomGap: isLast ? 12.0 : 0.0,
+              ),
+            ),
+          ),
+        ),
+        // The reply content itself
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isFirst) const SizedBox(height: 4),
+            child,
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ThreadConnectorPainter extends CustomPainter {
+  final Color color;
+  final double topGap;
+  final double bottomGap;
+
+  _ThreadConnectorPainter({
+    required this.color,
+    required this.topGap,
+    required this.bottomGap,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Draw near the left edge of the Positioned.fill area.
+    final double x = 0;
+    final double startY = topGap;
+    final double endY = size.height - bottomGap;
+
+    if (endY > startY) {
+      canvas.drawLine(Offset(x, startY), Offset(x, endY), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThreadConnectorPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.topGap != topGap ||
+        oldDelegate.bottomGap != bottomGap;
+  }
 }

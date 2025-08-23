@@ -11,6 +11,7 @@ import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/services/account_statuses_cache.dart';
 import 'package:pixelodon/services/account_follow_counts_cache.dart';
+import 'package:pixelodon/services/account_posts_count_cache.dart';
 import 'package:pixelodon/features/profile/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/widgets/posts_tab.dart';
 import 'package:pixelodon/features/profile/widgets/profile_field_item.dart';
@@ -31,11 +32,13 @@ final profileProvider =
 
   final activeAccount = ref.watch(activeAccountProvider);
   final followCountsCache = ref.watch(accountFollowCountsCacheProvider);
+  final postsCountCache = ref.watch(accountPostsCountCacheProvider);
   return ProfileNotifier(
     accountService: accountService,
     timelineService: timelineService,
     cache: cache,
     followCountsCache: followCountsCache,
+    postsCountCache: postsCountCache,
     domain: overrides.domain ?? activeInstance?.domain,
     isPixelfed: overrides.isPixelfed ?? (activeInstance?.isPixelfed ?? false),
     accountId: accountId,
@@ -63,6 +66,9 @@ class ProfileState {
   final int? computedFollowersCount;
   final int? computedFollowingCount;
   final DateTime? countsFetchedAt;
+  // Cached posts count (statuses_count)
+  final int? cachedPostsCount;
+  final DateTime? postsCountFetchedAt;
 
   ProfileState({
     this.account,
@@ -82,6 +88,8 @@ class ProfileState {
     this.computedFollowersCount,
     this.computedFollowingCount,
     this.countsFetchedAt,
+    this.cachedPostsCount,
+    this.postsCountFetchedAt, 
   });
 
   ProfileState copyWith({
@@ -102,6 +110,8 @@ class ProfileState {
     int? computedFollowersCount,
     int? computedFollowingCount,
     DateTime? countsFetchedAt,
+    int? cachedPostsCount,
+    DateTime? postsCountFetchedAt,
   }) {
     return ProfileState(
       account: account ?? this.account,
@@ -119,6 +129,11 @@ class ProfileState {
       isFollowing: isFollowing ?? this.isFollowing,
       isFollowRequestPending:
           isFollowRequestPending ?? this.isFollowRequestPending,
+      computedFollowersCount: computedFollowersCount ?? this.computedFollowersCount,
+      computedFollowingCount: computedFollowingCount ?? this.computedFollowingCount,
+      countsFetchedAt: countsFetchedAt ?? this.countsFetchedAt,
+      cachedPostsCount: cachedPostsCount ?? this.cachedPostsCount,
+      postsCountFetchedAt: postsCountFetchedAt ?? this.postsCountFetchedAt, 
     );
   }
 }
@@ -129,6 +144,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final TimelineService timelineService;
   final AccountStatusesCache cache;
   final AccountFollowCountsCache followCountsCache;
+  final AccountPostsCountCache postsCountCache;
   final String? domain;
   final bool isPixelfed;
   final String accountId;
@@ -147,6 +163,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     required this.timelineService,
     required this.cache,
     required this.followCountsCache,
+    required this.postsCountCache, 
     this.domain,
     required this.isPixelfed,
     required this.accountId,
@@ -252,7 +269,8 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     final d = domain;
     if (d == null) return;
     // Use cached
-    if (!force) {
+    final hasRemoteTarget = _statusesDomain != null || _statusesAccountId != null;
+    if (!force && !hasRemoteTarget) {
       final cached = followCountsCache.getFresh(d, accountId);
       if (cached != null) {
         state = state.copyWith(
@@ -267,12 +285,16 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     int followers = 0;
     int following = 0;
     try {
+      // Decide which domain/id to iterate: remote target if available
+      final targetDomain = _statusesDomain ?? d;
+      final targetAccountId = _statusesAccountId ?? accountId;
+
       // Followers
       String? cursor;
       const int pageSize = 80;
       int safety = 0;
       while (safety < 1000) { // safety cap ~80k max entries
-        final batch = await accountService.getFollowers(d, accountId, limit: pageSize, maxId: cursor);
+        final batch = await accountService.getFollowers(targetDomain, targetAccountId, limit: pageSize, maxId: cursor);
         if (batch.isEmpty) break;
         followers += batch.length;
         cursor = batch.last.id;
@@ -283,13 +305,15 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       cursor = null;
       safety = 0;
       while (safety < 1000) {
-        final batch = await accountService.getFollowing(d, accountId, limit: pageSize, maxId: cursor);
+        final batch = await accountService.getFollowing(targetDomain, targetAccountId, limit: pageSize, maxId: cursor);
         if (batch.isEmpty) break;
         following += batch.length;
         cursor = batch.last.id;
         safety++;
         if (batch.length < pageSize) break;
       }
+
+      // Cache under the primary key (original domain/accountId) to keep refresh logic consistent
       followCountsCache.set(d, accountId, followers: followers, following: following);
       state = state.copyWith(
         computedFollowersCount: followers,
@@ -321,6 +345,24 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isFollowRequestPending: account.requested,
       );
 
+      // Cache/restore posts count (statuses_count)
+      try {
+        final d = domain!;
+        final cached = postsCountCache.getFresh(d, accountId);
+        if (cached != null) {
+          state = state.copyWith(
+            cachedPostsCount: cached.posts,
+            postsCountFetchedAt: cached.fetchedAt,
+          );
+        } else {
+          postsCountCache.set(d, accountId, posts: account.statusesCount);
+          state = state.copyWith(
+            cachedPostsCount: account.statusesCount,
+            postsCountFetchedAt: DateTime.now(),
+          );
+        }
+      } catch (_) {}
+
       // Prepare remote statuses target if applicable
       await _prepareStatusesTarget(account);
 
@@ -346,6 +388,14 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             isFollowing: following,
             isFollowRequestPending: requested,
           );
+          // Ensure posts count reflects the remote profile's posts
+          try {
+            postsCountCache.set(domain!, accountId, posts: remoteAcc.statusesCount);
+            state = state.copyWith(
+              cachedPostsCount: remoteAcc.statusesCount,
+              postsCountFetchedAt: DateTime.now(),
+            );
+          } catch (_) {}
         } catch (_) {
           // ignore remote enrichment errors, keep initial account
         }
@@ -456,12 +506,30 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             isFollowing: following,
             isFollowRequestPending: requested,
           );
+          // Ensure posts count reflects the remote profile's posts
+          try {
+            postsCountCache.set(domain!, accountId, posts: remoteAcc.statusesCount);
+            state = state.copyWith(
+              cachedPostsCount: remoteAcc.statusesCount,
+              postsCountFetchedAt: DateTime.now(),
+            );
+          } catch (_) {}
         } catch (_) {}
       }
 
       // Force refresh counts by clearing cache and recomputing
       try { followCountsCache.clear(domain!, accountId); } catch (_) {}
       unawaited(_ensureFollowCounts(force: true));
+
+      // Refresh posts count cache from latest account data
+      try {
+        postsCountCache.clear(domain!, accountId);
+        postsCountCache.set(domain!, accountId, posts: account.statusesCount);
+        state = state.copyWith(
+          cachedPostsCount: account.statusesCount,
+          postsCountFetchedAt: DateTime.now(),
+        );
+      } catch (_) {}
 
       await refreshStatuses();
     } catch (e) {
@@ -708,7 +776,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         return [
                           SliverToBoxAdapter(
                             child: ProfileHeader(
-                              account: displayAccount!,
+                              account: (() {
+                                final cf = profileState.computedFollowersCount;
+                                final cfo = profileState.computedFollowingCount;
+                                final cp = profileState.cachedPostsCount;
+                                if (cf != null || cfo != null || cp != null) {
+                                  return displayAccount!.copyWith(
+                                    followersCount: cf ?? displayAccount.followersCount,
+                                    followingCount: cfo ?? displayAccount.followingCount,
+                                    statusesCount: cp ?? displayAccount.statusesCount,
+                                  );
+                                }
+                                return displayAccount!;
+                              })(),
                               isPixelfed: isPixelfed,
                               isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),
                               isFollowing: profileState.isFollowing,
@@ -723,7 +803,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           // About section moved below description
                           SliverToBoxAdapter(
-                            child: _AboutSection(account: displayAccount!),
+                            child: _AboutSection(account: displayAccount),
                           ),
                         ];
                       },
@@ -739,41 +819,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final tabs = <Tab>[];
     final views = <Widget>[];
 
-    if (isPixelfed) {
-      tabs.add(const Tab(text: 'Media'));
-      views.add(
-        PostsTab(
-          statuses: profileState.statuses.where((s) => s.mediaAttachments.isNotEmpty).toList(),
-          isLoading: profileState.isLoadingStatuses,
-          hasError: profileState.hasError,
-          errorMessage: profileState.errorMessage,
-          hasMore: profileState.hasMore,
-          isPixelfed: true,
-          onlyMedia: true,
-          onLoadMore: profileNotifier.loadMoreStatuses,
-          onRefresh: profileNotifier.refreshStatuses,
-          onEnsureOnlyMedia: (_) {},
-          onStatusUpdated: (status) => profileNotifier.updateStatus(status),
-        ),
-      );
-    } else {
-      tabs.add(const Tab(text: 'Posts'));
-      views.add(
-        PostsTab(
-          statuses: profileState.statuses.where((s) => s.inReplyToId == null).toList(),
-          isLoading: profileState.isLoadingStatuses,
-          hasError: profileState.hasError,
-          errorMessage: profileState.errorMessage,
-          hasMore: profileState.hasMore,
-          isPixelfed: false,
-          onlyMedia: false,
-          onLoadMore: profileNotifier.loadMoreStatuses,
-          onRefresh: profileNotifier.refreshStatuses,
-          onEnsureOnlyMedia: (_) {},
-          onStatusUpdated: (status) => profileNotifier.updateStatus(status),
-        ),
-      );
-    }
+    tabs.add(const Tab(text: 'Posts'));
+          views.add(
+            PostsTab(
+              statuses: isPixelfed
+                  ? profileState.statuses.where((s) => s.mediaAttachments.isNotEmpty).toList()
+                  : profileState.statuses.where((s) => s.inReplyToId == null).toList(),
+              isLoading: profileState.isLoadingStatuses,
+              hasError: profileState.hasError,
+              errorMessage: profileState.errorMessage,
+              hasMore: profileState.hasMore,
+              isPixelfed: isPixelfed,
+              onlyMedia: isPixelfed,
+              onLoadMore: profileNotifier.loadMoreStatuses,
+              onRefresh: profileNotifier.refreshProfile,
+              onEnsureOnlyMedia: (_) {},
+              onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+            ),
+          );
 
     // Comments
     final commentsIndex = tabs.length;
@@ -788,7 +851,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         isPixelfed: false,
         onlyMedia: false,
         onLoadMore: profileNotifier.loadMoreStatuses,
-        onRefresh: profileNotifier.refreshStatuses,
+        onRefresh: profileNotifier.refreshProfile,
         onEnsureOnlyMedia: (_) {},
         onStatusUpdated: (status) => profileNotifier.updateStatus(status),
       ),
@@ -822,7 +885,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         isPixelfed: false,
         onlyMedia: false,
         onLoadMore: () {},
-        onRefresh: profileNotifier.refreshStatuses,
+        onRefresh: profileNotifier.refreshProfile,
         onEnsureOnlyMedia: (_) {},
         onStatusUpdated: (status) => profileNotifier.updateStatus(status),
       ),
@@ -872,6 +935,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onRefresh: () async {
             await refresh();
           },
+          wrapWithRefreshIndicator: false,
         );
       },
       errorBuilder: (err) => Center(child: Text('Failed to load favorites: $err')),
@@ -910,6 +974,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onRefresh: () async {
             await refresh();
           },
+          wrapWithRefreshIndicator: false,
         );
       },
       errorBuilder: (err) => Center(child: Text('Failed to load bookmarks: $err')),

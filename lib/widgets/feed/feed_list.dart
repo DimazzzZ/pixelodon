@@ -36,6 +36,10 @@ class FeedList extends ConsumerStatefulWidget {
   /// Callback when a post is bookmarked
   final Function(Status status, bool bookmarked)? onPostBookmarked;
   
+  /// If true, wraps the list in its own RefreshIndicator. Disable when an outer
+  /// RefreshIndicator should control the whole page stretch.
+  final bool wrapWithRefreshIndicator;
+  
   /// Constructor
   const FeedList({
     super.key,
@@ -49,6 +53,7 @@ class FeedList extends ConsumerStatefulWidget {
     this.onPostLiked,
     this.onPostReblogged,
     this.onPostBookmarked,
+    this.wrapWithRefreshIndicator = true,
   });
 
   @override
@@ -162,45 +167,51 @@ class _FeedListState extends ConsumerState<FeedList> {
       );
     }
     
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh ?? () async {},
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == widget.statuses.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          
-          final status = widget.statuses[index];
-          
-          return PostCard(
-            status: status,
-            domain: activeInstance.domain,
-            onLiked: (liked) {
-              if (widget.onPostLiked != null) {
-                widget.onPostLiked!(status, liked);
-              }
-            },
-            onReblogged: (reblogged) {
-              if (widget.onPostReblogged != null) {
-                widget.onPostReblogged!(status, reblogged);
-              }
-            },
-            onBookmarked: (bookmarked) {
-              if (widget.onPostBookmarked != null) {
-                widget.onPostBookmarked!(status, bookmarked);
-              }
-            },
+    final listView = ListView.builder(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == widget.statuses.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
           );
-        },
-      ),
+        }
+        
+        final status = widget.statuses[index];
+        
+        return PostCard(
+          status: status,
+          domain: activeInstance.domain,
+          onLiked: (liked) {
+            if (widget.onPostLiked != null) {
+              widget.onPostLiked!(status, liked);
+            }
+          },
+          onReblogged: (reblogged) {
+            if (widget.onPostReblogged != null) {
+              widget.onPostReblogged!(status, reblogged);
+            }
+          },
+          onBookmarked: (bookmarked) {
+            if (widget.onPostBookmarked != null) {
+              widget.onPostBookmarked!(status, bookmarked);
+            }
+          },
+        );
+      },
     );
+
+    if (widget.wrapWithRefreshIndicator) {
+      return RefreshIndicator(
+        onRefresh: widget.onRefresh ?? () async {},
+        child: listView,
+      );
+    } else {
+      return listView;
+    }
   }
 }

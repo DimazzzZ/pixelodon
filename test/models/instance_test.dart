@@ -122,13 +122,13 @@ void main() {
         expect(json['version'], testVersion);
         expect(json['thumbnail'], testThumbnail);
         expect(json['languages'], testLanguages);
-        expect(json['max_chars_per_post'], 500);
-        expect(json['max_media_attachments'], 4);
-        expect(json['is_pixelfed'], true);
-        expect(json['supports_stories'], true);
-        expect(json['tos_url'], testTosUrl);
-        expect(json['privacy_policy_url'], testPrivacyPolicyUrl);
-        expect(json['contact_email'], testContactEmail);
+        expect(json['maxCharsPerPost'], 500);
+        expect(json['maxMediaAttachments'], 4);
+        expect(json['isPixelfed'], true);
+        expect(json['supportsStories'], true);
+        expect(json['tosUrl'], testTosUrl);
+        expect(json['privacyPolicyUrl'], testPrivacyPolicyUrl);
+        expect(json['contactEmail'], testContactEmail);
       });
 
       test('should serialize to JSON correctly with minimal fields', () {
@@ -141,8 +141,8 @@ void main() {
 
         expect(json['domain'], testDomain);
         expect(json['name'], testName);
-        expect(json['is_pixelfed'], false);
-        expect(json['supports_stories'], false);
+        expect(json['isPixelfed'], false);
+        expect(json['supportsStories'], false);
         expect(json.containsKey('description'), isTrue);
         expect(json.containsKey('version'), isTrue);
       });
@@ -157,13 +157,13 @@ void main() {
           'version': testVersion,
           'thumbnail': testThumbnail,
           'languages': testLanguages,
-          'max_chars_per_post': 500,
-          'max_media_attachments': 4,
-          'is_pixelfed': true,
-          'supports_stories': true,
-          'tos_url': testTosUrl,
-          'privacy_policy_url': testPrivacyPolicyUrl,
-          'contact_email': testContactEmail,
+          'maxCharsPerPost': 500,
+          'maxMediaAttachments': 4,
+          'isPixelfed': true,
+          'supportsStories': true,
+          'tosUrl': testTosUrl,
+          'privacyPolicyUrl': testPrivacyPolicyUrl,
+          'contactEmail': testContactEmail,
         };
 
         final instance = Instance.fromJson(json);
@@ -204,7 +204,7 @@ void main() {
           'domain': testDomain,
           'name': testName,
           'description': testDescription,
-          'is_pixelfed': true,
+          'isPixelfed': true,
         });
 
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -224,11 +224,11 @@ void main() {
           'version': null,
           'thumbnail': null,
           'languages': null,
-          'max_chars_per_post': null,
-          'max_media_attachments': null,
-          'tos_url': null,
-          'privacy_policy_url': null,
-          'contact_email': null,
+          'maxCharsPerPost': null,
+          'maxMediaAttachments': null,
+          'tosUrl': null,
+          'privacyPolicyUrl': null,
+          'contactEmail': null,
         };
 
         final instance = Instance.fromJson(json);

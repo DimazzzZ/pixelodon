@@ -56,21 +56,21 @@ class ProfileHeader extends StatelessWidget {
                     if (headerUrl.isNotEmpty) {
                       return CachedNetworkImage(
                         imageUrl: headerUrl,
-                        height: 75,
+                        height: 150,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          height: 75,
+                          height: 150,
                           color: theme.colorScheme.primary.withOpacity(0.1),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          height: 75,
+                          height: 150,
                           color: theme.colorScheme.primary.withOpacity(0.1),
                         ),
                       );
                     }
                     return Container(
-                      height: 75,
+                      height: 150,
                       color: theme.colorScheme.primary.withOpacity(0.1),
                     );
                   },
@@ -82,12 +82,16 @@ class ProfileHeader extends StatelessWidget {
             const SizedBox(height: 4),
 
             // Avatar + Profile info in one container
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            Transform.translate(
+              offset: const Offset(0, -24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Align(
+                  Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: Align(
                     alignment: Alignment.centerLeft,
                     child: Material(
                       elevation: 4,
@@ -208,6 +212,7 @@ class ProfileHeader extends StatelessWidget {
                 ],
               ),
             ),
+          ),
           ],
         ),
       ],

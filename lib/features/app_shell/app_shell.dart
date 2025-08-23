@@ -76,11 +76,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(activeInstance.name),
+              Expanded(
+                child: Text(
+                  activeInstance.name,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
             ] else
               const Text('Pixelodon'),
-            
-            const Spacer(),
             
             IconButton(
               icon: const Icon(Icons.settings_outlined),

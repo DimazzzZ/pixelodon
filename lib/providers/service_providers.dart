@@ -6,6 +6,7 @@ import 'package:pixelodon/services/notification_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/services/account_statuses_cache.dart';
 import 'package:pixelodon/services/account_follow_counts_cache.dart';
+import 'package:pixelodon/services/account_posts_count_cache.dart';
 
 /// Provider for the AccountService
 final accountServiceProvider = Provider<AccountService>((ref) {
@@ -39,4 +40,9 @@ final accountStatusesCacheProvider = Provider<AccountStatusesCache>((ref) {
 /// Provider for the AccountFollowCountsCache (in-memory TTL cache for follower/following counts)
 final accountFollowCountsCacheProvider = Provider<AccountFollowCountsCache>((ref) {
   return AccountFollowCountsCache();
+});
+
+/// Provider for the AccountPostsCountCache (in-memory TTL cache for posts count)
+final accountPostsCountCacheProvider = Provider<AccountPostsCountCache>((ref) {
+  return AccountPostsCountCache();
 });

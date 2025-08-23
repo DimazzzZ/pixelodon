@@ -39,6 +39,7 @@ class SafeHtmlWidget extends StatelessWidget {
       ),
       "a": Style(
         color: theme.colorScheme.primary,
+        textDecoration: TextDecoration.none,
       ),
     };
     
