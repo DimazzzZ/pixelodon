@@ -781,13 +781,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 final cfo = profileState.computedFollowingCount;
                                 final cp = profileState.cachedPostsCount;
                                 if (cf != null || cfo != null || cp != null) {
-                                  return displayAccount!.copyWith(
+                                  return displayAccount.copyWith(
                                     followersCount: cf ?? displayAccount.followersCount,
                                     followingCount: cfo ?? displayAccount.followingCount,
                                     statusesCount: cp ?? displayAccount.statusesCount,
                                   );
                                 }
-                                return displayAccount!;
+                                return displayAccount;
                               })(),
                               isPixelfed: isPixelfed,
                               isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),

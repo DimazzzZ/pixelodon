@@ -20,46 +20,61 @@ class FollowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ButtonStyle _compactStyle({Color? bg, Color? fg}) {
+    final borderRadius = const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8)));
+
+    ButtonStyle compactFilled({Color? bg, Color? fg}) {
       return ElevatedButton.styleFrom(
         backgroundColor: bg,
         foregroundColor: fg,
-        minimumSize: const Size(0, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-        //shape: const RoundedRectangleBorder(),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        shape: borderRadius,
+      );
+    }
+
+    ButtonStyle compactOutlined({Color? fg}) {
+      return OutlinedButton.styleFrom(
+        foregroundColor: fg,
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        shape: borderRadius,
+        side: BorderSide(color: Theme.of(context).dividerColor),
       );
     }
 
     if (isCurrentUser) {
-      return ElevatedButton(
+      return OutlinedButton(
         onPressed: onEditProfile,
-        style: _compactStyle(bg: Colors.grey[200], fg: Colors.black),
+        style: compactOutlined(fg: Theme.of(context).colorScheme.onSurface),
         child: const Text('Edit Profile'),
       );
     }
 
     if (isFollowRequestPending) {
-      return ElevatedButton(
+      return OutlinedButton(
         onPressed: onUnfollow,
-        style: _compactStyle(bg: Colors.grey[200], fg: Colors.black),
+        style: compactOutlined(fg: Theme.of(context).colorScheme.onSurface),
         child: const Text('Requested'),
       );
     }
 
     if (isFollowing) {
-      return ElevatedButton(
+      return OutlinedButton(
         onPressed: onUnfollow,
-        style: _compactStyle(bg: Colors.grey[200], fg: Colors.black),
+        style: compactOutlined(fg: Theme.of(context).colorScheme.onSurface),
         child: const Text('Unfollow'),
       );
     }
 
     return ElevatedButton(
       onPressed: onFollow,
-      style: _compactStyle(),
+      style: compactFilled(),
       child: const Text('Follow'),
     );
   }

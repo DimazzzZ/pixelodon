@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_links/app_links.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/core/routing/app_router.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -123,8 +124,13 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
       await authRepository.completeOAuthFlow(widget.domain, code, state: state);
 
       if (mounted) {
-        // Navigate to home screen on success
-        context.go('/');
+        // Navigate to home screen on next frame using root navigator
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final navCtx = rootNavigatorKey.currentContext;
+          if (navCtx != null) {
+            navCtx.go('/home');
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error processing callback: $e');
@@ -205,7 +211,7 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () => context.go('/login'),
+                  onPressed: () => context.go('/auth/login'),
                   child: const Text('Back to Login'),
                 ),
               ],

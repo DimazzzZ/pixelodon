@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/core/routing/app_router.dart';
 
 /// Splash screen that shows the app logo and loading indicator
 class SplashScreen extends ConsumerStatefulWidget {
@@ -33,11 +34,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Check authentication status and navigate accordingly
         final isLoggedIn = authRepository.instances.isNotEmpty;
         
-        if (isLoggedIn) {
-          context.go('/home');
-        } else {
-          context.go('/auth/login');
-        }
+        final target = isLoggedIn ? '/home' : '/auth/login';
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final navCtx = rootNavigatorKey.currentContext;
+          if (navCtx != null) {
+            navCtx.go(target);
+          }
+        });
       }
     } catch (e) {
       // If initialization fails, still allow navigation to login
@@ -64,8 +67,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // App logo
             Image.asset(
               'assets/images/logo.png',
-              width: 120,
-              height: 120,
+              width: 200,
+              height: 200,
             ),
             
             const SizedBox(height: 24),

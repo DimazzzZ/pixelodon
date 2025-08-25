@@ -32,7 +32,7 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
     }
     final tl = ref.read(timelineServiceProvider);
 
-    Future<_LoadedStatus> _fetchForDomain(String domain) async {
+    Future<_LoadedStatus> fetchForDomain(String domain) async {
       final ctx = await tl.getStatusContext(domain, widget.statusId);
       final status = await tl.getStatus(domain, widget.statusId);
       final ancestors = ctx['ancestors'] ?? <Status>[];
@@ -47,7 +47,7 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
 
     // Try with the active instance first
     try {
-      return await _fetchForDomain(instance.domain);
+      return await fetchForDomain(instance.domain);
     } on NotFoundException catch (_) {
       // If active instance is Pixelfed, try fallback to a Mastodon instance
       if (instance.isPixelfed) {
@@ -60,7 +60,7 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
           }
         }
         if (mastodonDomain != null) {
-          return await _fetchForDomain(mastodonDomain);
+          return await fetchForDomain(mastodonDomain);
         }
       }
       rethrow;
@@ -223,7 +223,6 @@ class _ThreadedReplyCard extends StatelessWidget {
   final Widget child;
 
   const _ThreadedReplyCard({
-    super.key,
     required this.isFirst,
     required this.isLast,
     required this.child,

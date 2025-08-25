@@ -16,7 +16,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
 /// Provider for the app router
@@ -24,7 +24,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     
     // Global redirect function to handle authentication
     redirect: (context, state) {
@@ -100,18 +100,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       
       // Auth routes
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/auth/login',
         builder: (context, state) => const LoginScreen(),
       ),
       
       // OAuth callback route
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/auth/callback',
         builder: (context, state) => _buildOAuthCallbackScreen(state),
       ),
       
       // Handle deep link callback from OAuth provider
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/oauth/callback',
         builder: (context, state) => _buildOAuthCallbackScreen(state),
       ),
@@ -204,17 +207,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       
       // Routes outside the shell
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/compose',
         builder: (context, state) => const ComposeScreen(),
       ),
       
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
       
       // Status detail route
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/status/:statusId',
         pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
@@ -227,6 +233,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Tag timeline route
       GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/tag/:tag',
         pageBuilder: (context, state) {
           final tag = state.pathParameters['tag']!;
