@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/status.dart' as model;
@@ -19,11 +20,11 @@ import 'package:pixelodon/widgets/feed/feed_list.dart';
 
 /// Provider for a user profile
 /// Optional per-profile overrides for domain and platform
-final profileOverridesProvider = StateProvider.family<({String? domain, bool? isPixelfed}), String>((ref, accountId) => (domain: null, isPixelfed: null));
+final profileOverridesProvider = StateProvider.family<({String? domain, bool? isPixelfed}), String>(
+    (ref, accountId) => (domain: null, isPixelfed: null));
 
 final profileProvider =
-    StateNotifierProvider.family<ProfileNotifier, ProfileState, String>(
-        (ref, accountId) {
+    StateNotifierProvider.family<ProfileNotifier, ProfileState, String>((ref, accountId) {
   final accountService = ref.watch(accountServiceProvider);
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
@@ -89,7 +90,7 @@ class ProfileState {
     this.computedFollowingCount,
     this.countsFetchedAt,
     this.cachedPostsCount,
-    this.postsCountFetchedAt, 
+    this.postsCountFetchedAt,
   });
 
   ProfileState copyWith({
@@ -127,13 +128,12 @@ class ProfileState {
       excludeReblogs: excludeReblogs ?? this.excludeReblogs,
       pinned: pinned ?? this.pinned,
       isFollowing: isFollowing ?? this.isFollowing,
-      isFollowRequestPending:
-          isFollowRequestPending ?? this.isFollowRequestPending,
+      isFollowRequestPending: isFollowRequestPending ?? this.isFollowRequestPending,
       computedFollowersCount: computedFollowersCount ?? this.computedFollowersCount,
       computedFollowingCount: computedFollowingCount ?? this.computedFollowingCount,
       countsFetchedAt: countsFetchedAt ?? this.countsFetchedAt,
       cachedPostsCount: cachedPostsCount ?? this.cachedPostsCount,
-      postsCountFetchedAt: postsCountFetchedAt ?? this.postsCountFetchedAt, 
+      postsCountFetchedAt: postsCountFetchedAt ?? this.postsCountFetchedAt,
     );
   }
 }
@@ -163,7 +163,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     required this.timelineService,
     required this.cache,
     required this.followCountsCache,
-    required this.postsCountCache, 
+    required this.postsCountCache,
     this.domain,
     required this.isPixelfed,
     required this.accountId,
@@ -183,6 +183,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             loadProfile();
           });
         });
+      } else {
+        // For self-profile, load immediately - this fixes an issue where your own profile is blank
+        loadProfile();
       }
     }
   }
@@ -456,10 +459,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       // Automatic retry for cancellation errors with longer delays to allow network requests to complete
       if (e is CancellationException && retryCount < 3) {
-        final delay = Duration(
-            milliseconds: 1000 *
-                (retryCount +
-                    1)); // 1s, 2s, 3s - more reasonable for network requests
+        final delay = Duration(milliseconds: 1000 * (retryCount + 1)); // 1s, 2s, 3s - more reasonable for network requests
         await Future.delayed(delay);
         return loadStatuses(retryCount: retryCount + 1, isRetry: true);
       }
@@ -701,20 +701,74 @@ class ProfileScreen extends ConsumerStatefulWidget {
   final bool? isPixelfedOverride;
 
   /// Constructor
-  const ProfileScreen({
-    super.key,
+  ProfileScreen({
+    Key? key,
     required this.accountId,
     this.domainOverride,
     this.isPixelfedOverride,
-  });
+  }) : super(key: key ?? ValueKey<String>(accountId));
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTickerProviderStateMixin {
   Future<List<model.Status>>? _likesFuture;
   Future<List<model.Status>>? _bookmarksFuture;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    // Debug print to check for duplicate ProfileScreens
+    // ignore: avoid_print
+    print('ProfileScreen initState for accountId: \'${widget.accountId}\'');
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
+    // Debug print to check for duplicate ProfileScreens
+    // ignore: avoid_print
+    print('ProfileScreen dispose for accountId: \'${widget.accountId}\'');
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) {
+      final profileNotifier = ref.read(profileProvider(widget.accountId).notifier);
+
+      switch (_tabController.index) {
+        case 1: // Comments
+          profileNotifier.setFilters(
+            excludeReplies: false,
+            excludeReblogs: true,
+            onlyMedia: false,
+          );
+          break;
+        case 4: // Boosts
+          profileNotifier.setFilters(
+            excludeReplies: true,
+            excludeReblogs: false,
+            onlyMedia: false,
+          );
+          break;
+        default: // Posts, Favorites, Bookmarks
+          final isPixelfed = ref.read(profileProvider(widget.accountId)).account?.isPixelfed ??
+              (ref.read(activeInstanceProvider)?.isPixelfed ?? false);
+
+          profileNotifier.setFilters(
+            excludeReplies: true,
+            excludeReblogs: true,
+            onlyMedia: isPixelfed ? true : false,
+          );
+          break;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -722,31 +776,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (widget.domainOverride != null || widget.isPixelfedOverride != null) {
       final overridesNotifier = ref.read(profileOverridesProvider(widget.accountId).notifier);
       final currentOverrides = ref.read(profileOverridesProvider(widget.accountId));
-      final nextOverrides = (domain: widget.domainOverride ?? currentOverrides.domain, isPixelfed: widget.isPixelfedOverride ?? currentOverrides.isPixelfed);
+      final nextOverrides = (
+        domain: widget.domainOverride ?? currentOverrides.domain,
+        isPixelfed: widget.isPixelfedOverride ?? currentOverrides.isPixelfed
+      );
       if (currentOverrides.domain != nextOverrides.domain || currentOverrides.isPixelfed != nextOverrides.isPixelfed) {
         overridesNotifier.state = nextOverrides;
       }
     }
+
     final profileState = ref.watch(profileProvider(widget.accountId));
-    final profileNotifier =
-        ref.read(profileProvider(widget.accountId).notifier);
+    final profileNotifier = ref.read(profileProvider(widget.accountId).notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
     final isSelfViewer = (ref.read(activeAccountProvider)?.id == widget.accountId);
     final isPixelfed = widget.isPixelfedOverride ??
         (isSelfViewer ? (activeInstance?.isPixelfed ?? false) : (profileState.account?.isPixelfed ?? false));
 
-    return Scaffold(
+    // Force profile loading if not already loading/loaded
+    if (profileState.account == null && !profileState.isLoading && !profileState.hasError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          profileNotifier.loadProfile();
+        }
+      });
+    }
+
+    return PlatformScaffold(
       body: profileState.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
+          ? Center(
+              child: PlatformCircularProgressIndicator(),
             )
           : profileState.hasError
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
+                      Icon(
+                        PlatformIcons(context).error,
                         size: 48,
                         color: Colors.red,
                       ),
@@ -756,94 +822,124 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
+                      PlatformElevatedButton(
                         onPressed: profileNotifier.loadProfile,
                         child: const Text('Retry'),
                       ),
                     ],
                   ),
                 )
-              : (() {
-                  final activeAccount = ref.read(activeAccountProvider);
-                  final displayAccount = profileState.account ?? ((activeAccount?.id == widget.accountId) ? activeAccount : null);
-                  if (displayAccount == null) {
-                    return const Center(child: Text('Account not found'));
-                  }
-                  return RefreshIndicator(
-                    onRefresh: profileNotifier.refreshProfile,
-                    child: NestedScrollView(
-                      headerSliverBuilder: (context, innerBoxIsScrolled) {
-                        return [
-                          SliverToBoxAdapter(
-                            child: ProfileHeader(
-                              account: (() {
-                                final cf = profileState.computedFollowersCount;
-                                final cfo = profileState.computedFollowingCount;
-                                final cp = profileState.cachedPostsCount;
-                                if (cf != null || cfo != null || cp != null) {
-                                  return displayAccount.copyWith(
-                                    followersCount: cf ?? displayAccount.followersCount,
-                                    followingCount: cfo ?? displayAccount.followingCount,
-                                    statusesCount: cp ?? displayAccount.statusesCount,
-                                  );
-                                }
-                                return displayAccount;
-                              })(),
-                              isPixelfed: isPixelfed,
-                              isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),
-                              isFollowing: profileState.isFollowing,
-                              isFollowRequestPending: profileState.isFollowRequestPending,
-                              activeDomain: widget.domainOverride ?? activeInstance?.domain,
-                              onFollow: profileNotifier.followAccount,
-                              onUnfollow: profileNotifier.unfollowAccount,
-                              onEditProfile: () {
-                                /* TODO: Navigate to edit profile */
-                              },
-                            ),
-                          ),
-                          // About section moved below description
-                          SliverToBoxAdapter(
-                            child: _AboutSection(account: displayAccount),
-                          ),
-                        ];
-                      },
-                      body: _buildProfileBody(context, isPixelfed, profileState, profileNotifier),
-                    ),
-                  );
-                })(),
+              : _buildProfileContent(profileState, profileNotifier, isPixelfed),
     );
   }
-  Widget _buildProfileBody(BuildContext context, bool isPixelfed, ProfileState profileState, ProfileNotifier profileNotifier) {
-    final isSelf = (ref.read(activeAccountProvider)?.id == widget.accountId);
 
-    final tabs = <Tab>[];
-    final views = <Widget>[];
+  Widget _buildProfileContent(ProfileState profileState, ProfileNotifier profileNotifier, bool isPixelfed) {
+    final activeAccount = ref.read(activeAccountProvider);
+    final displayAccount = profileState.account ??
+        ((activeAccount?.id == widget.accountId) ? activeAccount : null);
 
-    tabs.add(const Tab(text: 'Posts'));
-          views.add(
-            PostsTab(
-              statuses: isPixelfed
-                  ? profileState.statuses.where((s) => s.mediaAttachments.isNotEmpty).toList()
-                  : profileState.statuses.where((s) => s.inReplyToId == null).toList(),
-              isLoading: profileState.isLoadingStatuses,
-              hasError: profileState.hasError,
-              errorMessage: profileState.errorMessage,
-              hasMore: profileState.hasMore,
-              isPixelfed: isPixelfed,
-              onlyMedia: isPixelfed,
-              onLoadMore: profileNotifier.loadMoreStatuses,
-              onRefresh: profileNotifier.refreshProfile,
-              onEnsureOnlyMedia: (_) {},
-              onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+    if (displayAccount == null) {
+      return const Center(child: Text('Account not found'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: profileNotifier.refreshProfile,
+      child: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: ProfileHeader(
+                account: _getEnrichedAccount(displayAccount, profileState),
+                isPixelfed: isPixelfed,
+                isCurrentUser: (ref.read(activeAccountProvider)?.id == widget.accountId),
+                isFollowing: profileState.isFollowing,
+                isFollowRequestPending: profileState.isFollowRequestPending,
+                activeDomain: widget.domainOverride ?? ref.read(activeInstanceProvider)?.domain,
+                onFollow: profileNotifier.followAccount,
+                onUnfollow: profileNotifier.unfollowAccount,
+                onEditProfile: () {
+                  // TODO: Navigate to edit profile
+                },
+              ),
             ),
-          );
+            // About section
+            SliverToBoxAdapter(
+              child: _AboutSection(account: displayAccount),
+            ),
+            // TabBar
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverTabBarDelegate(
+                tabController: _tabController,
+                tabs: _buildTabs(),
+                isPixelfed: isPixelfed,
+                key: ValueKey('tabbar_${widget.accountId}'),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          key: ValueKey('tabview_${widget.accountId}'),
+          controller: _tabController,
+          children: _buildTabViews(profileState, profileNotifier, isPixelfed),
+        ),
+      ),
+    );
+  }
 
-    // Comments
-    final commentsIndex = tabs.length;
-    tabs.add(const Tab(text: 'Comments'));
-    views.add(
+  Account _getEnrichedAccount(Account displayAccount, ProfileState profileState) {
+    final cf = profileState.computedFollowersCount;
+    final cfo = profileState.computedFollowingCount;
+    final cp = profileState.cachedPostsCount;
+
+    if (cf != null || cfo != null || cp != null) {
+      return displayAccount.copyWith(
+        followersCount: cf ?? displayAccount.followersCount,
+        followingCount: cfo ?? displayAccount.followingCount,
+        statusesCount: cp ?? displayAccount.statusesCount,
+      );
+    }
+    return displayAccount;
+  }
+
+  List<Widget> _buildTabs() {
+    return const [
+      Tab(text: 'Posts'),
+      Tab(text: 'Comments'),
+      Tab(text: 'Favorites'),
+      Tab(text: 'Bookmarks'),
+      Tab(text: 'Boosts'),
+    ];
+  }
+
+  List<Widget> _buildTabViews(ProfileState profileState, ProfileNotifier profileNotifier, bool isPixelfed) {
+    final isSelf = (ref.read(activeAccountProvider)?.id == widget.accountId);
+    final safeStatuses = profileState.statuses;
+    
+    return [
+      // Posts (index 0)
       PostsTab(
-        statuses: profileState.statuses.where((s) => s.inReplyToId != null).toList(),
+        key: ValueKey('posts_tab_${widget.accountId}'),
+        statuses: isPixelfed
+            ? safeStatuses.where((s) => s.mediaAttachments.isNotEmpty).toList()
+            : safeStatuses.where((s) => s.inReplyToId == null).toList(),
+        isLoading: profileState.isLoadingStatuses,
+        hasError: profileState.hasError,
+        errorMessage: profileState.errorMessage,
+        hasMore: profileState.hasMore,
+        isPixelfed: isPixelfed,
+        onlyMedia: isPixelfed,
+        onLoadMore: profileNotifier.loadMoreStatuses,
+        onRefresh: profileNotifier.refreshProfile,
+        onEnsureOnlyMedia: (_) {},
+        onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+        uniqueId: 'posts_${widget.accountId}',
+      ),
+      
+      // Comments (index 1)
+      PostsTab(
+        key: ValueKey('comments_tab_${widget.accountId}'),
+        statuses: safeStatuses.where((s) => s.inReplyToId != null).toList(),
         isLoading: profileState.isLoadingStatuses,
         hasError: profileState.hasError,
         errorMessage: profileState.errorMessage,
@@ -854,30 +950,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         onRefresh: profileNotifier.refreshProfile,
         onEnsureOnlyMedia: (_) {},
         onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+        uniqueId: 'comments_${widget.accountId}',
       ),
-    );
+      
+      // Favorites (index 2)
+      _buildLikesTab(isSelf),
 
-    // Likes
-    final likesIndex = tabs.length;
-    tabs.add(const Tab(text: 'Favorites'));
-    views.add(_buildLikesTab(isSelf, likesIndex));
+      // Bookmarks (index 3)
+      _buildBookmarksTab(isSelf),
 
-    // Bookmarks
-    final favIndex = tabs.length;
-    tabs.add(const Tab(text: 'Bookmarks'));
-    views.add(_buildBookmarksTab(isSelf, favIndex));
-
-    // Boosts
-    final boostsIndex = tabs.length;
-    tabs.add(const Tab(text: 'Boosts'));
-    // Per API: boosts are statuses where the `reblog` attribute is not null.
-    // In our model, `reblog` maps to `rebloggedStatus`.
-    final boosts = profileState.statuses
-        .where((s) => s.rebloggedStatus != null)
-        .toList();
-    views.add(
+      // Boosts (index 4)
       PostsTab(
-        statuses: boosts,
+        key: ValueKey('boosts_tab_${widget.accountId}'),
+        statuses: safeStatuses.where((s) => s.rebloggedStatus != null).toList(),
         isLoading: profileState.isLoadingStatuses,
         hasError: profileState.hasError,
         errorMessage: profileState.errorMessage,
@@ -888,23 +973,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         onRefresh: profileNotifier.refreshProfile,
         onEnsureOnlyMedia: (_) {},
         onStatusUpdated: (status) => profileNotifier.updateStatus(status),
+        uniqueId: 'boosts_${widget.accountId}',
       ),
-    );
-
-    return DefaultTabController(
-      length: tabs.length,
-      child: _ProfileTabContainer(
-        tabs: tabs,
-        views: views,
-        isPixelfed: isPixelfed,
-        commentsIndex: commentsIndex,
-        boostsIndex: boostsIndex,
-        notifier: profileNotifier,
-      ),
-    );
+    ];
   }
 
-  Widget _buildLikesTab(bool isSelf, int tabIndex) {
+  Widget _buildLikesTab(bool isSelf) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final timelineService = ref.watch(timelineServiceProvider);
 
@@ -917,33 +991,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    return _LazyTabContent<model.Status>(
-      tabIndex: tabIndex,
-      initialFuture: _likesFuture,
-      onFutureCreated: (future) => setState(() { _likesFuture = future; }),
-      loader: () {
-        if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
-        return timelineService.getFavourites(activeInstance!.domain, limit: 40);
-      },
-      builder: (context, data, refresh) {
+    return FutureBuilder<List<model.Status>>(
+      key: ValueKey('likes_future_${widget.accountId}'),
+      future: _likesFuture ?? (_likesFuture = activeInstance?.domain == null
+          ? Future.value(const <model.Status>[])
+          : timelineService.getFavourites(activeInstance!.domain, limit: 40)),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Failed to load favorites: ${snapshot.error}'));
+        }
+        final data = snapshot.data ?? <model.Status>[];
         return FeedList(
+          key: ValueKey('likes_feed_${widget.accountId}'),
           statuses: data,
           isLoading: false,
           hasError: false,
           hasMore: false,
           onLoadMore: null,
           onRefresh: () async {
-            await refresh();
+            setState(() {
+              _likesFuture = activeInstance?.domain == null
+                  ? Future.value(const <model.Status>[])
+                  : timelineService.getFavourites(activeInstance!.domain, limit: 40);
+            });
+            // Wait for the future to complete but return void
+            await _likesFuture;
+            return;
           },
           wrapWithRefreshIndicator: false,
         );
       },
-      errorBuilder: (err) => Center(child: Text('Failed to load favorites: $err')),
-      placeholder: const Center(child: SizedBox()),
     );
   }
 
-  Widget _buildBookmarksTab(bool isSelf, int tabIndex) {
+  Widget _buildBookmarksTab(bool isSelf) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final timelineService = ref.watch(timelineServiceProvider);
 
@@ -956,29 +1040,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    return _LazyTabContent<model.Status>(
-      tabIndex: tabIndex,
-      initialFuture: _bookmarksFuture,
-      onFutureCreated: (future) => setState(() { _bookmarksFuture = future; }),
-      loader: () {
-        if (activeInstance?.domain == null) return Future.value(const <model.Status>[]);
-        return timelineService.getBookmarks(activeInstance!.domain, limit: 40);
-      },
-      builder: (context, data, refresh) {
+    return FutureBuilder<List<model.Status>>(
+      key: ValueKey('bookmarks_future_${widget.accountId}'),
+      future: _bookmarksFuture ?? (_bookmarksFuture = activeInstance?.domain == null
+          ? Future.value(const <model.Status>[])
+          : timelineService.getBookmarks(activeInstance!.domain, limit: 40)),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Failed to load bookmarks: ${snapshot.error}'));
+        }
+        final data = snapshot.data ?? <model.Status>[];
         return FeedList(
+          key: ValueKey('bookmarks_feed_${widget.accountId}'),
           statuses: data,
           isLoading: false,
           hasError: false,
           hasMore: false,
           onLoadMore: null,
           onRefresh: () async {
-            await refresh();
+            setState(() {
+              _bookmarksFuture = activeInstance?.domain == null
+                  ? Future.value(const <model.Status>[])
+                  : timelineService.getBookmarks(activeInstance!.domain, limit: 40);
+            });
+            // Wait for the future to complete but return void
+            await _bookmarksFuture;
+            return;
           },
           wrapWithRefreshIndicator: false,
         );
       },
-      errorBuilder: (err) => Center(child: Text('Failed to load bookmarks: $err')),
-      placeholder: const Center(child: SizedBox()),
     );
   }
 }
@@ -996,11 +1090,12 @@ class _AboutSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (account.fields != null && account.fields!.isNotEmpty) ...[
-            const Text(
+            Text(
               'Profile Fields',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -1013,213 +1108,47 @@ class _AboutSection extends StatelessWidget {
   }
 }
 
-
-/// Lazily loads data for a tab only when it becomes active the first time.
-class _LazyTabContent<T> extends StatefulWidget {
-  final int tabIndex;
-  final Future<List<T>>? initialFuture;
-  final void Function(Future<List<T>> future) onFutureCreated;
-  final Future<List<T>> Function() loader;
-  final Widget Function(BuildContext context, List<T> data, Future<void> Function() refresh) builder;
-  final Widget Function(Object error) errorBuilder;
-  final Widget placeholder;
-
-  const _LazyTabContent({
-    required this.tabIndex,
-    required this.initialFuture,
-    required this.onFutureCreated,
-    required this.loader,
-    required this.builder,
-    required this.errorBuilder,
-    required this.placeholder,
-  });
-
-  @override
-  State<_LazyTabContent<T>> createState() => _LazyTabContentState<T>();
-}
-
-class _LazyTabContentState<T> extends State<_LazyTabContent<T>> {
-  Future<List<T>>? _future;
-  TabController? _controller;
-  bool _initialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _controller ??= DefaultTabController.of(context);
-
-    // Attach listener once
-    if (!_initialized && _controller != null) {
-      _initialized = true;
-      // If the tab is already selected, start loading immediately
-      if (_controller!.index == widget.tabIndex) {
-        _startLoading();
-      } else {
-        _future = widget.initialFuture;
-      }
-      _controller!.addListener(_onTabChanged);
-    }
-  }
-
-  void _onTabChanged() {
-    if (_controller!.index == widget.tabIndex && _future == null) {
-      _startLoading();
-    }
-  }
-
-  void _startLoading() {
-    final fut = widget.loader();
-    widget.onFutureCreated(fut);
-    setState(() {
-      _future = fut;
-    });
-  }
-
-  Future<void> _refresh() async {
-    final fut = widget.loader();
-    widget.onFutureCreated(fut);
-    setState(() {
-      _future = fut;
-    });
-    try {
-      await fut;
-    } catch (_) {}
-  }
-
-  @override
-  void dispose() {
-    _controller?.removeListener(_onTabChanged);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_future == null) {
-      return widget.placeholder;
-    }
-
-    return FutureBuilder<List<T>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return widget.errorBuilder(snapshot.error!);
-        }
-        final data = snapshot.data ?? <T>[];
-        return widget.builder(context, data, _refresh);
-      },
-    );
-  }
-}
-
-/// Container that handles TabBar/TabBarView and switches timeline filters
-/// only when Comments or Boosts tabs are selected.
-class _ProfileTabContainer extends StatefulWidget {
-  final List<Tab> tabs;
-  final List<Widget> views;
+/// Delegate for the pinned TabBar header
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabController tabController;
+  final List<Widget> tabs;
   final bool isPixelfed;
-  final int commentsIndex;
-  final int boostsIndex;
-  final ProfileNotifier notifier;
+  final Key? key;
 
-  const _ProfileTabContainer({
+  const _SliverTabBarDelegate({
+    required this.tabController,
     required this.tabs,
-    required this.views,
     required this.isPixelfed,
-    required this.commentsIndex,
-    required this.boostsIndex,
-    required this.notifier,
+    this.key,
   });
 
   @override
-  State<_ProfileTabContainer> createState() => _ProfileTabContainerState();
-}
-
-class _ProfileTabContainerState extends State<_ProfileTabContainer> {
-  TabController? _controller;
-  String _appliedKey = 'posts';
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _controller ??= DefaultTabController.of(context);
-    if (_controller != null) {
-      _controller!.addListener(_handleTabChange);
-      // Ensure initial key matches default filters (exclude replies & reblogs)
-      _appliedKey = 'posts';
-      // Defer initial filters application to after first frame to avoid provider modification during build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        widget.notifier.setFilters(
-          excludeReplies: true,
-          excludeReblogs: true,
-          onlyMedia: widget.isPixelfed,
-        );
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.removeListener(_handleTabChange);
-    super.dispose();
-  }
-
-  void _handleTabChange() {
-    if (!_controller!.indexIsChanging) {
-      final idx = _controller!.index;
-
-      String key = 'posts';
-      bool? excludeReplies = true;
-      bool? excludeReblogs = true;
-      bool? onlyMedia;
-
-      if (idx == widget.commentsIndex) {
-        key = 'comments';
-        excludeReplies = false; // include replies
-        excludeReblogs = true;  // keep boosts excluded
-        onlyMedia = false;      // comments likely have no media
-      } else if (idx == widget.boostsIndex) {
-        key = 'boosts';
-        excludeReplies = true;  // exclude replies to reduce extra data
-        excludeReblogs = false; // include boosts
-        onlyMedia = false;
-      } else {
-        key = 'posts';
-        excludeReplies = true;
-        excludeReblogs = true;
-        onlyMedia = widget.isPixelfed ? true : null; // onlyMedia true for Pixelfed Media tab
-      }
-
-      if (key != _appliedKey) {
-        _appliedKey = key;
-        widget.notifier.setFilters(
-          excludeReplies: excludeReplies,
-          excludeReblogs: excludeReblogs,
-          onlyMedia: onlyMedia,
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: widget.tabs,
-          ),
-        ),
-        Expanded(
-          child: TabBarView(children: widget.views),
-        ),
-      ],
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      elevation: overlapsContent ? 4 : 0,
+      child: TabBar(
+        controller: tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        tabs: tabs,
+        labelColor: Theme.of(context).colorScheme.primary,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+        indicatorColor: Theme.of(context).colorScheme.primary,
+      ),
     );
+  }
+
+  @override
+  double get maxExtent => 56.0;
+
+  @override
+  double get minExtent => 56.0;
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    return oldDelegate is! _SliverTabBarDelegate ||
+        oldDelegate.tabs != tabs ||
+        oldDelegate.isPixelfed != isPixelfed;
   }
 }

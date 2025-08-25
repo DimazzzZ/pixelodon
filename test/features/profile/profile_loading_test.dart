@@ -81,7 +81,7 @@ void main() {
             accountServiceProvider.overrideWithValue(acc),
             timelineServiceProvider.overrideWithValue(tl),
           ],
-          child: const MaterialApp(home: ProfileScreen(accountId: '123')),
+          child: MaterialApp(home: ProfileScreen(accountId: '123')),
         ),
       );
 
@@ -105,7 +105,7 @@ void main() {
             accountServiceProvider.overrideWithValue(acc),
             timelineServiceProvider.overrideWithValue(tl),
           ],
-          child: const MaterialApp(home: ProfileScreen(accountId: '123')),
+          child: MaterialApp(home: ProfileScreen(accountId: '123')),
         ),
       );
 

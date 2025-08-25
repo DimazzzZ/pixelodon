@@ -19,6 +19,7 @@ class PostsTab extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final Function(bool onlyMedia) onEnsureOnlyMedia;
   final void Function(model.Status status) onStatusUpdated;
+  final String? uniqueId; // Add unique identifier to prevent key conflicts
 
   const PostsTab({
     super.key,
@@ -33,6 +34,7 @@ class PostsTab extends StatefulWidget {
     required this.onRefresh,
     required this.onEnsureOnlyMedia,
     required this.onStatusUpdated,
+    this.uniqueId,
   });
 
   @override
@@ -44,6 +46,12 @@ class _PostsTabState extends State<PostsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 768;
+    final crossAxisCount = isTablet 
+      ? (screenSize.width > 1200 ? 5 : 4) // Desktop: 5 cols, Tablet: 4 cols
+      : 3; // Mobile: 3 cols
+    
     // Ensure Pixelfed shows only media grid
     if (widget.isPixelfed && !widget.onlyMedia) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,145 +59,220 @@ class _PostsTabState extends State<PostsTab> {
       });
     }
 
-    if (widget.isPixelfed) {
-      // Provide toggle to switch between 3-column grid and single-column full-width
-      if (widget.statuses.isEmpty) {
-        // Provide a scrollable to enable pull-to-refresh (handled by outer indicator)
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            _buildLayoutToggle(show: true),
-            const SizedBox(height: 80),
-            Center(
+    // For Posts tab: show grid layout for media posts
+    if (widget.isPixelfed || widget.onlyMedia) {
+      return _buildMediaGrid(crossAxisCount);
+    }
+
+    // For other tabs (Comments, Favorites, Bookmarks, Boosts): show list view
+    return _buildFeedList();
+  }
+
+  Widget _buildMediaGrid(int crossAxisCount) {
+    // Filter statuses to only include those with media attachments
+    final mediaStatuses = widget.statuses.where((s) => s.mediaAttachments.isNotEmpty).toList();
+    
+    if (mediaStatuses.isEmpty) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: Center(
               child: widget.isLoading
                   ? const CircularProgressIndicator()
-                  : const Text('No posts yet'),
+                  : Text(
+                      widget.onlyMedia || widget.isPixelfed
+                          ? 'No media posts yet'
+                          : 'No posts yet',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
             ),
-            const SizedBox(height: 120),
-          ],
-        );
-      }
-
-      return Column(
-        children: [
-          _buildLayoutToggle(show: true),
-          Expanded(
-            child: _layout == MediaLayout.grid3
-                ? MasonryGridView.count(
-                    key: const PageStorageKey('pixelfed_media_grid3'),
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == widget.statuses.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      final status = widget.statuses[index];
-                      if (status.mediaAttachments.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final attachment = status.mediaAttachments.first;
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (status.id.isNotEmpty) {
-                            context.push('/status/${status.id}');
-                          }
-                        },
-                        child: CachedNetworkImage(
-                          imageUrl: attachment.previewUrl ?? attachment.url,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[300],
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[300],
-                            child: const Center(child: Icon(Icons.error)),
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                : ListView.builder(
-                    key: const PageStorageKey('pixelfed_media_single'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == widget.statuses.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      final status = widget.statuses[index];
-                      if (status.mediaAttachments.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-                      final attachment = status.mediaAttachments.first;
-
-                      // Determine aspect ratio if possible
-                      double? aspectRatio;
-                      final w = attachment.width;
-                      final h = attachment.height;
-                      if (w != null && h != null && w > 0 && h > 0) {
-                        aspectRatio = w / h;
-                      }
-
-                      final image = CachedNetworkImage(
-                        imageUrl: attachment.previewUrl ?? attachment.url,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          height: 280,
-                          color: Colors.grey[300],
-                          child: const Center(child: CircularProgressIndicator()),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          height: 280,
-                          color: Colors.grey[300],
-                          child: const Center(child: Icon(Icons.error)),
-                        ),
-                      );
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (status.id.isNotEmpty) {
-                            context.push('/status/${status.id}');
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: aspectRatio != null
-                                ? AspectRatio(
-                                    aspectRatio: aspectRatio,
-                                    child: image,
-                                  )
-                                : image,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
           ),
+          if (widget.isPixelfed)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildLayoutToggle(show: true),
+            ),
         ],
       );
     }
 
-    // List for Mastodon
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: _layout == MediaLayout.grid3 || !widget.isPixelfed
+              ? _buildGrid(crossAxisCount, mediaStatuses)
+              : _buildSingleColumnList(mediaStatuses),
+        ),
+        if (widget.isPixelfed)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _buildLayoutToggle(show: true),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildGrid(int crossAxisCount, List<model.Status> statuses) {
+    final keyPrefix = widget.uniqueId ?? 'default';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: MasonryGridView.count(
+        key: PageStorageKey('${keyPrefix}_media_grid_$crossAxisCount'),
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == statuses.length) {
+            return const SizedBox(
+              height: 100,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            );
+          }
+
+          final status = statuses[index];
+          final attachment = status.mediaAttachments.first;
+
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: GestureDetector(
+              onTap: () {
+                if (status.id.isNotEmpty) {
+                  context.push('/status/${status.id}');
+                }
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: CachedNetworkImage(
+                  imageUrl: attachment.previewUrl ?? attachment.url,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 120,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 120,
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: Icon(
+                      Icons.error_outline,
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSingleColumnList(List<model.Status> statuses) {
+    final keyPrefix = widget.uniqueId ?? 'default';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListView.builder(
+        key: PageStorageKey('${keyPrefix}_media_single'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == statuses.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          final status = statuses[index];
+          final attachment = status.mediaAttachments.first;
+
+          // Determine aspect ratio if possible
+          double? aspectRatio;
+          final w = attachment.width;
+          final h = attachment.height;
+          if (w != null && h != null && w > 0 && h > 0) {
+            aspectRatio = w / h;
+          }
+
+          final image = CachedNetworkImage(
+            imageUrl: attachment.previewUrl ?? attachment.url,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              height: 280,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: 280,
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Icon(
+                Icons.error_outline,
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+            ),
+          );
+
+          return GestureDetector(
+            onTap: () {
+              if (status.id.isNotEmpty) {
+                context.push('/status/${status.id}');
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: aspectRatio != null
+                      ? AspectRatio(
+                          aspectRatio: aspectRatio,
+                          child: image,
+                        )
+                      : image,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFeedList() {
     return FeedList(
       statuses: widget.statuses,
       isLoading: widget.isLoading,

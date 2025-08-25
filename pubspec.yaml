@@ -31,6 +31,7 @@ dependencies:
   image_cropper: ^9.1.0
   markdown_widget: ^2.3.2+2  # Replacing flutter_markdown
   flutter_html: ^3.0.0-beta.2  # HTML rendering with security
+  html: ^0.15.4
   url_launcher: ^6.2.4
   share_plus: ^11.1.0
   flutter_animate: ^4.5.0
