@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/models/paginated_result.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/features/profile/widgets/compact_account_tile.dart';
@@ -139,16 +140,15 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
         }
       }
 
-      final list = widget.type == FollowListType.following
+      final result = widget.type == FollowListType.following
           ? await accountService.getFollowing(targetDomain, targetAccountId, limit: 40, maxId: _maxId)
           : await accountService.getFollowers(targetDomain, targetAccountId, limit: 40, maxId: _maxId);
 
-      if (list.isNotEmpty) {
-        _maxId = list.last.id;
-      }
+      // Use pagination information from the result
+      _maxId = result.nextMaxId;
       setState(() {
-        _accounts.addAll(list.map((a) => a.copyWith(domain: targetDomain, isPixelfed: false)).toList());
-        _hasMore = list.length >= 40;
+        _accounts.addAll(result.items.map((a) => a.copyWith(domain: targetDomain, isPixelfed: false)).toList());
+        _hasMore = result.hasMore;
       });
     } catch (e) {
       setState(() {

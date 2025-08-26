@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/models/paginated_result.dart';
 
 /// Service for handling account-related API calls
 class AccountService {
@@ -65,7 +66,7 @@ class AccountService {
   }
   
   /// Get an account's followers
-  Future<List<Account>> getFollowers(
+  Future<PaginatedResult<Account>> getFollowers(
     String domain,
     String id, {
     int? limit,
@@ -82,16 +83,18 @@ class AccountService {
         },
       );
       
-      return (response.data as List)
+      final accounts = (response.data as List)
           .map((json) => Account.fromJson(json))
           .toList();
+      
+      return PaginatedResult.fromResponse(accounts, response.headers.map);
     } catch (e) {
       throw _handleError(e);
     }
   }
   
   /// Get accounts followed by an account
-  Future<List<Account>> getFollowing(
+  Future<PaginatedResult<Account>> getFollowing(
     String domain,
     String id, {
     int? limit,
@@ -108,9 +111,11 @@ class AccountService {
         },
       );
       
-      return (response.data as List)
+      final accounts = (response.data as List)
           .map((json) => Account.fromJson(json))
           .toList();
+      
+      return PaginatedResult.fromResponse(accounts, response.headers.map);
     } catch (e) {
       throw _handleError(e);
     }
