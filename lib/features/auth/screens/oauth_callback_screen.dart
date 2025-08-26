@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_links/app_links.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:pixelodon/core/routing/app_router.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -124,13 +124,8 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
       await authRepository.completeOAuthFlow(widget.domain, code, state: state);
 
       if (mounted) {
-        // Navigate to home screen on next frame using root navigator
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final navCtx = rootNavigatorKey.currentContext;
-          if (navCtx != null) {
-            navCtx.go('/home');
-          }
-        });
+        // Navigate to home screen on success
+        context.go('/');
       }
     } catch (e) {
       debugPrint('Error processing callback: $e');
@@ -151,8 +146,8 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
+    return PlatformScaffold(
+      appBar: PlatformAppBar(
         title: const Text('Authenticating'),
         automaticallyImplyLeading: false,
       ),
@@ -163,7 +158,7 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_isLoading) ...[
-                const CircularProgressIndicator(),
+                PlatformCircularProgressIndicator(),
                 const SizedBox(height: 24),
                 Text(
                   'Completing authentication...',
@@ -185,7 +180,7 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
+                PlatformElevatedButton(
                   onPressed: () => context.go('/auth/login'),
                   child: const Text('Cancel & Go Back to Login'),
                 ),
@@ -210,8 +205,8 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => context.go('/auth/login'),
+                PlatformElevatedButton(
+                  onPressed: () => context.go('/login'),
                   child: const Text('Back to Login'),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/instance.dart';
@@ -102,8 +103,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Scaffold(
-      appBar: AppBar(
+    return PlatformScaffold(
+      appBar: PlatformAppBar(
         title: const Text('Login'),
       ),
       body: SingleChildScrollView(
@@ -169,13 +170,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  PlatformElevatedButton(
                     onPressed: _isLoading ? null : _discoverInstance,
                     child: _isLoading && _discoveredInstance == null
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: PlatformCircularProgressIndicator(),
                           )
                         : const Text('Continue'),
                   ),
@@ -267,16 +268,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
-                      ElevatedButton(
+                      PlatformElevatedButton(
                         onPressed: _isLoading ? null : _startOAuthFlow,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
+                        material: (context, platform) => MaterialElevatedButtonData(
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
                         ),
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: PlatformCircularProgressIndicator(),
                               )
                             : const Text('Login with this instance'),
                       ),
