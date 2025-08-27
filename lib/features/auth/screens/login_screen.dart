@@ -153,21 +153,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _instanceController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g., mastodon.social, pixelfed.social',
-                      prefixIcon: Icon(Icons.language),
+                  Material(
+                    child: TextFormField(
+                      controller: _instanceController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g., mastodon.social, pixelfed.social',
+                        prefixIcon: Icon(Icons.language),
+                      ),
+                      keyboardType: TextInputType.url,
+                      textInputAction: TextInputAction.go,
+                      onFieldSubmitted: (_) => _discoverInstance(),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter an instance domain';
+                        }
+                        return null;
+                      },
                     ),
-                    keyboardType: TextInputType.url,
-                    textInputAction: TextInputAction.go,
-                    onFieldSubmitted: (_) => _discoverInstance(),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an instance domain';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 16),
                   PlatformElevatedButton(
