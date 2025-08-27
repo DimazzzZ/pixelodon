@@ -8,7 +8,8 @@ import 'package:pixelodon/features/compose/screens/compose_screen.dart';
 import 'package:pixelodon/features/explore/screens/explore_screen.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
 import 'package:pixelodon/features/notifications/screens/notifications_screen.dart';
-import 'package:pixelodon/features/profile/screens/profile_screen.dart';
+import 'package:pixelodon/features/profile/presentation/screens/profile_screen.dart';
+import 'package:pixelodon/features/profile/domain/profile_usecases.dart';
 import 'package:pixelodon/features/profile/screens/follow_list_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
@@ -162,16 +163,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile/:accountId',
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
-              final qp = state.uri.queryParameters;
-              final domain = qp['domain'];
-              final pix = qp['isPixelfed'];
-              final isPix = pix == '1' || pix == 'true';
+              final username = state.uri.queryParameters['username'];
               return MaterialPage(
                 key: state.pageKey,
                 child: ProfileScreen(
-                  accountId: accountId,
-                  domainOverride: domain,
-                  isPixelfedOverride: qp.containsKey('isPixelfed') ? isPix : null,
+                  args: ProfileRouteArgs(
+                    userId: accountId,
+                    username: username,
+                  ),
                 ),
               );
             },
