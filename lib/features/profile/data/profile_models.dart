@@ -19,6 +19,7 @@ class UserProfile with _$UserProfile {
   const factory UserProfile({
     required String id,
     required String username,
+    required String acct,
     String? displayName,
     required String avatarUrl,
     required String coverUrl,
@@ -44,6 +45,7 @@ class UserProfile with _$UserProfile {
     return UserProfile(
       id: account.id,
       username: account.username,
+      acct: account.acct,
       displayName: account.displayName.isEmpty ? null : account.displayName,
       avatarUrl: account.avatar ?? '',
       coverUrl: account.header ?? '',
