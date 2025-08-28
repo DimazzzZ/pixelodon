@@ -61,6 +61,14 @@ class ProfileRepository {
     return await _remoteDataSource.getBoosts(userId, cursor: cursor);
   }
 
+  /// Get likes for a user with pagination
+  Future<Page<MediaItem>> getLikes(
+    String userId, {
+    String? cursor,
+  }) async {
+    return await _remoteDataSource.getLikes(userId, cursor: cursor);
+  }
+
   /// Toggle follow state for a user
   Future<FollowState> toggleFollow(String userId) async {
     try {

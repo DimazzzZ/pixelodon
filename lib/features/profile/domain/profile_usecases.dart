@@ -9,6 +9,7 @@ abstract class ProfileUseCases {
   Future<Page<MediaItem>> loadMediaPage(String userId, {String? cursor});
   Future<Page<CommentItem>> loadCommentsPage(String userId, {String? cursor});
   Future<Page<BoostItem>> loadBoostsPage(String userId, {String? cursor});
+  Future<Page<MediaItem>> loadLikesPage(String userId, {String? cursor});
   Future<FollowState> toggleFollow(String userId);
   Future<UserProfile> refreshProfile(String userId);
 }
@@ -55,6 +56,15 @@ class ProfileUseCasesImpl implements ProfileUseCases {
       return await _repository.getBoosts(userId, cursor: cursor);
     } catch (e) {
       throw ProfileException('Failed to load boosts: $e');
+    }
+  }
+
+  @override
+  Future<Page<MediaItem>> loadLikesPage(String userId, {String? cursor}) async {
+    try {
+      return await _repository.getLikes(userId, cursor: cursor);
+    } catch (e) {
+      throw ProfileException('Failed to load likes: $e');
     }
   }
 

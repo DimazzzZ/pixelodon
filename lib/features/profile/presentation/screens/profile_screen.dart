@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../domain/profile_usecases.dart';
 import '../../state/profile_controller.dart';
 import '../../state/profile_state.dart';
@@ -9,6 +10,7 @@ import '../widgets/profile_tabbar.dart';
 import '../widgets/media_grid_sliver.dart';
 import '../widgets/comments_list_sliver.dart';
 import '../widgets/boosts_list_sliver.dart';
+import '../widgets/likes_grid_sliver.dart';
 import '../widgets/shimmer_placeholders.dart';
 
 /// Main profile screen with image-first design
@@ -67,6 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               selectedIndex: state.selectedTabIndex,
               onTabChanged: (index) => controller.switchTab(index),
               isLoading: state.isCurrentTabLoading,
+              isOwnProfile: state.isOwnProfile,
             ),
 
             // Tab Content
@@ -149,6 +152,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ];
 
+      case ProfileTabs.likes:
+        return [
+          state.likes.when(
+            data: (items) => LikesGridSliver(
+              items: items,
+              hasMore: state.hasMoreLikes,
+              isLoadingMore: state.isLoadingMoreLikes,
+              onLoadMore: () => controller.loadNextLikesPage(),
+              onItemTap: (item, index) => _handleMediaTap(item, index),
+            ),
+            loading: () => const MediaGridShimmer(),
+            error: (error, stackTrace) => SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildErrorState(
+                context,
+                'Failed to load likes',
+                error.toString(),
+                () => controller.switchTab(ProfileTabs.likes),
+              ),
+            ),
+          ),
+        ];
+
       default:
         return [
           const SliverFillRemaining(
@@ -224,31 +250,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   /// Handle stats tap (posts, followers, following)
   void _handleStatsTap(String type) {
-    // TODO: Navigate to respective list screens
-    // Use ScaffoldMessenger.maybeOf to safely access ScaffoldMessenger
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('${type.toUpperCase()} - TODO: Implement navigation'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    switch (type) {
+      case 'followers':
+        context.go('/profile/$userId/followers');
+        break;
+      case 'following':
+        context.go('/profile/$userId/following');
+        break;
+      case 'posts':
+        // For posts, we could scroll to the top or show a filter
+        // For now, just show a message
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Already viewing posts'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+        break;
     }
   }
 
   /// Handle media item tap
   void _handleMediaTap(item, int index) {
-    // TODO: Navigate to media detail screen with Hero animation
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Media ${item.id} - TODO: Implement media viewer'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    // Navigate to status detail screen using the MediaItem's status ID
+    context.go('/status/${item.id}');
   }
 
   /// Handle comment tap

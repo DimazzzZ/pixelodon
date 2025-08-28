@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../../data/profile_models.dart';
 import 'profile_action_button.dart';
 import 'shimmer_placeholders.dart';
@@ -189,12 +190,32 @@ class ProfileHeader extends StatelessWidget {
           const SizedBox(height: 16), // Increased spacing for better layout
           // Bio
           if (profile!.bio.isNotEmpty) ...[
-            Text(
-              profile!.bio,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
+            Html(
+              data: profile!.bio,
+              style: {
+                "body": Style(
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                  fontSize: FontSize(theme.textTheme.bodyMedium?.fontSize ?? 14),
+                  color: theme.colorScheme.onSurfaceVariant,
+                  textAlign: TextAlign.center,
+                ),
+                "p": Style(
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                  textAlign: TextAlign.center,
+                ),
+                "a": Style(
+                  color: theme.colorScheme.primary,
+                  textDecoration: TextDecoration.underline,
+                ),
+                "strong, b": Style(
+                  fontWeight: FontWeight.bold,
+                ),
+                "em, i": Style(
+                  fontStyle: FontStyle.italic,
+                ),
+              },
             ),
             const SizedBox(height: 8),
           ],

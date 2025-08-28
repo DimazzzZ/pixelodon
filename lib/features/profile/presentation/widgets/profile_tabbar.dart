@@ -1,22 +1,38 @@
 import 'package:flutter/material.dart';
 import '../../state/profile_state.dart';
 
-/// Pinned tab bar for profile tabs (Media, Comments, Boosts)
+/// Pinned tab bar for profile tabs (Media, Comments, Boosts, Likes)
 class ProfileTabBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTabChanged;
   final bool isLoading;
+  final bool isOwnProfile;
 
   const ProfileTabBar({
     super.key,
     required this.selectedIndex,
     required this.onTabChanged,
     this.isLoading = false,
+    this.isOwnProfile = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Filter tabs based on profile ownership - hide likes tab for other users
+    final visibleTabs = <MapEntry<int, String>>[];
+    for (final entry in ProfileTabs.labels.asMap().entries) {
+      final index = entry.key;
+      final label = entry.value;
+      
+      // Hide likes tab (index 3) if not viewing own profile
+      if (index == ProfileTabs.likes && !isOwnProfile) {
+        continue;
+      }
+      
+      visibleTabs.add(entry);
+    }
 
     return Container(
       height: 48,
@@ -30,7 +46,7 @@ class ProfileTabBar extends StatelessWidget {
         ),
       ),
       child: Row(
-        children: ProfileTabs.labels.asMap().entries.map((entry) {
+        children: visibleTabs.map((entry) {
           final index = entry.key;
           final label = entry.value;
           final isSelected = index == selectedIndex;
@@ -111,11 +127,13 @@ class SliverProfileTabBarDelegate extends SliverPersistentHeaderDelegate {
   final int selectedIndex;
   final ValueChanged<int> onTabChanged;
   final bool isLoading;
+  final bool isOwnProfile;
 
   SliverProfileTabBarDelegate({
     required this.selectedIndex,
     required this.onTabChanged,
     this.isLoading = false,
+    this.isOwnProfile = false,
   });
 
   @override
@@ -128,6 +146,7 @@ class SliverProfileTabBarDelegate extends SliverPersistentHeaderDelegate {
       selectedIndex: selectedIndex,
       onTabChanged: onTabChanged,
       isLoading: isLoading,
+      isOwnProfile: isOwnProfile,
     );
   }
 
@@ -140,7 +159,8 @@ class SliverProfileTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant SliverProfileTabBarDelegate oldDelegate) {
     return selectedIndex != oldDelegate.selectedIndex ||
-           isLoading != oldDelegate.isLoading;
+           isLoading != oldDelegate.isLoading ||
+           isOwnProfile != oldDelegate.isOwnProfile;
   }
 }
 
@@ -150,6 +170,7 @@ class SliverProfileTabBar extends StatelessWidget {
   final ValueChanged<int> onTabChanged;
   final bool isLoading;
   final bool pinned;
+  final bool isOwnProfile;
 
   const SliverProfileTabBar({
     super.key,
@@ -157,6 +178,7 @@ class SliverProfileTabBar extends StatelessWidget {
     required this.onTabChanged,
     this.isLoading = false,
     this.pinned = true,
+    this.isOwnProfile = false,
   });
 
   @override
@@ -167,6 +189,7 @@ class SliverProfileTabBar extends StatelessWidget {
         selectedIndex: selectedIndex,
         onTabChanged: onTabChanged,
         isLoading: isLoading,
+        isOwnProfile: isOwnProfile,
       ),
     );
   }

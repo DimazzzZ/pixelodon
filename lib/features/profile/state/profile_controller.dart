@@ -49,12 +49,15 @@ class ProfileController extends StateNotifier<ProfileState> {
         media: const AsyncValue.loading(),
         comments: const AsyncValue.loading(),
         boosts: const AsyncValue.loading(),
+        likes: const AsyncValue.loading(),
         hasMoreMedia: false,
         hasMoreComments: false,
         hasMoreBoosts: false,
+        hasMoreLikes: false,
         mediaCursor: null,
         commentsCursor: null,
         boostsCursor: null,
+        likesCursor: null,
         isRefreshing: false,
       );
 
@@ -88,6 +91,9 @@ class ProfileController extends StateNotifier<ProfileState> {
         break;
       case ProfileTabs.boosts:
         if (state.boosts.isLoading) await _loadBoosts();
+        break;
+      case ProfileTabs.likes:
+        if (state.likes.isLoading) await _loadLikes();
         break;
     }
   }
@@ -136,6 +142,22 @@ class ProfileController extends StateNotifier<ProfileState> {
     } catch (error, stackTrace) {
       state = state.copyWith(
         boosts: AsyncValue.error(error, stackTrace),
+      );
+    }
+  }
+
+  /// Load likes
+  Future<void> _loadLikes() async {
+    try {
+      final page = await _useCases.loadLikesPage(_userId);
+      state = state.copyWith(
+        likes: AsyncValue.data(page.items),
+        hasMoreLikes: page.hasMore,
+        likesCursor: page.nextCursor,
+      );
+    } catch (error, stackTrace) {
+      state = state.copyWith(
+        likes: AsyncValue.error(error, stackTrace),
       );
     }
   }
@@ -222,6 +244,34 @@ class ProfileController extends StateNotifier<ProfileState> {
       );
     } catch (error, stackTrace) {
       state = state.copyWith(isLoadingMoreBoosts: false);
+    }
+  }
+
+  /// Load next page of likes
+  Future<void> loadNextLikesPage() async {
+    if (!state.hasMoreLikes || state.isLoadingMoreLikes) return;
+
+    state = state.copyWith(isLoadingMoreLikes: true);
+
+    try {
+      final page = await _useCases.loadLikesPage(
+        _userId,
+        cursor: state.likesCursor,
+      );
+
+      final currentLikes = state.likes.maybeWhen(
+        data: (items) => items,
+        orElse: () => <MediaItem>[],
+      );
+
+      state = state.copyWith(
+        likes: AsyncValue.data([...currentLikes, ...page.items]),
+        hasMoreLikes: page.hasMore,
+        likesCursor: page.nextCursor,
+        isLoadingMoreLikes: false,
+      );
+    } catch (error, stackTrace) {
+      state = state.copyWith(isLoadingMoreLikes: false);
     }
   }
 

@@ -14,6 +14,7 @@ abstract class ProfileRemoteDataSource {
   Future<Page<MediaItem>> getMediaItems(String userId, {String? cursor});
   Future<Page<CommentItem>> getComments(String userId, {String? cursor});
   Future<Page<BoostItem>> getBoosts(String userId, {String? cursor});
+  Future<Page<MediaItem>> getLikes(String userId, {String? cursor});
   Future<FollowState> toggleFollow(String userId);
 }
 
@@ -145,6 +146,35 @@ class RealProfileRemoteDataSource implements ProfileRemoteDataSource {
       );
     } catch (e) {
       throw Exception('Failed to fetch boosts: $e');
+    }
+  }
+
+  @override
+  Future<Page<MediaItem>> getLikes(String userId, {String? cursor}) async {
+    try {
+      // Fetch liked statuses
+      final statuses = await _timelineService.getFavourites(
+        _domain,
+        maxId: cursor,
+        limit: 20,
+      );
+
+      // Convert statuses with media to MediaItems
+      final mediaItems = statuses
+          .where((status) => status.mediaAttachments.isNotEmpty)
+          .map((status) => MediaItem.fromStatus(status))
+          .toList();
+
+      final nextCursor = statuses.isNotEmpty ? statuses.last.id : null;
+      final hasMore = statuses.length == 20;
+
+      return Page(
+        items: mediaItems,
+        nextCursor: nextCursor,
+        hasMore: hasMore,
+      );
+    } catch (e) {
+      throw Exception('Failed to fetch likes: $e');
     }
   }
 
