@@ -407,6 +407,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     isActive: _isReblogged,
                     activeColor: Colors.green,
                     onPressed: _toggleReblog,
+                    key: Key('reblog_button_${_status.id}'),
                   ),
                   _buildStatButton(
                     icon: Icons.favorite_border,
@@ -415,6 +416,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     isActive: _isLiked,
                     activeColor: Colors.red,
                     onPressed: _toggleLike,
+                    key: Key('like_button_${_status.id}'),
                   ),
                   _buildStatButton(
                     icon: Icons.bookmark_border,
@@ -423,6 +425,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     isActive: _isBookmarked,
                     activeColor: Colors.blue,
                     onPressed: _toggleBookmark,
+                    key: Key('bookmark_button_${_status.id}'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.share_outlined),
@@ -474,8 +477,10 @@ class _PostCardState extends ConsumerState<PostCard> {
     required bool isActive,
     Color? activeColor,
     required VoidCallback onPressed,
+    Key? key,
   }) {
     return InkWell(
+      key: key,
       onTap: onPressed,
       borderRadius: BorderRadius.circular(20),
       child: Padding(

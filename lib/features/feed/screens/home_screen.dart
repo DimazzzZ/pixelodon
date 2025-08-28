@@ -333,6 +333,7 @@ class HomeScreen extends ConsumerWidget {
     final activeInstance = ref.watch(activeInstanceProvider);
     
     return Scaffold(
+      key: const Key('home_screen'),
       body: activeInstance == null
           ? const Center(
               child: Text('No active instance selected'),
@@ -353,6 +354,7 @@ class HomeScreen extends ConsumerWidget {
                       unselectedLabelStyle: const TextStyle(fontSize: 13),
                       tabs: const [
                         Tab(
+                          key: Key('following_tab'),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -363,6 +365,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         Tab(
+                          key: Key('local_tab'),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -373,6 +376,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         Tab(
+                          key: Key('federated_tab'),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -390,6 +394,7 @@ class HomeScreen extends ConsumerWidget {
                       children: [
                         // Following
                         FeedList(
+                          key: const Key('feed_list_following'),
                           statuses: timelineState.statuses,
                           isLoading: timelineState.isLoading,
                           hasError: timelineState.hasError,
@@ -413,6 +418,7 @@ class HomeScreen extends ConsumerWidget {
                             final localState = ref.watch(localTimelineProvider);
                             final localNotifier = ref.read(localTimelineProvider.notifier);
                             return FeedList(
+                              key: const Key('feed_list_local'),
                               statuses: localState.statuses,
                               isLoading: localState.isLoading,
                               hasError: localState.hasError,
@@ -438,6 +444,7 @@ class HomeScreen extends ConsumerWidget {
                             final fedState = ref.watch(federatedTimelineProvider);
                             final fedNotifier = ref.read(federatedTimelineProvider.notifier);
                             return FeedList(
+                              key: const Key('feed_list_federated'),
                               statuses: fedState.statuses,
                               isLoading: fedState.isLoading,
                               hasError: fedState.hasError,

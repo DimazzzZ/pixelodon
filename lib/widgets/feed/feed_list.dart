@@ -100,7 +100,8 @@ class _FeedListState extends ConsumerState<FeedList> {
     }
     
     if (widget.hasError) {
-      return Center(
+      final errorWidget = Center(
+        key: const Key('error_banner'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -122,6 +123,21 @@ class _FeedListState extends ConsumerState<FeedList> {
           ],
         ),
       );
+
+      if (widget.wrapWithRefreshIndicator && widget.onRefresh != null) {
+        return RefreshIndicator(
+          onRefresh: widget.onRefresh!,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.8,
+              child: errorWidget,
+            ),
+          ),
+        );
+      }
+
+      return errorWidget;
     }
     
     if (widget.statuses.isEmpty) {
@@ -132,6 +148,7 @@ class _FeedListState extends ConsumerState<FeedList> {
       }
       
       return Center(
+        key: const Key('empty_state'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -176,31 +193,42 @@ class _FeedListState extends ConsumerState<FeedList> {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 8),
+                  Text('Loading more...'),
+                ],
+              ),
             ),
           );
         }
         
         final status = widget.statuses[index];
         
-        return PostCard(
-          status: status,
-          domain: activeInstance.domain,
-          onLiked: (liked) {
-            if (widget.onPostLiked != null) {
-              widget.onPostLiked!(status, liked);
-            }
-          },
-          onReblogged: (reblogged) {
-            if (widget.onPostReblogged != null) {
-              widget.onPostReblogged!(status, reblogged);
-            }
-          },
-          onBookmarked: (bookmarked) {
-            if (widget.onPostBookmarked != null) {
-              widget.onPostBookmarked!(status, bookmarked);
-            }
-          },
+        return Container(
+          key: const Key('status_item'),
+          child: PostCard(
+            key: Key('status_card_${status.id}'),
+            status: status,
+            domain: activeInstance.domain,
+            onLiked: (liked) {
+              if (widget.onPostLiked != null) {
+                widget.onPostLiked!(status, liked);
+              }
+            },
+            onReblogged: (reblogged) {
+              if (widget.onPostReblogged != null) {
+                widget.onPostReblogged!(status, reblogged);
+              }
+            },
+            onBookmarked: (bookmarked) {
+              if (widget.onPostBookmarked != null) {
+                widget.onPostBookmarked!(status, bookmarked);
+              }
+            },
+          ),
         );
       },
     );
