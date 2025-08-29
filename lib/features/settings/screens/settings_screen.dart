@@ -18,8 +18,6 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final instances = ref.watch(instancesProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    final language = ref.watch(languageProvider);
 
     return AppPageScaffold(
       appBar: PlatformAppBarWrapper(
@@ -43,7 +41,11 @@ class SettingsScreen extends ConsumerWidget {
           
           // List of accounts
           if (instances.isNotEmpty) ...[
-            Card(
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              ),
               child: Column(
                 children: [
                   for (int i = 0; i < instances.length; i++) ...[
@@ -59,12 +61,21 @@ class SettingsScreen extends ConsumerWidget {
           // Add Account Button
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            child: PlatformTextButton(
               onPressed: () => _addAccount(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Account'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add),
+                  const SizedBox(width: 8),
+                  const Text('Add Account'),
+                ],
+              ),
+              material: (_, __) => MaterialTextButtonData(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                ),
               ),
             ),
           ),
@@ -80,7 +91,11 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
             child: Column(
               children: [
                 PlatformListTile(
@@ -120,7 +135,11 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
             child: Column(
               children: [
                 PlatformListTile(
@@ -259,16 +278,24 @@ class SettingsScreen extends ConsumerWidget {
     final account = ref.watch(accountInfoProvider(instance.domain));
     final isActive = activeInstance?.domain == instance.domain;
     
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: isActive 
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-            : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
+    return PlatformListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isActive ? Colors.blue.withOpacity(0.2) : Colors.blue.withOpacity(0.1),
+          image: account?.avatar != null 
+              ? DecorationImage(
+                  image: NetworkImage(account!.avatar!),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
         child: account?.avatar == null 
             ? Icon(
                 instance.isPixelfed ? Icons.photo_camera : Icons.chat_bubble,
-                color: Theme.of(context).colorScheme.primary,
+                color: Colors.blue,
               )
             : null,
       ),
@@ -300,31 +327,9 @@ class SettingsScreen extends ConsumerWidget {
               size: 20,
             ),
           const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            onSelected: (value) => _handleAccountAction(context, ref, instance, value),
-            itemBuilder: (context) => [
-              if (!isActive)
-                const PopupMenuItem(
-                  value: 'switch',
-                  child: Row(
-                    children: [
-                      Icon(Icons.swap_horiz),
-                      SizedBox(width: 8),
-                      Text('Switch to this account'),
-                    ],
-                  ),
-                ),
-              const PopupMenuItem(
-                value: 'remove',
-                child: Row(
-                  children: [
-                    Icon(Icons.remove_circle_outline, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Remove account', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
+          PlatformIconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => _showAccountActions(context, ref, instance, isActive),
           ),
         ],
       ),
@@ -332,17 +337,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
   
-  /// Handles account actions from the popup menu
-  void _handleAccountAction(BuildContext context, WidgetRef ref, Instance instance, String action) {
-    switch (action) {
-      case 'switch':
-        _switchAccount(context, ref, instance.domain);
-        break;
-      case 'remove':
-        _showRemoveAccountDialog(context, ref, instance);
-        break;
-    }
-  }
   
   /// Switches to the specified account
   void _switchAccount(BuildContext context, WidgetRef ref, String domain) {
@@ -367,14 +361,57 @@ class SettingsScreen extends ConsumerWidget {
     context.go('/auth/login');
   }
   
+  /// Shows account actions using platform-appropriate action sheet
+  void _showAccountActions(BuildContext context, WidgetRef ref, Instance instance, bool isActive) {
+    showPlatformModalSheet(
+      context: context,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Account Actions',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (!isActive)
+              PlatformListTile(
+                leading: const Icon(Icons.swap_horiz),
+                title: const Text('Switch to this account'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _switchAccount(context, ref, instance.domain);
+                },
+              ),
+            PlatformListTile(
+              leading: Icon(Icons.remove_circle_outline, color: Colors.red),
+              title: const Text('Remove account', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showRemoveAccountDialog(context, ref, instance);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+  
   /// Shows the remove account confirmation dialog
   void _showRemoveAccountDialog(BuildContext context, WidgetRef ref, Instance instance) {
     final account = ref.read(accountInfoProvider(instance.domain));
     
-    showDialog(
+    showPlatformDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        return AlertDialog(
+        return PlatformAlertDialog(
           title: const Text('Remove Account'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -422,17 +459,19 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(
+            PlatformDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            PlatformDialogAction(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 await _removeAccount(context, ref, instance.domain);
               },
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
+              material: (_, __) => MaterialDialogActionData(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
               ),
               child: const Text('Remove'),
             ),
@@ -503,7 +542,11 @@ class SettingsScreen extends ConsumerWidget {
 
     showPlatformModalSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -539,7 +582,11 @@ class SettingsScreen extends ConsumerWidget {
 
     showPlatformModalSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -575,7 +622,11 @@ class SettingsScreen extends ConsumerWidget {
         builder: (context, ref, child) {
           final notificationSettings = ref.watch(notificationSettingsProvider);
           
-          return SafeArea(
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
