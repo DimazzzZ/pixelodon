@@ -37,7 +37,7 @@ dependencies:
   flutter_animate: ^4.5.0
 
   # Deep Linking
-  app_links: ^6.4.1  # Replacing uni_links
+  app_links: ^3.5.1  # Replacing uni_links - downgraded for compatibility
 
   # State Management
   flutter_riverpod: ^2.4.10

@@ -72,7 +72,7 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   Future<void> _handleCallback() async {
     try {
       // Get the initial link in case the app was opened by the callback
-      final initialUri = await _appLinks.getInitialLink();
+      final initialUri = await _appLinks.getInitialAppLink();
       if (initialUri != null) {
         debugPrint('Initial URI: $initialUri');
         await _processCallback(initialUri);

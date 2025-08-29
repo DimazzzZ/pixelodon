@@ -12,7 +12,7 @@ class DeepLinkService {
 
   Future<void> init() async {
     // Get initial link if app was launched from link
-    final uri = await _appLinks.getInitialLink();
+    final uri = await _appLinks.getInitialAppLink();
     if (uri != null) {
       _linkStreamController.add(uri);
     }
