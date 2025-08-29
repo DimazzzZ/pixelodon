@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../widgets/common/app_page_scaffold.dart';
 import '../../domain/profile_usecases.dart';
 import '../../state/profile_controller.dart';
 import '../../state/profile_state.dart';
@@ -136,7 +137,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final state = ref.watch(profileControllerProvider(userId));
     final controller = ref.read(profileControllerProvider(userId).notifier);
 
-    return Scaffold(
+    return AppPageScaffold(
+      usesSlivers: true, // CustomScrollView with slivers
       body: RefreshIndicator(
         onRefresh: () async {
           await controller.refresh();

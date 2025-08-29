@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pixelodon/models/status.dart' as model;
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Provider for the compose screen state
 final composeProvider = StateNotifierProvider.autoDispose<ComposeNotifier, ComposeState>((ref) {
@@ -416,7 +417,8 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       _contentWarningController.text = composeState.contentWarning ?? '';
     }
     
-    return Scaffold(
+    return AppPageScaffold(
+      usesSlivers: false, // Column content is not sliver-based
       appBar: AppBar(
         title: Text(composeState.isEditing ? 'Edit Post' : composeState.isReplying ? 'Reply' : 'New Post'),
         actions: [

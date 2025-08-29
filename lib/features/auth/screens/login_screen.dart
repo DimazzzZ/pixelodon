@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -103,10 +105,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: const Text('Login'),
+    return AppPageScaffold(
+      appBar: PlatformAppBarWrapper(
+        platformAppBar: PlatformAppBar(
+          title: const Text('Login'),
+        ),
       ),
+      usesSlivers: false, // SingleChildScrollView is not sliver-based
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_links/app_links.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -146,11 +148,14 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: const Text('Authenticating'),
-        automaticallyImplyLeading: false,
+    return AppPageScaffold(
+      appBar: PlatformAppBarWrapper(
+        platformAppBar: PlatformAppBar(
+          title: const Text('Authenticating'),
+          automaticallyImplyLeading: false,
+        ),
       ),
+      usesSlivers: false, // Center with Column is not sliver-based
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

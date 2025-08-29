@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
-import 'package:pixelodon/core/routing/app_router.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
+import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Settings screen with logout functionality
 class SettingsScreen extends ConsumerWidget {
@@ -17,321 +18,162 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final instances = ref.watch(instancesProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final language = ref.watch(languageProvider);
 
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: PlatformText('Settings'),
+    return AppPageScaffold(
+      appBar: PlatformAppBarWrapper(
+        platformAppBar: PlatformAppBar(
+          title: const Text('Settings'),
+        ),
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Accounts Section
-            _buildSectionHeader(context, 'Accounts'),
-            const SizedBox(height: 16),
-
-            // List of accounts
-            if (instances.isNotEmpty) ...[
-              _buildSection(
-                context,
+      usesSlivers: false, // ListView is not a sliver-based widget
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Accounts Section
+          const Text(
+            'Accounts',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // List of accounts
+          if (instances.isNotEmpty) ...[
+            Card(
+              child: Column(
                 children: [
                   for (int i = 0; i < instances.length; i++) ...[
                     _buildAccountListTile(context, ref, instances[i], activeInstance),
-                    if (i < instances.length - 1)
-                      PlatformWidget(
-                        material: (_, __) => const Divider(height: 1),
-                        cupertino: (_, __) => Container(
-                          height: 1,
-                          color: CupertinoColors.separator.resolveFrom(context),
-                          margin: const EdgeInsets.only(left: 16),
-                        ),
-                      ),
+                    if (i < instances.length - 1) const Divider(height: 1),
                   ],
                 ],
               ),
-              const SizedBox(height: 16),
-            ],
-
-            // Add Account
-            PlatformWidget(
-              material: (_, __) => SizedBox(
-                width: double.infinity,
-                child: PlatformElevatedButton(
-                  onPressed: () => _addAccount(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(PlatformIcons(context).add),
-                      const SizedBox(width: 8),
-                      PlatformText('Add Account'),
-                    ],
-                  ),
-                  material: (_, __) => MaterialElevatedButtonData(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              cupertino: (_, __) => _buildSection(
-                context,
-                children: [
-                  CupertinoListTile(
-                    leading: Icon(CupertinoIcons.add),
-                    title: Text('Add Account'),
-                    trailing: const Icon(CupertinoIcons.chevron_right, size: 16),
-                    onTap: () => _addAccount(context),
-                  ),
-                ],
-              ),
             ),
-
-            const SizedBox(height: 32),
-
-            // App Settings Section
-            _buildSectionHeader(context, 'App Settings'),
             const SizedBox(height: 16),
-            _buildSection(
-              context,
-              children: [
-                _buildSettingsListTile(
-                  context,
-                  icon: isCupertino(context) ? CupertinoIcons.paintbrush : Icons.palette,
-                  title: 'Theme',
-                  subtitle: 'Light',
-                  onTap: () => _showComingSoon(context, 'Theme selection'),
-                ),
-                _buildDivider(context),
-                _buildSettingsListTile(
-                  context,
-                  icon: isCupertino(context) ? CupertinoIcons.bell : Icons.notifications,
-                  title: 'Notifications',
-                  onTap: () => _showComingSoon(context, 'Notification settings'),
-                ),
-                _buildDivider(context),
-                _buildSettingsListTile(
-                  context,
-                  icon: isCupertino(context) ? CupertinoIcons.globe : Icons.language,
-                  title: 'Language',
-                  subtitle: 'English',
-                  onTap: () => _showComingSoon(context, 'Language selection'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // About Section
-            _buildSectionHeader(context, 'About'),
-            const SizedBox(height: 16),
-            _buildSection(
-              context,
-              children: [
-                _buildSettingsListTile(
-                  context,
-                  icon: PlatformIcons(context).info,
-                  title: 'About Pixelodon',
-                  onTap: () => _showAbout(context),
-                ),
-                _buildDivider(context),
-                _buildSettingsListTile(
-                  context,
-                  icon: isCupertino(context) ? CupertinoIcons.lock : Icons.privacy_tip,
-                  title: 'Privacy Policy',
-                  onTap: () => _showComingSoon(context, 'Privacy policy'),
-                ),
-                _buildDivider(context),
-                _buildSettingsListTile(
-                  context,
-                  icon: isCupertino(context) ? CupertinoIcons.doc_text : Icons.description,
-                  title: 'Terms of Service',
-                  onTap: () => _showComingSoon(context, 'Terms of service'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // Logout (only show if there are accounts)
-            if (instances.isNotEmpty)
-              PlatformWidget(
-                // Android/Material: keep existing elevated destructive button
-                material: (_, __) => SizedBox(
-                  width: double.infinity,
-                  child: PlatformElevatedButton(
-                    onPressed: activeInstance != null
-                        ? () => _showLogoutDialog(context, ref, activeInstance.domain)
-                        : null,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.logout),
-                        SizedBox(width: 8),
-                        Text('Log Out Current Account'),
-                      ],
-                    ),
-                    material: (_, __) => MaterialElevatedButtonData(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                        foregroundColor: Theme.of(context).colorScheme.onError,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                ),
-                // iOS/Cupertino: use a white row with centered red text per iOS guidelines
-                cupertino: (_, __) => _buildSection(
-                  context,
-                  children: [
-                    CupertinoListTile(
-                      title: const Text(
-                        'Log Out Current Account',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: CupertinoColors.destructiveRed),
-                      ),
-                      onTap: activeInstance != null
-                          ? () => _showLogoutDialog(context, ref, activeInstance.domain)
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// Builds a section header with platform-appropriate styling
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Text(
-      title,
-      style: isCupertino(context)
-          ? CupertinoTheme.of(context).textTheme.navTitleTextStyle.copyWith(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            )
-          : Theme.of(context).textTheme.headlineSmall?.copyWith(
+          
+          // Add Account Button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _addAccount(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Account'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // App Settings Section
+          const Text(
+            'App Settings',
+            style: TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
-    );
-  }
-
-  /// Builds a platform-appropriate section container
-  Widget _buildSection(BuildContext context, {required List<Widget> children}) {
-    return PlatformWidget(
-      material: (_, __) => Card(
-        child: Column(children: children),
-      ),
-      cupertino: (_, __) => Container(
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemBackground.resolveFrom(context),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: CupertinoColors.separator.resolveFrom(context),
-            width: 0.5,
           ),
-        ),
-        child: Column(children: children),
-      ),
-    );
-  }
-
-  /// Builds a platform-appropriate divider
-  Widget _buildDivider(BuildContext context) {
-    return PlatformWidget(
-      material: (_, __) => const Divider(height: 1),
-      cupertino: (_, __) => Container(
-        height: 0.5,
-        color: CupertinoColors.separator.resolveFrom(context),
-        margin: const EdgeInsets.only(left: 16),
-      ),
-    );
-  }
-
-  /// Builds a settings list tile with platform-appropriate styling
-  Widget _buildSettingsListTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-  }) {
-    return PlatformWidget(
-      material: (_, __) => ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-      cupertino: (_, __) => CupertinoListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        trailing: const Icon(CupertinoIcons.chevron_right, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-
-  /// Shows a coming soon message
-  void _showComingSoon(BuildContext context, String feature) {
-    if (isCupertino(context)) {
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: Text('Coming Soon'),
-          content: Text('$feature coming soon'),
-          actions: [
-            CupertinoDialogAction(
-              child: Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
+          const SizedBox(height: 16),
+          Card(
+            child: Column(
+              children: [
+                PlatformListTile(
+                  leading: const Icon(Icons.palette_outlined),
+                  title: const Text('Theme'),
+                  subtitle: Text(ref.read(themeModeProvider.notifier).themeModeDisplayName),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showThemeSelection(context, ref),
+                ),
+                const Divider(height: 1),
+                PlatformListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: const Text('Notifications'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showNotificationSettings(context, ref),
+                ),
+                const Divider(height: 1),
+                PlatformListTile(
+                  leading: const Icon(Icons.language_outlined),
+                  title: const Text('Language'),
+                  subtitle: Text(ref.read(languageProvider.notifier).languageDisplayName),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showLanguageSelection(context, ref),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$feature coming soon'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  /// Shows the about dialog
-  void _showAbout(BuildContext context) {
-    showPlatformDialog(
-      context: context,
-      builder: (context) => PlatformAlertDialog(
-        title: Text('About Pixelodon'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PlatformIcons(context).photoCamera,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text('Version 1.0.0'),
-            const SizedBox(height: 8),
-            Text(
-              'A modern, privacy-respecting Fediverse client for Mastodon and Pixelfed.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          PlatformDialogAction(
-            child: Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
           ),
+          
+          const SizedBox(height: 24),
+          
+          // About Section
+          const Text(
+            'About',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Column(
+              children: [
+                PlatformListTile(
+                  leading: const Icon(Icons.info_outlined),
+                  title: const Text('About Pixelodon'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showAboutDialog(context),
+                ),
+                const Divider(height: 1),
+                PlatformListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('Privacy Policy'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showPrivacyPolicy(context),
+                ),
+                const Divider(height: 1),
+                PlatformListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Terms of Service'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showTermsOfService(context),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Logout Button (only show if there are accounts)
+          if (instances.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: PlatformElevatedButton(
+                onPressed: activeInstance != null 
+                    ? () => _showLogoutDialog(context, ref, activeInstance.domain)
+                    : null,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.logout),
+                    const SizedBox(width: 8),
+                    const Text('Log Out Current Account'),
+                  ],
+                ),
+                material: (_, __) => MaterialElevatedButtonData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -341,123 +183,124 @@ class SettingsScreen extends ConsumerWidget {
   void _showLogoutDialog(BuildContext context, WidgetRef ref, String domain) {
     showPlatformDialog(
       context: context,
-      builder: (BuildContext dialogContext) => PlatformAlertDialog(
-        title: Text('Log Out'),
-        content: Text('Are you sure you want to log out? You will need to log in again to access your account.'),
-        actions: [
-          PlatformDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          PlatformDialogAction(
-            child: Text('Log Out'),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              await _performLogout(context, ref, domain);
-            },
-            cupertino: (_, __) => CupertinoDialogActionData(isDestructiveAction: true),
-            material: (_, __) => MaterialDialogActionData(
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
+      builder: (BuildContext dialogContext) {
+        return PlatformAlertDialog(
+          title: const Text('Log Out'),
+          content: const Text('Are you sure you want to log out? You will need to log in again to access your account.'),
+          actions: [
+            PlatformDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
             ),
-          ),
-        ],
-      ),
+            PlatformDialogAction(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _performLogout(context, ref, domain);
+              },
+              material: (_, __) => MaterialDialogActionData(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              child: const Text('Log Out'),
+            ),
+          ],
+        );
+      },
     );
+  }
+  
+  /// Performs the logout operation
+  Future<void> _performLogout(BuildContext context, WidgetRef ref, String domain) async {
+    try {
+      // Show loading indicator
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 16),
+                Text('Logging out...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Perform logout through the auth repository
+      final authRepository = ref.read(authRepositoryProvider);
+      await authRepository.logout(domain);
+      
+      // Navigate to login screen
+      if (context.mounted) {
+        context.go('/auth/login');
+      }
+    } catch (e) {
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to log out: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
   
   /// Builds a list tile for an account
   Widget _buildAccountListTile(BuildContext context, WidgetRef ref, Instance instance, Instance? activeInstance) {
     final account = ref.watch(accountInfoProvider(instance.domain));
     final isActive = activeInstance?.domain == instance.domain;
-    final acct = account?.acct ?? 'unknown';
-    final domain = instance.domain;
-    final address = acct.contains('@') ? acct : '$acct@$domain';
     
-    return PlatformWidget(
-      material: (_, __) => ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isActive
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-              : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
-          child: account?.avatar == null
-              ? Icon(
-                  instance.isPixelfed ? Icons.photo_camera : Icons.chat_bubble,
-                  color: Theme.of(context).colorScheme.primary,
-                )
-              : null,
-        ),
-        title: Text(
-          account?.displayName ?? account?.username ?? 'Unknown User',
-          style: TextStyle(
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        subtitle: Text(
-          address,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-          ),
-        ),
-        trailing: _buildAccountActions(context, ref, instance, isActive),
-        onTap: !isActive ? () => _switchAccount(context, ref, instance.domain) : null,
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: isActive 
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+            : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
+        child: account?.avatar == null 
+            ? Icon(
+                instance.isPixelfed ? Icons.photo_camera : Icons.chat_bubble,
+                color: Theme.of(context).colorScheme.primary,
+              )
+            : null,
       ),
-      cupertino: (_, __) => CupertinoListTile(
-        leading: CircleAvatar(
-          backgroundColor: isActive
-              ? CupertinoColors.activeBlue.withOpacity(0.2)
-              : CupertinoColors.systemGrey6.resolveFrom(context),
-          backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
-          child: account?.avatar == null
-              ? Icon(
-                  instance.isPixelfed ? CupertinoIcons.camera : CupertinoIcons.chat_bubble,
-                  color: isActive
-                    ? CupertinoColors.activeBlue
-                    : CupertinoColors.systemGrey.resolveFrom(context),
-                )
-              : null,
+      title: Text(
+        account?.displayName ?? account?.username ?? 'Unknown User',
+        style: TextStyle(
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         ),
-        title: Text(
-          account?.displayName ?? account?.username ?? 'Unknown User',
-          style: TextStyle(
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        subtitle: Text(
-          address,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.systemGrey.resolveFrom(context),
-          ),
-        ),
-        trailing: _buildAccountActions(context, ref, instance, isActive),
-        onTap: !isActive ? () => _switchAccount(context, ref, instance.domain) : null,
       ),
-    );
-  }
-
-  /// Builds account action buttons
-  Widget _buildAccountActions(BuildContext context, WidgetRef ref, Instance instance, bool isActive) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isActive)
-          Icon(
-            isCupertino(context) ? CupertinoIcons.checkmark_circle_fill : Icons.check_circle,
-            color: isCupertino(context)
-                ? CupertinoColors.activeBlue
-                : Theme.of(context).colorScheme.primary,
-            size: 20,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('@${account?.acct ?? 'unknown'}'),
+          Text(
+            instance.domain,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
-        const SizedBox(width: 8),
-        PlatformWidget(
-          material: (_, __) => PopupMenuButton<String>(
+        ],
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isActive)
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+          const SizedBox(width: 8),
+          PopupMenuButton<String>(
             onSelected: (value) => _handleAccountAction(context, ref, instance, value),
             itemBuilder: (context) => [
               if (!isActive)
@@ -483,47 +326,9 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          cupertino: (_, __) => CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => _showCupertinoAccountActions(context, ref, instance, isActive),
-            child: Icon(
-              CupertinoIcons.ellipsis,
-              color: CupertinoColors.systemGrey.resolveFrom(context),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Shows Cupertino-style account actions
-  void _showCupertinoAccountActions(BuildContext context, WidgetRef ref, Instance instance, bool isActive) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext sheetContext) => CupertinoActionSheet(
-        actions: [
-          if (!isActive)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                _handleAccountAction(context, ref, instance, 'switch');
-              },
-              child: const Text('Switch to this account'),
-            ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(sheetContext);
-              _handleAccountAction(context, ref, instance, 'remove');
-            },
-            isDestructiveAction: true,
-            child: const Text('Remove account'),
-          ),
         ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(sheetContext),
-          child: const Text('Cancel'),
-        ),
       ),
+      onTap: !isActive ? () => _switchAccount(context, ref, instance.domain) : null,
     );
   }
   
@@ -547,6 +352,13 @@ class SettingsScreen extends ConsumerWidget {
     // Navigate to home and update bottom navigation state
     ref.read(currentIndexProvider.notifier).state = 0; // Set to Home tab
     context.go('/home');
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Switched to account on $domain'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
   
   /// Shows the add account dialog/navigation
@@ -559,293 +371,322 @@ class SettingsScreen extends ConsumerWidget {
   void _showRemoveAccountDialog(BuildContext context, WidgetRef ref, Instance instance) {
     final account = ref.read(accountInfoProvider(instance.domain));
     
-    showPlatformDialog(
+    showDialog(
       context: context,
-      builder: (BuildContext dialogContext) => PlatformAlertDialog(
-        title: Text('Remove Account'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to remove this account?'),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: isCupertino(context)
-                      ? CupertinoColors.systemGrey6.resolveFrom(context)
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
-                  child: account?.avatar == null 
-                      ? Icon(
-                          instance.isPixelfed
-                            ? (isCupertino(context) ? CupertinoIcons.camera : Icons.photo_camera)
-                            : (isCupertino(context) ? CupertinoIcons.chat_bubble : Icons.chat_bubble),
-                          color: isCupertino(context)
-                              ? CupertinoColors.systemGrey.resolveFrom(context)
-                              : Theme.of(context).colorScheme.primary,
-                          size: 20,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        account?.displayName ?? account?.username ?? 'Unknown User',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text('@${account?.acct ?? 'unknown'}'),
-                      Text(
-                        instance.domain,
-                        style: isCupertino(context)
-                            ? TextStyle(
-                                fontSize: 12,
-                                color: CupertinoColors.systemGrey.resolveFrom(context),
-                              )
-                            : Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ) ?? const TextStyle(fontSize: 12),
-                      ),
-                    ],
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Remove Account'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Are you sure you want to remove this account?'),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundImage: account?.avatar != null ? NetworkImage(account!.avatar!) : null,
+                    child: account?.avatar == null 
+                        ? Icon(
+                            instance.isPixelfed ? Icons.photo_camera : Icons.chat_bubble,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          )
+                        : null,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text('This will log you out from this account and remove it from the app.'),
-          ],
-        ),
-        actions: [
-          PlatformDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          PlatformDialogAction(
-            child: Text('Remove'),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              await _removeAccount(context, ref, instance.domain);
-            },
-            cupertino: (_, __) => CupertinoDialogActionData(isDestructiveAction: true),
-            material: (_, __) => MaterialDialogActionData(
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          account?.displayName ?? account?.username ?? 'Unknown User',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text('@${account?.acct ?? 'unknown'}'),
+                        Text(
+                          instance.domain,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 16),
+              const Text('This will log you out from this account and remove it from the app.'),
+            ],
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _removeAccount(context, ref, instance.domain);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
     );
   }
   
   /// Removes an account from the app
   Future<void> _removeAccount(BuildContext context, WidgetRef ref, String domain) async {
     try {
-      // Prefer using the root navigator context for any UI shown around navigation
-      final rootCtx = rootNavigatorKey.currentContext ?? context;
-
       // Show loading indicator
-      if (isCupertino(rootCtx)) {
-        showCupertinoDialog(
-          context: rootCtx,
-          barrierDismissible: false,
-          builder: (ctx) => const CupertinoAlertDialog(
-            content: Row(
-              children: [
-                CupertinoActivityIndicator(),
-                SizedBox(width: 16),
-                Text('Removing account...'),
-              ],
-            ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Text('Removing account...'),
+            ],
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(rootCtx).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 16),
-                Text('Removing account...'),
-              ],
-            ),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
       // Perform logout through the auth repository
       final authRepository = ref.read(authRepositoryProvider);
       await authRepository.logout(domain);
       
-      // Close loading dialog if showing
-      if (isCupertino(rootCtx)) {
-        Navigator.of(rootCtx, rootNavigator: true).maybePop();
-      }
-
-      // Determine next step based on remaining accounts
-      final instances = ref.read(instancesProvider);
-      if (instances.isEmpty) {
-        // Navigate to login on next frame to avoid using a stale context
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final navCtx = rootNavigatorKey.currentContext;
-          if (navCtx != null) {
-            navCtx.go('/auth/login');
-          }
-        });
-        return;
-      }
-
-      // Show success message when staying on the same screen
-      if (isCupertino(rootCtx)) {
-        showCupertinoDialog(
-          context: rootCtx,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Success'),
-            content: Text('Account removed from $domain'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(ctx).pop(),
-              ),
-            ],
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(rootCtx).showSnackBar(
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Account removed from $domain'),
-            backgroundColor: Theme.of(rootCtx).colorScheme.primary,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
+        
+        // If no accounts left, navigate to login
+        final instances = ref.read(instancesProvider);
+        if (instances.isEmpty) {
+          context.go('/auth/login');
+        }
       }
     } catch (e) {
-      final rootCtx = rootNavigatorKey.currentContext ?? context;
-      // Close loading dialog if showing
-      if (isCupertino(rootCtx)) {
-        Navigator.of(rootCtx, rootNavigator: true).maybePop();
-      }
-
       // Show error message
-      if (isCupertino(rootCtx)) {
-        showCupertinoDialog(
-          context: rootCtx,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to remove account: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(ctx).pop(),
-              ),
-            ],
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(rootCtx).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to remove account: $e'),
-            backgroundColor: Theme.of(rootCtx).colorScheme.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
     }
   }
 
-  /// Performs the logout operation
-  Future<void> _performLogout(BuildContext context, WidgetRef ref, String domain) async {
-    try {
-      // Use root navigator context for UI to avoid stale local contexts
-      final rootCtx = rootNavigatorKey.currentContext ?? context;
+  /// Shows theme selection dialog
+  void _showThemeSelection(BuildContext context, WidgetRef ref) {
+    final settingsService = ref.read(settingsServiceProvider);
+    final availableThemes = settingsService.getAvailableThemeModes();
+    final currentTheme = ref.read(themeModeProvider);
 
-      // Show loading indicator
-      if (isCupertino(rootCtx)) {
-        showCupertinoDialog(
-          context: rootCtx,
-          barrierDismissible: false,
-          builder: (ctx) => const CupertinoAlertDialog(
-            content: Row(
-              children: [
-                CupertinoActivityIndicator(),
-                SizedBox(width: 16),
-                Text('Logging out...'),
-              ],
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(rootCtx).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 16),
-                Text('Logging out...'),
-              ],
-            ),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-
-      // Perform logout through the auth repository
-      final authRepository = ref.read(authRepositoryProvider);
-      await authRepository.logout(domain);
-
-      // Close loading dialog if showing
-      if (isCupertino(rootCtx)) {
-        Navigator.of(rootCtx, rootNavigator: true).maybePop();
-      }
-
-      // Navigate to login screen on next frame to avoid context issues
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final navCtx = rootNavigatorKey.currentContext;
-        if (navCtx != null) {
-          navCtx.go('/auth/login');
-        }
-      });
-    } catch (e) {
-      final rootCtx = rootNavigatorKey.currentContext ?? context;
-      // Close loading dialog if showing
-      if (isCupertino(rootCtx)) {
-        Navigator.of(rootCtx, rootNavigator: true).maybePop();
-      }
-
-      // Show error message
-      if (isCupertino(rootCtx)) {
-        showCupertinoDialog(
-          context: rootCtx,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to log out: $e'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(ctx).pop(),
+    showPlatformModalSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Select Theme',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ],
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(rootCtx).showSnackBar(
-          SnackBar(
-            content: Text('Failed to log out: $e'),
-            backgroundColor: Theme.of(rootCtx).colorScheme.error,
-          ),
-        );
-      }
+            ),
+            ...availableThemes.map((theme) => PlatformListTile(
+              title: Text(settingsService.getThemeModeDisplayName(theme)),
+              trailing: currentTheme == theme
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () async {
+                await ref.read(themeModeProvider.notifier).setThemeMode(theme);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            )),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows language selection dialog
+  void _showLanguageSelection(BuildContext context, WidgetRef ref) {
+    final settingsService = ref.read(settingsServiceProvider);
+    final availableLanguages = settingsService.getAvailableLanguages();
+    final currentLanguage = ref.read(languageProvider);
+
+    showPlatformModalSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Select Language',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ...availableLanguages.map((language) => PlatformListTile(
+              title: Text(settingsService.getLanguageDisplayName(language)),
+              trailing: currentLanguage == language
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () async {
+                await ref.read(languageProvider.notifier).setLanguage(language);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            )),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows notification settings
+  void _showNotificationSettings(BuildContext context, WidgetRef ref) {
+    showPlatformModalSheet(
+      context: context,
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final notificationSettings = ref.watch(notificationSettingsProvider);
+          
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Notification Settings',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ...notificationSettings.entries.map((entry) => PlatformListTile(
+                  title: Text(_getNotificationDisplayName(entry.key)),
+                  trailing: PlatformSwitch(
+                    value: entry.value,
+                    onChanged: (value) async {
+                      await ref.read(notificationSettingsProvider.notifier)
+                          .updateSetting(entry.key, value);
+                    },
+                  ),
+                )),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Gets display name for notification type
+  String _getNotificationDisplayName(String key) {
+    switch (key) {
+      case 'mentions':
+        return 'Mentions';
+      case 'follows':
+        return 'New Followers';
+      case 'likes':
+        return 'Likes';
+      case 'reposts':
+        return 'Reposts';
+      case 'posts':
+        return 'New Posts';
+      default:
+        return key;
     }
+  }
+
+  /// Shows about dialog
+  void _showAboutDialog(BuildContext context) {
+    showPlatformDialog(
+      context: context,
+      builder: (context) => PlatformAlertDialog(
+        title: const Text('About Pixelodon'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.photo_camera,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            const Text('Version 1.0.0'),
+            const SizedBox(height: 8),
+            const Text(
+              'A modern, privacy-respecting Fediverse client for Mastodon and Pixelfed.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          PlatformDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shows privacy policy
+  void _showPrivacyPolicy(BuildContext context) {
+    showPlatformDialog(
+      context: context,
+      builder: (context) => PlatformAlertDialog(
+        title: const Text('Privacy Policy'),
+        content: const Text('Privacy policy implementation coming soon.'),
+        actions: [
+          PlatformDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shows terms of service
+  void _showTermsOfService(BuildContext context) {
+    showPlatformDialog(
+      context: context,
+      builder: (context) => PlatformAlertDialog(
+        title: const Text('Terms of Service'),
+        content: const Text('Terms of service implementation coming soon.'),
+        actions: [
+          PlatformDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }

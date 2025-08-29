@@ -5,6 +5,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/services/timeline_service.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Provider for the home timeline
 final homeTimelineProvider = StateNotifierProvider<TimelineNotifier, TimelineState>((ref) {
@@ -332,8 +333,8 @@ class HomeScreen extends ConsumerWidget {
     final timelineNotifier = ref.read(homeTimelineProvider.notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
     
-    return Scaffold(
-      key: const Key('home_screen'),
+    return AppPageScaffold(
+      usesSlivers: false, // Column with TabBar/TabBarView is not sliver-based
       body: activeInstance == null
           ? const Center(
               child: Text('No active instance selected'),

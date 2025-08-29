@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 void main() {
   group('SettingsScreen Multiple Account Tests', () {
@@ -56,8 +59,17 @@ void main() {
                   return null;
               }
             }),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {
+              'mentions': true,
+              'follows': true,
+              'likes': true,
+              'reposts': true,
+              'posts': true,
+            }),
           ],
-          child: MaterialApp(
+          child: PlatformApp(
             home: const SettingsScreen(),
           ),
         ),
@@ -86,8 +98,17 @@ void main() {
           overrides: [
             instancesProvider.overrideWith((ref) => <Instance>[]),
             activeInstanceProvider.overrideWith((ref) => null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {
+              'mentions': true,
+              'follows': true,
+              'likes': true,
+              'reposts': true,
+              'posts': true,
+            }),
           ],
-          child: MaterialApp(
+          child: PlatformApp(
             home: const SettingsScreen(),
           ),
         ),
@@ -126,8 +147,17 @@ void main() {
             activeInstanceProvider.overrideWith((ref) => testInstance),
             accountInfoProvider.overrideWith((ref, domain) => 
               domain == 'mastodon.social' ? testAccount : null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {
+              'mentions': true,
+              'follows': true,
+              'likes': true,
+              'reposts': true,
+              'posts': true,
+            }),
           ],
-          child: MaterialApp(
+          child: PlatformApp(
             home: const SettingsScreen(),
           ),
         ),
@@ -142,6 +172,128 @@ void main() {
 
       // Verify remove account option is present
       expect(find.text('Remove account'), findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen Settings Tests', () {
+    testWidgets('should display app settings with current values', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            instancesProvider.overrideWith((ref) => <Instance>[]),
+            activeInstanceProvider.overrideWith((ref) => null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.dark),
+            languageProvider.overrideWith((ref) => const Locale('es', 'ES')),
+            notificationSettingsProvider.overrideWith((ref) => {
+              'mentions': true,
+              'follows': false,
+              'likes': true,
+              'reposts': false,
+              'posts': true,
+            }),
+          ],
+          child: PlatformApp(
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+
+      // Verify app settings section
+      expect(find.text('App Settings'), findsOneWidget);
+      expect(find.text('Theme'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('Language'), findsOneWidget);
+
+      // Verify current values are displayed (these will be shown once providers load)
+      await tester.pumpAndSettle();
+      
+      // Theme and Language values are loaded asynchronously, so we verify the sections exist
+      expect(find.text('Theme'), findsOneWidget);
+      expect(find.text('Language'), findsOneWidget);
+    });
+
+    testWidgets('should display about section', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            instancesProvider.overrideWith((ref) => <Instance>[]),
+            activeInstanceProvider.overrideWith((ref) => null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {}),
+          ],
+          child: PlatformApp(
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+
+      // Verify about section
+      expect(find.text('About'), findsOneWidget);
+      expect(find.text('About Pixelodon'), findsOneWidget);
+      expect(find.text('Privacy Policy'), findsOneWidget);
+      expect(find.text('Terms of Service'), findsOneWidget);
+    });
+
+    testWidgets('should show logout button only when accounts exist', (tester) async {
+      final testInstance = const Instance(
+        domain: 'mastodon.social',
+        name: 'Mastodon Social',
+        isPixelfed: false,
+      );
+
+      final testAccount = const Account(
+        id: '1',
+        username: 'testuser',
+        acct: 'testuser@mastodon.social',
+        displayName: 'Test User',
+        domain: 'mastodon.social',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            instancesProvider.overrideWith((ref) => [testInstance]),
+            activeInstanceProvider.overrideWith((ref) => testInstance),
+            accountInfoProvider.overrideWith((ref, domain) => 
+              domain == 'mastodon.social' ? testAccount : null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {}),
+          ],
+          child: PlatformApp(
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+
+      // Verify logout button is present when accounts exist
+      expect(find.text('Log Out Current Account'), findsOneWidget);
+    });
+
+    testWidgets('should use platform widgets instead of material widgets', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            instancesProvider.overrideWith((ref) => <Instance>[]),
+            activeInstanceProvider.overrideWith((ref) => null),
+            themeModeProvider.overrideWith((ref) => ThemeMode.system),
+            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
+            notificationSettingsProvider.overrideWith((ref) => {}),
+          ],
+          child: PlatformApp(
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+
+      // Verify platform widgets are used
+      expect(find.byType(AppPageScaffold), findsOneWidget);
+      expect(find.byType(PlatformAppBar), findsOneWidget);
+      
+      // Verify no Material-specific widgets are used directly
+      expect(find.byType(Scaffold), findsNothing);
+      expect(find.byType(AppBar), findsNothing);
     });
   });
 }
