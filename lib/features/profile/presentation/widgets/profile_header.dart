@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/profile_models.dart';
 import 'profile_action_button.dart';
 import 'shimmer_placeholders.dart';
+import '../../../../utils/account_utils.dart';
+import '../../../../providers/auth_provider.dart';
 
 /// Profile header widget with cover image and overlapping avatar
-class ProfileHeader extends StatelessWidget {
+class ProfileHeader extends ConsumerWidget {
   final UserProfile? profile;
   final VoidCallback? onFollowToggle;
   final VoidCallback? onEditProfile;
@@ -21,7 +24,7 @@ class ProfileHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (isLoading || profile == null) {
       return SliverList(
         delegate: SliverChildListDelegate([
@@ -34,7 +37,7 @@ class ProfileHeader extends StatelessWidget {
     return SliverList(
       delegate: SliverChildListDelegate([
         _buildSliverAppBar(context),
-        _buildProfileContent(context),
+        _buildProfileContent(context, ref),
       ]),
     );
   }
@@ -49,7 +52,7 @@ class ProfileHeader extends StatelessWidget {
         clipBehavior: Clip.none, // Allow avatar to overflow
         children: [
           // Cover image with gradient overlay
-          Container(
+          SizedBox(
             height: 130,
             width: double.infinity,
             child: Stack(
@@ -80,7 +83,7 @@ class ProfileHeader extends StatelessWidget {
   }
 
   /// Build profile content with overlapping avatar
-  Widget _buildProfileContent(BuildContext context) {
+  Widget _buildProfileContent(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -94,7 +97,7 @@ class ProfileHeader extends StatelessWidget {
             children: [
               const SizedBox(height: 8), // Avatar bottom → Username: 8px (reduced by 50%)
               // Username and action button row
-              _buildUsernameRow(context),
+              _buildUsernameRow(context, ref),
               const SizedBox(height: 8), // Username to bio spacing (kept compact at 8px)
               // Bio
               if (profile!.bio.isNotEmpty) ...[
@@ -199,6 +202,306 @@ class ProfileHeader extends StatelessWidget {
   Widget _buildAvatar(BuildContext context) {
     final theme = Theme.of(context);
 
+    return Material(
+      elevation: 16, // High elevation to ensure avatar stays above all other elements
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
+      child: Container(
+        width: 136, // 136px diameter (2× larger, within 128-144px range)
+        height: 136,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white,
+            width: 4, // 4px white ring (within 3-4px range)
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12), // 12% opacity as required
+              blurRadius: 20,
+              offset: const Offset(0, 8), // y-offset 8 as required
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: profile!.avatarUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.person,
+                size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.person,
+                size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsernameRow(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final activeInstance = ref.watch(activeInstanceProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Centered username and handle
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Display name
+            Text(
+              profile!.displayName ?? profile!.username,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4), // Small spacing between display name and handle
+            // Username with instance (@username@instance)
+            Text(
+              AccountUtils.formatHandle(
+                acct: profile!.acct,
+                username: profile!.username,
+                fallbackDomain: activeInstance?.domain,
+              ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12), // Spacing between username and buttons
+        // Button row below username
+        _buildButtonRow(context),
+      ],
+    );
+  }
+
+  Widget _buildButtonRow(BuildContext context) {
+    if (profile!.isCurrentUser) {
+      // For current user: Edit Profile (left) + Send Message (right, disabled)
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: ProfileActionButton(
+              followState: profile!.followState,
+              isCurrentUser: true,
+              onPressed: onEditProfile,
+            ),
+          ),
+          const SizedBox(width: 12), // Space between buttons
+          Expanded(
+            child: _buildSendMessageButton(context, enabled: false),
+          ),
+        ],
+      );
+    } else {
+      // For other users: Follow/Unfollow (left) + Send Message (right)
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: ProfileActionButton(
+              followState: profile!.followState,
+              isCurrentUser: false,
+              onPressed: onFollowToggle,
+            ),
+          ),
+          const SizedBox(width: 12), // Space between buttons
+          Expanded(
+            child: _buildSendMessageButton(context, enabled: true),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildSendMessageButton(BuildContext context, {required bool enabled}) {
+    final theme = Theme.of(context);
+    
+    return OutlinedButton(
+      onPressed: enabled ? () {
+        // TODO: Implement send message functionality
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Send Message feature coming soon!')),
+        );
+      } : null,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(80, 34),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        side: BorderSide(
+          color: enabled ? theme.colorScheme.outline : theme.colorScheme.outline.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'Send Message',
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: enabled ? null : theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sliver version of profile header for use in CustomScrollView
+class SliverProfileHeader extends StatelessWidget {
+  final UserProfile? profile;
+  final VoidCallback? onFollowToggle;
+  final VoidCallback? onEditProfile;
+  final bool isLoading;
+
+  const SliverProfileHeader({
+    super.key,
+    this.profile,
+    this.onFollowToggle,
+    this.onEditProfile,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ProfileHeader(
+      profile: profile,
+      onFollowToggle: onFollowToggle,
+      onEditProfile: onEditProfile,
+      isLoading: isLoading,
+    );
+  }
+}
+
+/// Sliver profile content widget for displaying avatar, username, and bio
+class SliverProfileContent extends ConsumerWidget {
+  final UserProfile? profile;
+  final VoidCallback? onFollowToggle;
+  final VoidCallback? onEditProfile;
+  final bool isLoading;
+
+  const SliverProfileContent({
+    super.key,
+    this.profile,
+    this.onFollowToggle,
+    this.onEditProfile,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (isLoading || profile == null) {
+      return SliverToBoxAdapter(
+        child: Column(
+          children: [
+            const ProfileInfoShimmer(),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    }
+
+    return SliverToBoxAdapter(
+      child: _buildProfileContent(context, ref),
+    );
+  }
+
+  /// Build profile content with overlapping avatar
+  Widget _buildProfileContent(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Main profile content
+        Container(
+          color: theme.colorScheme.surface,
+          padding: const EdgeInsets.fromLTRB(16.0, 76.0, 16.0, 16.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 8), // Avatar bottom → Username: 8px
+              // Username and action button row
+              _buildUsernameRow(context, ref),
+              const SizedBox(height: 8), // Username to bio spacing
+              // Bio
+              if (profile!.bio.isNotEmpty) ...[
+                Html(
+                  data: profile!.bio,
+                  style: {
+                    "body": Style(
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                      fontSize: FontSize(theme.textTheme.bodyMedium?.fontSize ?? 14),
+                      color: theme.colorScheme.onSurfaceVariant,
+                      textAlign: TextAlign.center,
+                    ),
+                    "p": Style(
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                      textAlign: TextAlign.center,
+                    ),
+                    "a": Style(
+                      color: theme.colorScheme.primary,
+                      textDecoration: TextDecoration.underline,
+                    ),
+                    "strong, b": Style(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    "em, i": Style(
+                      fontStyle: FontStyle.italic,
+                    ),
+                  },
+                ),
+                const SizedBox(height: 8), // Bio to stats row spacing
+              ] else ...[
+                const SizedBox(height: 8), // Direct username to stats spacing if no bio
+              ],
+              // Interests
+              if (profile!.interests.isNotEmpty) ...[
+                Text(
+                  profile!.interests.join(' • '),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        ),
+        // Overlapping avatar positioned 72px above content
+        Positioned(
+          left: screenWidth / 2 - 68, // Center horizontally (136px avatar / 2)
+          top: -72, // Increased overlap by 72px
+          child: _buildAvatar(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatar(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       width: 136, // 136px diameter (2× larger, within 128-144px range)
       height: 136,
@@ -242,12 +545,12 @@ class ProfileHeader extends StatelessWidget {
     );
   }
 
-
-  Widget _buildUsernameRow(BuildContext context) {
+  Widget _buildUsernameRow(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final activeInstance = ref.watch(activeInstanceProvider);
 
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Centered username and handle
         Column(
@@ -264,7 +567,11 @@ class ProfileHeader extends StatelessWidget {
             const SizedBox(height: 4), // Small spacing between display name and handle
             // Username with instance (@username@instance)
             Text(
-              '@${profile!.acct}',
+              AccountUtils.formatHandle(
+                acct: profile!.acct,
+                username: profile!.username,
+                fallbackDomain: activeInstance?.domain,
+              ),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                 fontWeight: FontWeight.w400,
@@ -273,42 +580,81 @@ class ProfileHeader extends StatelessWidget {
             ),
           ],
         ),
-        // Right-aligned action button
-        Align(
-          alignment: Alignment.centerRight,
-          child: ProfileActionButton(
-            followState: profile!.followState,
-            isCurrentUser: profile!.isCurrentUser,
-            onPressed: profile!.isCurrentUser ? onEditProfile : onFollowToggle,
-          ),
-        ),
+        const SizedBox(height: 12), // Spacing between username and buttons
+        // Button row below username
+        _buildButtonRow(context),
       ],
     );
   }
-}
 
-/// Sliver version of profile header for use in CustomScrollView
-class SliverProfileHeader extends StatelessWidget {
-  final UserProfile? profile;
-  final VoidCallback? onFollowToggle;
-  final VoidCallback? onEditProfile;
-  final bool isLoading;
+  Widget _buildButtonRow(BuildContext context) {
+    if (profile!.isCurrentUser) {
+      // For current user: Edit Profile (left) + Send Message (right, disabled)
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: ProfileActionButton(
+              followState: profile!.followState,
+              isCurrentUser: true,
+              onPressed: onEditProfile,
+            ),
+          ),
+          const SizedBox(width: 12), // Space between buttons
+          Expanded(
+            child: _buildSendMessageButton(context, enabled: false),
+          ),
+        ],
+      );
+    } else {
+      // For other users: Follow/Unfollow (left) + Send Message (right)
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: ProfileActionButton(
+              followState: profile!.followState,
+              isCurrentUser: false,
+              onPressed: onFollowToggle,
+            ),
+          ),
+          const SizedBox(width: 12), // Space between buttons
+          Expanded(
+            child: _buildSendMessageButton(context, enabled: true),
+          ),
+        ],
+      );
+    }
+  }
 
-  const SliverProfileHeader({
-    super.key,
-    this.profile,
-    this.onFollowToggle,
-    this.onEditProfile,
-    this.isLoading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ProfileHeader(
-      profile: profile,
-      onFollowToggle: onFollowToggle,
-      onEditProfile: onEditProfile,
-      isLoading: isLoading,
+  Widget _buildSendMessageButton(BuildContext context, {required bool enabled}) {
+    final theme = Theme.of(context);
+    
+    return OutlinedButton(
+      onPressed: enabled ? () {
+        // TODO: Implement send message functionality
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Send Message feature coming soon!')),
+        );
+      } : null,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(80, 34),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        side: BorderSide(
+          color: enabled ? theme.colorScheme.outline : theme.colorScheme.outline.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'Send Message',
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: enabled ? null : theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
     );
   }
 }

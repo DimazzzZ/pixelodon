@@ -164,7 +164,7 @@ class _CommentListItem extends StatelessWidget {
           imageUrl: item.authorAvatar,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               Icons.person,
               size: 20,
@@ -172,7 +172,7 @@ class _CommentListItem extends StatelessWidget {
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               Icons.person,
               size: 20,

@@ -217,7 +217,7 @@ class _BoostListItem extends StatelessWidget {
               imageUrl: item.originalAuthorAvatar,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
                 child: Icon(
                   Icons.person,
                   size: 16,
@@ -225,7 +225,7 @@ class _BoostListItem extends StatelessWidget {
                 ),
               ),
               errorWidget: (context, url, error) => Container(
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
                 child: Icon(
                   Icons.person,
                   size: 16,
@@ -278,7 +278,7 @@ class _BoostListItem extends StatelessWidget {
           imageUrl: item.previewUrl!,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             child: Center(
               child: Icon(
                 Icons.image,
@@ -288,7 +288,7 @@ class _BoostListItem extends StatelessWidget {
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             child: Center(
               child: Icon(
                 Icons.broken_image,

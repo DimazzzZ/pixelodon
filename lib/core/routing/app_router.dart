@@ -165,7 +165,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final accountId = state.pathParameters['accountId']!;
               final username = state.uri.queryParameters['username'];
               return MaterialPage(
-                key: state.pageKey,
+                key: ValueKey('profile_$accountId'),
                 child: ProfileScreen(
                   args: ProfileRouteArgs(
                     userId: accountId,
@@ -183,7 +183,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final accountId = state.pathParameters['accountId']!;
               final domain = state.uri.queryParameters['domain'];
               return MaterialPage(
-                key: state.pageKey,
+                key: ValueKey('following_$accountId'),
                 child: FollowListScreen(accountId: accountId, type: FollowListType.following, domainOverride: domain),
               );
             },
@@ -196,11 +196,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final accountId = state.pathParameters['accountId']!;
               final domain = state.uri.queryParameters['domain'];
               return MaterialPage(
-                key: state.pageKey,
+                key: ValueKey('followers_$accountId'),
                 child: FollowListScreen(accountId: accountId, type: FollowListType.followers, domainOverride: domain),
               );
             },
           ),
+
         ],
       ),
       
@@ -224,7 +225,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final statusId = state.pathParameters['statusId']!;
           return MaterialPage(
-            key: state.pageKey,
+            key: ValueKey('status_$statusId'),
             child: StatusDetailScreen(statusId: statusId),
           );
         },
@@ -237,7 +238,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final tag = state.pathParameters['tag']!;
           return MaterialPage(
-            key: state.pageKey,
+            key: ValueKey('tag_$tag'),
             child: TagTimelineScreen(tag: tag),
           );
         },

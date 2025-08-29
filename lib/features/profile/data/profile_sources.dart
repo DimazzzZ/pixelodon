@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/account.dart';
-import '../../../models/status.dart';
 import '../../../services/account_service.dart';
 import '../../../services/timeline_service.dart';
 import '../../../providers/service_providers.dart';

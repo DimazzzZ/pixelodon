@@ -12,6 +12,8 @@ import '../widgets/comments_list_sliver.dart';
 import '../widgets/boosts_list_sliver.dart';
 import '../widgets/likes_grid_sliver.dart';
 import '../widgets/shimmer_placeholders.dart';
+import '../../../../utils/account_utils.dart';
+import '../../../../providers/auth_provider.dart';
 
 /// Main profile screen with image-first design
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -26,17 +28,111 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> 
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   late final String userId;
+  late final ScrollController _scrollController;
+  late final AnimationController _titleAnimationController;
+  late final Animation<double> _titleFadeAnimation;
+  
+  bool _isCollapsed = false;
+  static const double _expandedHeight = 180.0;
+  static const double _toolbarHeight = kToolbarHeight;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     userId = widget.args.userId;
+    
+    // Initialize scroll controller
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScrollChanged);
+    
+    // Initialize title animation controller
+    _titleAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _titleFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _titleAnimationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScrollChanged);
+    _scrollController.dispose();
+    _titleAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _onScrollChanged() {
+    final collapseThreshold = _expandedHeight - _toolbarHeight;
+    final shouldCollapse = _scrollController.offset >= collapseThreshold;
+    
+    if (shouldCollapse != _isCollapsed) {
+      setState(() {
+        _isCollapsed = shouldCollapse;
+      });
+      
+      if (_isCollapsed) {
+        _titleAnimationController.forward();
+      } else {
+        _titleAnimationController.reverse();
+      }
+    }
+  }
+
+  Widget? _buildCollapsedTitle(BuildContext context, ProfileState state) {
+    final profile = state.profile.valueOrNull;
+    if (profile == null) return null;
+
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final formattedHandle = AccountUtils.formatHandle(
+      acct: profile.acct,
+      username: profile.username,
+      fallbackDomain: activeInstance?.domain,
+    );
+
+    return FadeTransition(
+      opacity: _titleFadeAnimation,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.person_outline,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              formattedHandle,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.left,
+              semanticsLabel: 'Profile: ${profile.username} at ${activeInstance?.domain ?? 'unknown instance'}',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final state = ref.watch(profileControllerProvider(userId));
     final controller = ref.read(profileControllerProvider(userId).notifier);
 
@@ -46,9 +142,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           await controller.refresh();
         },
         child: CustomScrollView(
+          controller: _scrollController,
+          key: PageStorageKey('profile_scroll_$userId'),
+          clipBehavior: Clip.none,
           slivers: [
-            // Profile Header with cover image and avatar
-            SliverProfileHeader(
+            // SliverAppBar with permanent background
+            SliverAppBar(
+              expandedHeight: _expandedHeight,
+              pinned: true,
+              floating: false,
+              clipBehavior: Clip.none,
+              title: _buildCollapsedTitle(context, state),
+              flexibleSpace: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    'assets/images/bg_default.png',
+                    fit: BoxFit.cover,
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black26],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Profile Content (avatar, username, bio)
+            SliverProfileContent(
               profile: state.profile.valueOrNull,
               isLoading: state.profile.isLoading,
               onFollowToggle: () => controller.toggleFollow(),

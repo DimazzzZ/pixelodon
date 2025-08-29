@@ -10,12 +10,12 @@ class ProfileHeaderShimmer extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       highlightColor: theme.colorScheme.surface.withOpacity(0.8),
       child: Container(
         height: 240,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant,
+          color: theme.colorScheme.surfaceContainerHighest,
         ),
         child: Stack(
           children: [
@@ -23,7 +23,7 @@ class ProfileHeaderShimmer extends StatelessWidget {
             Container(
               height: 200,
               width: double.infinity,
-              color: theme.colorScheme.surfaceVariant,
+              color: theme.colorScheme.surfaceContainerHighest,
             ),
             // Avatar placeholder
             Positioned(
@@ -34,7 +34,7 @@ class ProfileHeaderShimmer extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: theme.colorScheme.surfaceVariant,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   border: Border.all(
                     color: theme.colorScheme.surface,
                     width: 4,
@@ -58,7 +58,7 @@ class ProfileInfoShimmer extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       highlightColor: theme.colorScheme.surface.withOpacity(0.8),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -70,7 +70,7 @@ class ProfileInfoShimmer extends StatelessWidget {
               width: 120,
               height: 24,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -80,7 +80,7 @@ class ProfileInfoShimmer extends StatelessWidget {
               width: 180,
               height: 16,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -90,7 +90,7 @@ class ProfileInfoShimmer extends StatelessWidget {
               width: 200,
               height: 16,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -110,7 +110,7 @@ class ProfileStatsShimmer extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       highlightColor: theme.colorScheme.surface.withOpacity(0.8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -123,7 +123,7 @@ class ProfileStatsShimmer extends StatelessWidget {
                     width: 40,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -132,7 +132,7 @@ class ProfileStatsShimmer extends StatelessWidget {
                     width: 60,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -168,12 +168,12 @@ class MediaGridShimmer extends StatelessWidget {
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) => Shimmer.fromColors(
-          baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+          baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
           highlightColor: theme.colorScheme.surface.withOpacity(0.8),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              color: theme.colorScheme.surfaceVariant,
+              color: theme.colorScheme.surfaceContainerHighest,
             ),
           ),
         ),
@@ -192,7 +192,7 @@ class ListItemShimmer extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       highlightColor: theme.colorScheme.surface.withOpacity(0.8),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -205,7 +205,7 @@ class ListItemShimmer extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: theme.colorScheme.surfaceVariant,
+                color: theme.colorScheme.surfaceContainerHighest,
               ),
             ),
             const SizedBox(width: 12),
@@ -219,7 +219,7 @@ class ListItemShimmer extends StatelessWidget {
                     width: 100,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -229,7 +229,7 @@ class ListItemShimmer extends StatelessWidget {
                     width: double.infinity,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -238,7 +238,7 @@ class ListItemShimmer extends StatelessWidget {
                     width: 200,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),

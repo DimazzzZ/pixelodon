@@ -5,7 +5,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:pixelodon/features/feed/screens/home_screen.dart';
 
 import '../test/test_support/app_pump.dart';
-import '../test/test_support/finders.dart';
 import '../test/test_support/network_stubs.dart';
 import '../test/test_support/robots/home_robot.dart';
 
@@ -43,7 +42,7 @@ void main() {
           mockTimelineService: mockTimelineService,
         );
 
-        await robot
+        robot
             .expectHomeScreenVisible()
             .expectTabsVisible();
         
@@ -64,7 +63,7 @@ void main() {
           mockTimelineService: mockTimelineService,
         );
 
-        await robot
+        robot
             .expectHomeScreenVisible();
         
         await robot
@@ -98,7 +97,7 @@ void main() {
           mockTimelineService: mockTimelineService,
         );
 
-        await robot
+        robot
             .expectHomeScreenVisible();
         
         await robot
@@ -159,7 +158,7 @@ void main() {
           mockTimelineService: mockTimelineService,
         );
 
-        await robot
+        robot
             .expectHomeScreenVisible();
         
         await robot

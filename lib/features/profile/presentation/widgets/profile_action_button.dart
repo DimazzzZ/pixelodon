@@ -32,8 +32,8 @@ class ProfileActionButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        minimumSize: const Size(80, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        minimumSize: const Size(100, 38),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -42,11 +42,10 @@ class ProfileActionButton extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Text(
+      child: _buildButtonContent(
         'Edit Profile',
-        style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        theme,
+        theme.colorScheme.onSurface,
       ),
     );
   }
@@ -92,13 +91,13 @@ class ProfileActionButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          minimumSize: const Size(80, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: const Size(100, 38),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: _buildButtonContent(text, theme),
+        child: _buildButtonContent(text, theme, foregroundColor),
       );
     } else {
       return OutlinedButton(
@@ -107,8 +106,8 @@ class ProfileActionButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          minimumSize: const Size(80, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: const Size(100, 38),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -117,21 +116,19 @@ class ProfileActionButton extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: _buildButtonContent(text, theme),
+        child: _buildButtonContent(text, theme, foregroundColor),
       );
     }
   }
 
-  Widget _buildButtonContent(String text, ThemeData theme) {
+  Widget _buildButtonContent(String text, ThemeData theme, Color foregroundColor) {
     if (isLoading) {
       return SizedBox(
         width: 16,
         height: 16,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(
-            theme.colorScheme.onPrimary,
-          ),
+          valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
         ),
       );
     }
@@ -140,6 +137,7 @@ class ProfileActionButton extends StatelessWidget {
       text,
       style: theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w500,
+        color: foregroundColor,
       ),
     ).animate(
       effects: [

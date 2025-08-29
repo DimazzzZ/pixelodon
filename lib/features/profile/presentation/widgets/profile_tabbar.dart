@@ -85,7 +85,7 @@ class _TabItem extends StatelessWidget {
 
     return InkWell(
       onTap: isLoading ? null : onTap,
-      child: Container(
+      child: SizedBox(
         height: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

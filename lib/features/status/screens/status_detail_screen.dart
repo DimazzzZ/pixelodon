@@ -4,12 +4,7 @@ import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/core/network/api_service.dart' show NotFoundException;
 import 'package:pixelodon/providers/service_providers.dart';
-import 'package:pixelodon/ui/post/post_card.dart' as adaptive_post;
-import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
-import 'package:pixelodon/ui/post/reply_node_tile.dart';
-import 'package:pixelodon/ui/post/tree_builder.dart';
-import 'package:pixelodon/ui/post/platform_adaptive.dart';
-import 'package:pixelodon/features/status/controllers/status_thread_controller.dart';
+import 'package:pixelodon/widgets/feed/post_card.dart';
 
 /// Screen that shows details for a single status (post) and its conversation
 class StatusDetailScreen extends ConsumerStatefulWidget {
@@ -74,13 +69,15 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveScaffold(
-      navBarTitle: const Text('Post'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Post'),
+      ),
       body: FutureBuilder<_LoadedStatus>(
         future: _loader,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: AdaptiveActivityIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             return Center(
@@ -118,150 +115,87 @@ class _StatusDetailScreenState extends ConsumerState<StatusDetailScreen> {
 
           final data = snapshot.data!;
 
-          return _AdaptivePostWithReplies(data: data, statusId: widget.statusId);
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _loader = _load();
+              });
+              await _loader;
+            },
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 24),
+              children: [
+                // If there are ancestors (thread above), show them in order
+                if (data.ancestors.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  for (final s in data.ancestors)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: PostCard(
+                        status: s,
+                        domain: data.domain,
+                        showFullContent: true,
+                      ),
+                    ),
+                  Divider(height: 1, thickness: 0.5, color: Colors.grey.shade300),
+                ],
+
+                // The main status
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: PostCard(
+                    status: data.status,
+                    domain: data.domain,
+                    showFullContent: true,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+                Divider(height: 1, thickness: 0.5, color: Colors.grey.shade300),
+
+                // Replies header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chat_bubble_outline, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Replies', style: Theme.of(context).textTheme.titleMedium),
+                    ],
+                  ),
+                ),
+
+                if (data.descendants.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                    child: Text(
+                      'No replies yet',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                    ),
+                  )
+                else ...[
+                  for (int i = 0; i < data.descendants.length; i++)
+                    _ThreadedReplyCard(
+                      isFirst: i == 0,
+                      isLast: i == data.descendants.length - 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: PostCard(
+                          status: data.descendants[i],
+                          domain: data.domain,
+                          showFullContent: true,
+                        ),
+                      ),
+                    ),
+                ]
+              ],
+            ),
+          );
         },
       ),
-    );
-  }
-}
-
-class _AdaptivePostWithReplies extends ConsumerStatefulWidget {
-  final _LoadedStatus data;
-  final String statusId;
-  const _AdaptivePostWithReplies({required this.data, required this.statusId});
-
-  @override
-  ConsumerState<_AdaptivePostWithReplies> createState() => _AdaptivePostWithRepliesState();
-}
-
-class _AdaptivePostWithRepliesState extends ConsumerState<_AdaptivePostWithReplies> {
-  late final StatusThreadController _ctrl;
-  final ScrollController _scroll = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = StatusThreadController(ref: ref, domain: widget.data.domain);
-    _ctrl.loadInitial(widget.statusId);
-    _scroll.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (_scroll.position.pixels <= 100) {
-      _ctrl.loadMoreBefore();
-    }
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200) {
-      _ctrl.loadMoreAfter();
-    }
-  }
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  SocialPost _map(Status s, String domain) {
-    final acct = s.account;
-    final displayName = (acct?.displayName ?? '').trim().isNotEmpty ? (acct?.displayName ?? '') : (acct?.username ?? '');
-    final handle = acct?.acct ?? (acct?.username ?? '');
-    final host = handle.contains('@') ? handle.split('@').last : (acct?.domain ?? domain);
-    final media = s.mediaAttachments
-        .map((m) => MediaThumb(previewUrl: m.previewUrl ?? m.url, type: m.type.name, alt: m.description))
-        .toList();
-    return SocialPost(
-      id: s.id,
-      author: Author(
-        displayName: displayName,
-        handle: handle,
-        host: host,
-        avatarUrl: (acct?.avatarStatic ?? acct?.avatar) ?? '',
-        isVerified: false,
-      ),
-      createdAt: s.createdAt ?? DateTime.now(),
-      htmlBody: s.content,
-      contentWarning: (s.spoilerText?.trim().isEmpty ?? true) ? null : s.spoilerText,
-      media: media,
-      counts: Counts(replies: s.repliesCount, boosts: s.reblogsCount, favourites: s.favouritesCount),
-      isEdited: s.editedAt != null,
-      isSensitive: s.sensitive,
-      canonicalUrl: s.url ?? '',
-      inReplyToId: s.inReplyToId,
-    );
-  }
-
-  List<ReplyNode> _flattenVisible(List<ReplyNode> roots) {
-    final out = <ReplyNode>[];
-    void dfs(ReplyNode n) {
-      out.add(n);
-      if (!n.isCollapsed) {
-        for (final ch in n.children) {
-          dfs(ch);
-        }
-      }
-    }
-
-    for (final r in roots) {
-      dfs(r);
-    }
-    return out;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final post = _map(widget.data.status, widget.data.domain);
-
-    return ValueListenableBuilder<List<ReplyNode>>(
-      valueListenable: _ctrl.nodes,
-      builder: (context, roots, _) {
-        final flat = _flattenVisible(roots);
-        return CustomScrollView(
-          controller: _scroll,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: adaptive_post.PostCard(post: post),
-              ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final node = flat[index];
-                  return ReplyNodeTile(
-                    node: node,
-                    onReply: (n) => _ctrl.onReply(n),
-                    onBoost: (n) => _ctrl.onBoost(n),
-                    onFavourite: (n) => _ctrl.onFavourite(n),
-                    onShare: (n) => _ctrl.onShare(n),
-                    onOpenReplies: (n) => _ctrl.onOpenReplies(n),
-                    onProfileTap: (a) => _ctrl.onProfileTap(a),
-                  );
-                },
-                childCount: flat.length,
-              ),
-            ),
-            ValueListenableBuilder<bool>(
-              valueListenable: _ctrl.isLoading,
-              builder: (context, loading, __) => SliverToBoxAdapter(
-                child: loading
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Center(child: AdaptiveActivityIndicator()),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ),
-            // Safe bottom inset to prevent home indicator overlap
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: MediaQuery.viewPaddingOf(context).bottom + 8,
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -281,4 +215,84 @@ class _LoadedStatus {
 }
 
 
+/// A wrapper that draws a light-grey vertical connector line on the left side
+/// to visually connect reply cards like Bluesky.
+class _ThreadedReplyCard extends StatelessWidget {
+  final bool isFirst;
+  final bool isLast;
+  final Widget child;
 
+  const _ThreadedReplyCard({
+    required this.isFirst,
+    required this.isLast,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color lineColor = Colors.grey.shade300;
+
+    return Stack(
+      children: [
+        // Left gutter with the vertical connector line
+        Positioned.fill(
+          left: 8, // gutter offset left of the card padding so the line stays in the gutter
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _ThreadConnectorPainter(
+                color: lineColor,
+                topGap: isFirst ? 8.0 : 0.0,
+                bottomGap: isLast ? 12.0 : 0.0,
+              ),
+            ),
+          ),
+        ),
+        // The reply content itself
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isFirst) const SizedBox(height: 4),
+            child,
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ThreadConnectorPainter extends CustomPainter {
+  final Color color;
+  final double topGap;
+  final double bottomGap;
+
+  _ThreadConnectorPainter({
+    required this.color,
+    required this.topGap,
+    required this.bottomGap,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Draw near the left edge of the Positioned.fill area.
+    final double x = 0;
+    final double startY = topGap;
+    final double endY = size.height - bottomGap;
+
+    if (endY > startY) {
+      canvas.drawLine(Offset(x, startY), Offset(x, endY), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThreadConnectorPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.topGap != topGap ||
+        oldDelegate.bottomGap != bottomGap;
+  }
+}

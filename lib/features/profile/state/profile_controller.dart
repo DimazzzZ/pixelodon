@@ -185,7 +185,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         mediaCursor: page.nextCursor,
         isLoadingMoreMedia: false,
       );
-    } catch (error, stackTrace) {
+    } catch (error) {
       state = state.copyWith(isLoadingMoreMedia: false);
       // Don't update the media state on pagination errors
     }
@@ -214,7 +214,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         commentsCursor: page.nextCursor,
         isLoadingMoreComments: false,
       );
-    } catch (error, stackTrace) {
+    } catch (error) {
       state = state.copyWith(isLoadingMoreComments: false);
     }
   }
@@ -242,7 +242,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         boostsCursor: page.nextCursor,
         isLoadingMoreBoosts: false,
       );
-    } catch (error, stackTrace) {
+    } catch (error) {
       state = state.copyWith(isLoadingMoreBoosts: false);
     }
   }
@@ -270,7 +270,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         likesCursor: page.nextCursor,
         isLoadingMoreLikes: false,
       );
-    } catch (error, stackTrace) {
+    } catch (error) {
       state = state.copyWith(isLoadingMoreLikes: false);
     }
   }
