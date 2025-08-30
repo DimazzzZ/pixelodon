@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 import 'package:pixelodon/services/deep_link_service.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -39,17 +40,31 @@ class PixelodonApp extends ConsumerStatefulWidget {
 
 class _PixelodonAppState extends ConsumerState<PixelodonApp> {
   
+  /// Helper function to convert ThemeMode to Brightness for Cupertino
+  Brightness _getBrightnessForThemeMode(ThemeMode themeMode, BuildContext context) {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return Brightness.light;
+      case ThemeMode.dark:
+        return Brightness.dark;
+      case ThemeMode.system:
+        return MediaQuery.of(context).platformBrightness;
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     // Get the router from the provider
     final router = ref.watch(appRouterProvider);
+    // Get the current theme mode from settings
+    final themeMode = ref.watch(themeModeProvider);
     
     return PlatformApp.router(
       title: 'Pixelodon',
       material: (context, platform) => MaterialAppRouterData(
         theme: AppTheme.getLightTheme(),
         darkTheme: AppTheme.getDarkTheme(),
-        themeMode: ThemeMode.system,
+        themeMode: themeMode,
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -61,8 +76,8 @@ class _PixelodonAppState extends ConsumerState<PixelodonApp> {
         ],
       ),
       cupertino: (context, platform) => CupertinoAppRouterData(
-        theme: const CupertinoThemeData(
-          brightness: Brightness.light,
+        theme: CupertinoThemeData(
+          brightness: _getBrightnessForThemeMode(themeMode, context),
         ),
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [

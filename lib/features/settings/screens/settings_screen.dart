@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -44,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
               ),
               child: Column(
                 children: [
@@ -66,7 +67,10 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.add),
+                  PlatformWidget(
+                    material: (_, __) => const Icon(Icons.add),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.add),
+                  ),
                   const SizedBox(width: 8),
                   const Text('Add Account'),
                 ],
@@ -94,30 +98,48 @@ class SettingsScreen extends ConsumerWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
             ),
             child: Column(
               children: [
                 PlatformListTile(
-                  leading: const Icon(Icons.palette_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.palette_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.paintbrush),
+                  ),
                   title: const Text('Theme'),
                   subtitle: Text(ref.read(themeModeProvider.notifier).themeModeDisplayName),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showThemeSelection(context, ref),
                 ),
                 const Divider(height: 1),
                 PlatformListTile(
-                  leading: const Icon(Icons.notifications_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.notifications_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.bell),
+                  ),
                   title: const Text('Notifications'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showNotificationSettings(context, ref),
                 ),
                 const Divider(height: 1),
                 PlatformListTile(
-                  leading: const Icon(Icons.language_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.language_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.globe),
+                  ),
                   title: const Text('Language'),
                   subtitle: Text(ref.read(languageProvider.notifier).languageDisplayName),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showLanguageSelection(context, ref),
                 ),
               ],
@@ -138,28 +160,46 @@ class SettingsScreen extends ConsumerWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
             ),
             child: Column(
               children: [
                 PlatformListTile(
-                  leading: const Icon(Icons.info_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.info_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.info_circle),
+                  ),
                   title: const Text('About Pixelodon'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showAboutDialog(context),
                 ),
                 const Divider(height: 1),
                 PlatformListTile(
-                  leading: const Icon(Icons.privacy_tip_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.privacy_tip_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.shield),
+                  ),
                   title: const Text('Privacy Policy'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showPrivacyPolicy(context),
                 ),
                 const Divider(height: 1),
                 PlatformListTile(
-                  leading: const Icon(Icons.description_outlined),
+                  leading: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.description_outlined),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.doc_text),
+                  ),
                   title: const Text('Terms of Service'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PlatformWidget(
+                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
+                  ),
                   onTap: () => _showTermsOfService(context),
                 ),
               ],
@@ -179,7 +219,10 @@ class SettingsScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.logout),
+                    PlatformWidget(
+                      material: (_, __) => const Icon(Icons.logout),
+                      cupertino: (_, __) => const Icon(CupertinoIcons.square_arrow_right),
+                    ),
                     const SizedBox(width: 8),
                     const Text('Log Out Current Account'),
                   ],
@@ -305,30 +348,29 @@ class SettingsScreen extends ConsumerWidget {
           fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('@${account?.acct ?? 'unknown'}'),
-          Text(
-            instance.domain,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-        ],
-      ),
+      subtitle: Text('@${account?.acct ?? 'unknown'}@${instance.domain}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isActive)
-            Icon(
-              Icons.check_circle,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
+            PlatformWidget(
+              material: (_, __) => Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              cupertino: (_, __) => Icon(
+                CupertinoIcons.checkmark_circle_fill,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
             ),
           const SizedBox(width: 8),
           PlatformIconButton(
-            icon: const Icon(Icons.more_vert),
+            icon: PlatformWidget(
+              material: (_, __) => const Icon(Icons.more_vert),
+              cupertino: (_, __) => const Icon(CupertinoIcons.ellipsis_vertical),
+            ),
             onPressed: () => _showAccountActions(context, ref, instance, isActive),
           ),
         ],
@@ -382,7 +424,10 @@ class SettingsScreen extends ConsumerWidget {
             ),
             if (!isActive)
               PlatformListTile(
-                leading: const Icon(Icons.swap_horiz),
+                leading: PlatformWidget(
+                  material: (_, __) => const Icon(Icons.swap_horiz),
+                  cupertino: (_, __) => const Icon(CupertinoIcons.arrow_2_squarepath),
+                ),
                 title: const Text('Switch to this account'),
                 onTap: () {
                   Navigator.of(context).pop();
@@ -390,8 +435,11 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
             PlatformListTile(
-              leading: Icon(Icons.remove_circle_outline, color: Colors.red),
-              title: const Text('Remove account', style: TextStyle(color: Colors.red)),
+              leading: PlatformWidget(
+                material: (_, __) => Icon(Icons.remove_circle_outline, color: Theme.of(context).colorScheme.error),
+                cupertino: (_, __) => Icon(CupertinoIcons.minus_circle, color: Theme.of(context).colorScheme.error),
+              ),
+              title: Text('Remove account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
               onTap: () {
                 Navigator.of(context).pop();
                 _showRemoveAccountDialog(context, ref, instance);
@@ -683,10 +731,11 @@ class SettingsScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.photo_camera,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
+            Image.asset(
+              'assets/images/logo.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
             ),
             const SizedBox(height: 16),
             const Text('Version 1.0.0'),
