@@ -7,6 +7,8 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/features/profile/widgets/compact_account_tile.dart';
+import 'package:pixelodon/features/profile/widgets/skeleton_account_tile.dart';
+import 'package:pixelodon/features/profile/widgets/follow_list_states.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
@@ -147,10 +149,35 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
           ? await accountService.getFollowing(targetDomain, targetAccountId, limit: 40, maxId: _maxId)
           : await accountService.getFollowers(targetDomain, targetAccountId, limit: 40, maxId: _maxId);
 
+      // Fetch relationship data for each account to determine follow status
+      final accountsWithRelationships = <Account>[];
+      for (final account in result.items) {
+        Account updatedAccount = account.copyWith(domain: targetDomain, isPixelfed: false);
+        
+        // Only fetch relationships if we're on the same domain as the active instance
+        if (targetDomain == activeDomain && activeDomain != null) {
+          try {
+            final relationshipData = await accountService.getRelationship(activeDomain, account.id);
+            final following = relationshipData['following'] as bool? ?? false;
+            final requested = relationshipData['requested'] as bool? ?? false;
+            
+            updatedAccount = updatedAccount.copyWith(
+              following: following,
+              requested: requested,
+            );
+          } catch (e) {
+            // If relationship fetch fails, keep the account with default relationship values
+            // This ensures the list still loads even if some relationship data is unavailable
+          }
+        }
+        
+        accountsWithRelationships.add(updatedAccount);
+      }
+
       // Use pagination information from the result
       _maxId = result.nextMaxId;
       setState(() {
-        _accounts.addAll(result.items.map((a) => a.copyWith(domain: targetDomain, isPixelfed: false)).toList());
+        _accounts.addAll(accountsWithRelationships);
         _hasMore = result.hasMore;
       });
     } catch (e) {
@@ -194,34 +221,34 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
+    // Show skeleton loading state for initial load
     if (_isLoading && _accounts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonAccountList();
     }
+    
+    // Show error state for initial load failure
     if (_hasError && _accounts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 8),
-            Text(_errorMessage ?? 'Failed to load'),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _loadInitial,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return FollowListErrorState(
+        errorMessage: _errorMessage,
+        onRetry: _loadInitial,
       );
     }
+    
+    // Show empty state when no accounts found
+    if (!_isLoading && !_hasError && _accounts.isEmpty) {
+      return FollowListEmptyState(type: widget.type);
+    }
 
+    // Show list with accounts
     return ListView.separated(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
+      // Use stable keys to prevent jumpy layout when images load
       itemBuilder: (context, index) {
         if (index < _accounts.length) {
           final acc = _accounts[index];
           return CompactAccountTile(
+            key: ValueKey('account_${acc.id}'), // Stable key
             account: acc,
             onTap: () => context.push('/profile/${acc.id}'),
             onFollowChanged: (updated) {
@@ -231,17 +258,37 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
             },
           );
         }
-        // Loader at end
-        if (_isLoading) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator()),
+        
+        // Loading indicator for pagination
+        if (_isLoading && _hasMore) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
           );
         }
+        
         return const SizedBox.shrink();
       },
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemCount: _accounts.length + (_isLoading ? 1 : 0),
+      // Divider at 1px with 16px inset as per requirements
+      separatorBuilder: (_, __) => Divider(
+        height: 1,
+        thickness: 1,
+        indent: 16, // 16px inset as per requirements
+        endIndent: 0,
+        color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+      ),
+      itemCount: _accounts.length + (_isLoading && _hasMore ? 1 : 0),
     );
   }
 }

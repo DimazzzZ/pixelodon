@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
@@ -20,12 +21,23 @@ class CompactAccountTile extends ConsumerStatefulWidget {
 
 class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
   late Account _account;
+  late Account _originalAccount; // For rollback on error
   bool _isBusy = false;
 
   @override
   void initState() {
     super.initState();
     _account = widget.account;
+    _originalAccount = widget.account;
+  }
+
+  @override
+  void didUpdateWidget(CompactAccountTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.account != widget.account) {
+      _account = widget.account;
+      _originalAccount = widget.account;
+    }
   }
 
   String _stripHtml(String? html) {
@@ -38,25 +50,52 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     final domain = ref.read(activeInstanceProvider)?.domain;
     if (domain == null) return;
     if (_isBusy) return;
+
+    // Store current state for rollback
+    _originalAccount = _account;
+    
+    // Optimistic update
     setState(() {
       _isBusy = true;
+      _account = _account.copyWith(
+        following: true,
+        requested: false, // Assume follow succeeds immediately
+      );
     });
+    
+    // Announce to screen readers
+    _announceFollowStateChange('Following ${_account.username}');
+    
     try {
       final accountService = ref.read(accountServiceProvider);
       final updated = await accountService.followAccount(domain, _account.id);
-      setState(() {
-        _account = _account.copyWith(
-          following: updated.following,
-          requested: updated.requested,
-          followersCount: updated.followersCount,
-          followingCount: updated.followingCount,
-        );
-      });
-      widget.onFollowChanged?.call(_account);
-    } catch (e) {
+      
       if (mounted) {
+        setState(() {
+          _account = _account.copyWith(
+            following: updated.following,
+            requested: updated.requested,
+            followersCount: updated.followersCount,
+            followingCount: updated.followingCount,
+          );
+        });
+        widget.onFollowChanged?.call(_account);
+      }
+    } catch (e) {
+      // Rollback on error
+      if (mounted) {
+        setState(() {
+          _account = _originalAccount;
+        });
+        _announceFollowStateChange('Failed to follow ${_account.username}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to follow: $e')),
+          SnackBar(
+            content: Text('Failed to follow ${_account.username}: $e'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _follow,
+            ),
+          ),
         );
       }
     } finally {
@@ -72,25 +111,52 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     final domain = ref.read(activeInstanceProvider)?.domain;
     if (domain == null) return;
     if (_isBusy) return;
+
+    // Store current state for rollback
+    _originalAccount = _account;
+    
+    // Optimistic update
     setState(() {
       _isBusy = true;
+      _account = _account.copyWith(
+        following: false,
+        requested: false,
+      );
     });
+    
+    // Announce to screen readers
+    _announceFollowStateChange('Unfollowed ${_account.username}');
+    
     try {
       final accountService = ref.read(accountServiceProvider);
       final updated = await accountService.unfollowAccount(domain, _account.id);
-      setState(() {
-        _account = _account.copyWith(
-          following: updated.following,
-          requested: updated.requested,
-          followersCount: updated.followersCount,
-          followingCount: updated.followingCount,
-        );
-      });
-      widget.onFollowChanged?.call(_account);
-    } catch (e) {
+      
       if (mounted) {
+        setState(() {
+          _account = _account.copyWith(
+            following: updated.following,
+            requested: updated.requested,
+            followersCount: updated.followersCount,
+            followingCount: updated.followingCount,
+          );
+        });
+        widget.onFollowChanged?.call(_account);
+      }
+    } catch (e) {
+      // Rollback on error
+      if (mounted) {
+        setState(() {
+          _account = _originalAccount;
+        });
+        _announceFollowStateChange('Failed to unfollow ${_account.username}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to unfollow: $e')),
+          SnackBar(
+            content: Text('Failed to unfollow ${_account.username}: $e'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _unfollow,
+            ),
+          ),
         );
       }
     } finally {
@@ -102,89 +168,121 @@ class _CompactAccountTileState extends ConsumerState<CompactAccountTile> {
     }
   }
 
+  void _announceFollowStateChange(String message) {
+    // Announce state changes for accessibility
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // Use SemanticsService to announce the change
+      SemanticsService.announce(message, TextDirection.ltr);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: widget.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundImage: _account.avatar != null && _account.avatar!.isNotEmpty
-                      ? CachedNetworkImageProvider(_account.avatar!)
-                      : null,
-                  child: (_account.avatar == null || _account.avatar!.isEmpty)
-                      ? Text(_account.displayName.isNotEmpty ? _account.displayName[0] : _account.username[0])
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _account.displayName.isNotEmpty ? _account.displayName : _account.username,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        AccountUtils.formatHandle(
-                          acct: _account.acct,
-                          username: _account.username,
-                          accountDomain: _account.domain,
-                          fallbackDomain: ref.read(activeInstanceProvider)?.domain,
+    final colorScheme = theme.colorScheme;
+    
+    // Get formatted handle for accessibility
+    final formattedHandle = AccountUtils.formatHandle(
+      acct: _account.acct,
+      username: _account.username,
+      accountDomain: _account.domain,
+      fallbackDomain: ref.read(activeInstanceProvider)?.domain,
+    );
+    
+    return Semantics(
+      label: 'User ${_account.displayName.isNotEmpty ? _account.displayName : _account.username}, $formattedHandle',
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          // Cell padding 16px as per requirements
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar 44px (radius 22) as per requirements
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundImage: _account.avatar != null && _account.avatar!.isNotEmpty
+                        ? CachedNetworkImageProvider(_account.avatar!)
+                        : null,
+                    child: (_account.avatar == null || _account.avatar!.isEmpty)
+                        ? Text(
+                            _account.displayName.isNotEmpty 
+                                ? _account.displayName[0].toUpperCase() 
+                                : _account.username[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          )
+                        : null,
+                  ),
+                  // Vertical spacing 8px as per requirements  
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Primary name (semibold) as per requirements
+                        Text(
+                          _account.displayName.isNotEmpty ? _account.displayName : _account.username,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600, // Semibold
+                            color: colorScheme.onSurface,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        // Handle (secondary) as per requirements
+                        Text(
+                          formattedHandle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant, // Secondary color
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Follow button - right aligned
+                  FollowButton(
+                    isCurrentUser: false,
+                    isFollowing: _account.following,
+                    isFollowRequestPending: _account.requested,
+                    isLoading: _isBusy,
+                    onFollow: _follow,
+                    onUnfollow: _unfollow,
+                    username: _account.username,
+                  ),
+                ],
+              ),
+              // 1-line bio snippet (secondary) as per requirements
+              if ((_account.note ?? '').isNotEmpty) ...[
+                const SizedBox(height: 8), // Vertical spacing 8px
+                Text(
+                  _stripHtml(_account.note),
+                  maxLines: 1, // 1-line as per requirements
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant, // Secondary color
                   ),
                 ),
-                const SizedBox(width: 8),
-                _buildFollowButton(theme),
               ],
-            ),
-            if ((_account.note ?? '').isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                _stripHtml(_account.note),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium,
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFollowButton(ThemeData theme) {
-    if (_isBusy) {
-      return const SizedBox(
-        width: 36,
-        height: 36,
-        child: Padding(
-          padding: EdgeInsets.all(6.0),
-          child: CircularProgressIndicator(strokeWidth: 2.5),
-        ),
-      );
-    }
-    return FollowButton(
-      isCurrentUser: false,
-      isFollowing: _account.following,
-      isFollowRequestPending: _account.requested,
-      onFollow: _follow,
-      onUnfollow: _unfollow,
-      onEditProfile: () {},
-    );
-  }
 }
