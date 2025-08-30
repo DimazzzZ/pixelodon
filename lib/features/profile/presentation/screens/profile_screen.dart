@@ -404,7 +404,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   /// Handle media item tap
   void _handleMediaTap(item, int index) {
     // Navigate to status detail screen using the MediaItem's status ID
-    context.go('/status/${item.id}');
+    context.push('/status/${item.id}');
   }
 
   /// Handle comment tap

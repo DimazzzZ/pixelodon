@@ -6,7 +6,9 @@ import '../../data/profile_models.dart';
 import 'profile_action_button.dart';
 import 'shimmer_placeholders.dart';
 import '../../../../utils/account_utils.dart';
+import '../../../../utils/link_tap_handler.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../widgets/common/safe_html_widget.dart';
 
 /// Profile header widget with cover image and overlapping avatar
 class ProfileHeader extends ConsumerWidget {
@@ -101,9 +103,10 @@ class ProfileHeader extends ConsumerWidget {
               const SizedBox(height: 8), // Username to bio spacing (kept compact at 8px)
               // Bio
               if (profile!.bio.isNotEmpty) ...[
-                Html(
-                  data: profile!.bio,
-                  style: {
+                SafeHtmlWidget(
+                  htmlContent: profile!.bio,
+                  onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
+                  customStyles: {
                     "body": Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
@@ -444,9 +447,10 @@ class SliverProfileContent extends ConsumerWidget {
               const SizedBox(height: 8), // Username to bio spacing
               // Bio
               if (profile!.bio.isNotEmpty) ...[
-                Html(
-                  data: profile!.bio,
-                  style: {
+                SafeHtmlWidget(
+                  htmlContent: profile!.bio,
+                  onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
+                  customStyles: {
                     "body": Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
