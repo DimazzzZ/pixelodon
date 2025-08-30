@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
 class FollowButton extends StatelessWidget {
   final bool isCurrentUser;
@@ -20,47 +21,84 @@ class FollowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ButtonStyle compactStyle({Color? bg, Color? fg}) {
-      return ElevatedButton.styleFrom(
-        backgroundColor: bg,
-        foregroundColor: fg,
-        minimumSize: const Size(0, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-        //shape: const RoundedRectangleBorder(),
-      );
-    }
-
     if (isCurrentUser) {
-      return ElevatedButton(
+      return PlatformElevatedButton(
         onPressed: onEditProfile,
-        style: compactStyle(bg: Colors.grey[200], fg: Colors.black),
         child: const Text('Edit Profile'),
+        material: (_, __) => MaterialElevatedButtonData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, 32),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+        cupertino: (_, __) => CupertinoElevatedButtonData(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
       );
     }
 
     if (isFollowRequestPending) {
-      return ElevatedButton(
+      return PlatformElevatedButton(
         onPressed: onUnfollow,
-        style: compactStyle(bg: Colors.grey[200], fg: Colors.black),
         child: const Text('Requested'),
+        material: (_, __) => MaterialElevatedButtonData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, 32),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+        cupertino: (_, __) => CupertinoElevatedButtonData(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
       );
     }
 
     if (isFollowing) {
-      return ElevatedButton(
+      return PlatformElevatedButton(
         onPressed: onUnfollow,
-        style: compactStyle(bg: Colors.grey[200], fg: Colors.black),
         child: const Text('Unfollow'),
+        material: (_, __) => MaterialElevatedButtonData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, 32),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+        cupertino: (_, __) => CupertinoElevatedButtonData(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
       );
     }
 
-    return ElevatedButton(
+    return PlatformElevatedButton(
       onPressed: onFollow,
-      style: compactStyle(),
       child: const Text('Follow'),
+      material: (_, __) => MaterialElevatedButtonData(
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(0, 32),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+      ),
+      cupertino: (_, __) => CupertinoElevatedButtonData(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
     );
   }
 }

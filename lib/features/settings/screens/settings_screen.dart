@@ -135,7 +135,7 @@ class SettingsScreen extends ConsumerWidget {
                     cupertino: (_, __) => const Icon(CupertinoIcons.globe),
                   ),
                   title: const Text('Language'),
-                  subtitle: Text(ref.read(languageProvider.notifier).languageDisplayName),
+                  subtitle: const Text('Coming Soon'),
                   trailing: PlatformWidget(
                     material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
                     cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
@@ -622,42 +622,19 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  /// Shows language selection dialog
+  /// Shows language selection dialog - coming soon alert
   void _showLanguageSelection(BuildContext context, WidgetRef ref) {
-    final settingsService = ref.read(settingsServiceProvider);
-    final availableLanguages = settingsService.getAvailableLanguages();
-    final currentLanguage = ref.read(languageProvider);
-
-    showPlatformModalSheet(
+    showPlatformDialog(
       context: context,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Select Language',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            ...availableLanguages.map((language) => PlatformListTile(
-              title: Text(settingsService.getLanguageDisplayName(language)),
-              trailing: currentLanguage == language
-                  ? const Icon(Icons.check)
-                  : null,
-              onTap: () async {
-                await ref.read(languageProvider.notifier).setLanguage(language);
-                if (context.mounted) Navigator.of(context).pop();
-              },
-            )),
-            const SizedBox(height: 16),
-          ],
-        ),
+      builder: (context) => PlatformAlertDialog(
+        title: const Text('Language Settings'),
+        content: const Text('Language settings will be added soon but are not yet available.'),
+        actions: [
+          PlatformDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }

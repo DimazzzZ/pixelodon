@@ -1,10 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/features/profile/widgets/compact_account_tile.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 enum FollowListType { following, followers }
 
@@ -161,10 +165,27 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_title()),
+    return AppPageScaffold(
+      appBar: PlatformAppBarWrapper(
+        platformAppBar: PlatformAppBar(
+          title: Text(_title()),
+          leading: PlatformIconButton(
+            onPressed: () => context.go('/profile/${widget.accountId}'),
+            icon: PlatformWidget(
+              material: (_, __) => const Icon(Icons.arrow_back),
+              cupertino: (_, __) => const Icon(CupertinoIcons.back),
+            ),
+          ),
+          material: (_, __) => MaterialAppBarData(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+          ),
+          cupertino: (_, __) => CupertinoNavigationBarData(
+            backgroundColor: CupertinoTheme.of(context).scaffoldBackgroundColor,
+          ),
+        ),
       ),
+      usesSlivers: false,
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: _buildBody(context),
