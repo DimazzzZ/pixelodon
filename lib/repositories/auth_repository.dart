@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/services/auth_service.dart';
+import 'package:pixelodon/core/config/tech_account_config.dart';
 
 /// Repository for managing authentication state with improved features
 class AuthRepository extends ChangeNotifier {
@@ -182,8 +183,31 @@ class AuthRepository extends ChangeNotifier {
   }
   
   /// Get the access token for an instance
+  /// Falls back to technical account token for Mastodon domains when no user token exists
   Future<String?> getAccessToken(String domain) async {
-    return await _authService.getAccessToken(domain);
+    // First try to get user's access token
+    final userToken = await _authService.getAccessToken(domain);
+    
+    // If user token exists, use it
+    if (userToken != null) {
+      return userToken;
+    }
+    
+    // Check if this is a Mastodon domain and technical account is configured
+    if (_isMastodonDomain(domain) && TechAccountConfig.isConfigured) {
+      // Use technical account token for any Mastodon domain when user has no credentials
+      // This allows cross-instance profile fetching using the technical account
+      return TechAccountConfig.accessToken;
+    }
+    
+    return null;
+  }
+  
+  /// Check if the domain is a Mastodon instance
+  bool _isMastodonDomain(String domain) {
+    // For now, we assume domains are Mastodon unless explicitly marked as Pixelfed
+    // This could be enhanced with instance detection logic in the future
+    return true;
   }
   
   /// Validate an access token

@@ -5,6 +5,7 @@ import '../../../../widgets/common/app_page_scaffold.dart';
 import '../../domain/profile_usecases.dart';
 import '../../state/profile_controller.dart';
 import '../../state/profile_state.dart';
+import '../../data/profile_models.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_stats_row.dart';
 import '../widgets/profile_tabbar.dart';
@@ -91,6 +92,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
   }
 
+  Widget _buildHeaderImage(BuildContext context, ProfileState state) {
+    final profile = state.profile.valueOrNull;
+    
+    // Check if we have a profile and it's a Mastodon account with a header image
+    if (profile != null && 
+        profile.coverUrl.isNotEmpty && 
+        _isMastodonAccount(profile)) {
+      return Image.network(
+        profile.coverUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to default background if header image fails to load
+          return Image.asset(
+            'assets/images/bg_default.png',
+            fit: BoxFit.cover,
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          // Show default background while loading
+          return Image.asset(
+            'assets/images/bg_default.png',
+            fit: BoxFit.cover,
+          );
+        },
+      );
+    }
+    
+    // Default fallback
+    return Image.asset(
+      'assets/images/bg_default.png',
+      fit: BoxFit.cover,
+    );
+  }
+
+  bool _isMastodonAccount(UserProfile profile) {
+    // For now, we assume all accounts are Mastodon unless explicitly marked as Pixelfed
+    // This is based on the Account model having an isPixelfed field
+    // Since UserProfile doesn't have this field directly, we'll assume it's Mastodon
+    // if it has a header image (Mastodon supports header images, Pixelfed might not always have them)
+    return profile.coverUrl.isNotEmpty;
+  }
+
   Widget? _buildCollapsedTitle(BuildContext context, ProfileState state) {
     final profile = state.profile.valueOrNull;
     if (profile == null) return null;
@@ -158,10 +202,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               flexibleSpace: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    'assets/images/bg_default.png',
-                    fit: BoxFit.cover,
-                  ),
+                  _buildHeaderImage(context, state),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(

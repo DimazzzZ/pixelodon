@@ -108,10 +108,12 @@ final profileUseCasesProvider = Provider<ProfileUseCases>((ref) {
 class ProfileRouteArgs {
   final String userId;
   final String? username;
+  final String? domain;
 
   const ProfileRouteArgs({
     required this.userId,
     this.username,
+    this.domain,
   });
 
   @override
@@ -120,8 +122,9 @@ class ProfileRouteArgs {
       other is ProfileRouteArgs &&
           runtimeType == other.runtimeType &&
           userId == other.userId &&
-          username == other.username;
+          username == other.username &&
+          domain == other.domain;
 
   @override
-  int get hashCode => userId.hashCode ^ username.hashCode;
+  int get hashCode => userId.hashCode ^ username.hashCode ^ domain.hashCode;
 }

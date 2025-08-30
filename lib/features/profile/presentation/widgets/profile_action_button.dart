@@ -32,8 +32,8 @@ class ProfileActionButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        minimumSize: const Size(100, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(80, 34),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -91,8 +91,8 @@ class ProfileActionButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(100, 38),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: const Size(80, 34),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -106,8 +106,8 @@ class ProfileActionButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(100, 38),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: const Size(80, 34),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -141,7 +141,7 @@ class ProfileActionButton extends StatelessWidget {
       ),
     ).animate(
       effects: [
-        if (text == 'Following') ...[
+        if (text == 'Unfollow') ...[
           const SlideEffect(
             duration: Duration(milliseconds: 200),
             begin: Offset(0, -0.2),
@@ -159,11 +159,11 @@ class ProfileActionButton extends StatelessWidget {
     switch (followState) {
       case FollowState.following:
         return _ButtonData(
-          text: 'Following',
-          backgroundColor: theme.colorScheme.secondaryContainer,
-          foregroundColor: theme.colorScheme.onSecondaryContainer,
-          borderColor: theme.colorScheme.secondaryContainer,
-          isFilled: true,
+          text: 'Unfollow',
+          backgroundColor: theme.colorScheme.surface,
+          foregroundColor: theme.colorScheme.onSurface,
+          borderColor: theme.colorScheme.outline,
+          isFilled: false,
         );
         
       case FollowState.notFollowing:

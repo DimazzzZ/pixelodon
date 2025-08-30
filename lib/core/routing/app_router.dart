@@ -164,11 +164,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final accountId = state.pathParameters['accountId']!;
               final username = state.uri.queryParameters['username'];
+              final domain = state.uri.queryParameters['domain'];
               return MaterialPage(
                 child: ProfileScreen(
                   args: ProfileRouteArgs(
                     userId: accountId,
                     username: username,
+                    domain: domain,
                   ),
                 ),
               );

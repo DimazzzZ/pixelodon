@@ -43,7 +43,18 @@ class RealProfileRemoteDataSource implements ProfileRemoteDataSource {
   @override
   Future<UserProfile> getProfile(String userId) async {
     try {
-      final account = await _accountService.getAccount(_domain, userId);
+      // Determine the correct domain for this profile request
+      String targetDomain = _domain; // Default to current instance domain
+      
+      // If userId contains domain information (format: user@domain), extract it
+      if (userId.contains('@')) {
+        final parts = userId.split('@');
+        if (parts.length >= 2) {
+          targetDomain = parts.last; // Use the domain from the userId
+        }
+      }
+      
+      final account = await _accountService.getAccount(targetDomain, userId);
       final isCurrentUser = _currentUserId != null && _currentUserId == userId;
       
       return UserProfile.fromAccount(
@@ -97,7 +108,7 @@ class RealProfileRemoteDataSource implements ProfileRemoteDataSource {
         maxId: cursor,
         limit: 20,
         excludeReblogs: true,
-        // Don't exclude replies for comments tab
+        excludeReplies: false, // Explicitly include replies for comments tab
       );
 
       // Filter only replies
@@ -127,7 +138,7 @@ class RealProfileRemoteDataSource implements ProfileRemoteDataSource {
         maxId: cursor,
         limit: 20,
         excludeReplies: true,
-        // Don't exclude reblogs for boosts tab
+        excludeReblogs: false, // Explicitly include reblogs for boosts tab
       );
 
       // Filter only boosts/reblogs
