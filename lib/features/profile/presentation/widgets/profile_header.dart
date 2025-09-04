@@ -435,9 +435,16 @@ class SliverProfileContent extends ConsumerWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Main profile content
+        // Main profile content with cutout for avatar
         Container(
-          color: theme.colorScheme.surface,
+          margin: const EdgeInsets.only(top: 68), // Create space for avatar (136/2 = 68)
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(68), // Half avatar size for smooth cutout
+              topRight: Radius.circular(68),
+            ),
+          ),
           padding: const EdgeInsets.fromLTRB(16.0, 76.0, 16.0, 16.0),
           child: Column(
             children: [
@@ -493,10 +500,10 @@ class SliverProfileContent extends ConsumerWidget {
             ],
           ),
         ),
-        // Overlapping avatar positioned 72px above content
+        // Overlapping avatar positioned above content
         Positioned(
           left: screenWidth / 2 - 68, // Center horizontally (136px avatar / 2)
-          top: -72, // Increased overlap by 72px
+          top: 0, // Position at the top of the stack
           child: _buildAvatar(context),
         ),
       ],
@@ -506,42 +513,48 @@ class SliverProfileContent extends ConsumerWidget {
   Widget _buildAvatar(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: 136, // 136px diameter (2× larger, within 128-144px range)
-      height: 136,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white,
-          width: 4, // 4px white ring (within 3-4px range)
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12), // 12% opacity as required
-            blurRadius: 20,
-            offset: const Offset(0, 8), // y-offset 8 as required
-            spreadRadius: 0,
+    return Material(
+      elevation: 16, // High elevation to ensure avatar stays above all other elements
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
+      child: Container(
+        width: 136, // 136px diameter (2× larger, within 128-144px range)
+        height: 136,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white,
+            width: 4, // 4px white ring (within 3-4px range)
           ),
-        ],
-      ),
-      child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: profile!.avatarUrl,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Icon(
-              Icons.person,
-              size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
-              color: theme.colorScheme.onSurfaceVariant,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12), // 12% opacity as required
+              blurRadius: 20,
+              offset: const Offset(0, 8), // y-offset 8 as required
+              spreadRadius: 0,
             ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Icon(
-              Icons.person,
-              size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
-              color: theme.colorScheme.onSurfaceVariant,
+          ],
+        ),
+        child: ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: profile!.avatarUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.person,
+                size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.person,
+                size: 48, // Adjusted icon size for larger avatar (proportional to 136px)
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

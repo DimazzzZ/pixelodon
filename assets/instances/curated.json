@@ -1,0 +1,321 @@
+{
+  "instances": [
+    {
+      "domain": "mastodon.social",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 45.0,
+      "title": "Mastodon Social",
+      "description": "The original Mastodon instance, home to the largest community",
+      "activeUsers": 850000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Be respectful to others",
+        "No harassment or hate speech",
+        "Use content warnings appropriately",
+        "No spam or commercial advertising"
+      ]
+    },
+    {
+      "domain": "pixelfed.social",
+      "platform": "pixelfed",
+      "openRegistration": true,
+      "maxMediaPerPost": 20,
+      "supportsStories": true,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 25.0,
+      "title": "Pixelfed Social",
+      "description": "Photo sharing in the fediverse - Instagram alternative",
+      "activeUsers": 45000,
+      "region": "Global",
+      "photoFocused": true,
+      "rules": [
+        "Photos and videos only",
+        "Respect copyright",
+        "Be kind to others",
+        "No inappropriate content"
+      ]
+    },
+    {
+      "domain": "fosstodon.org",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 20.0,
+      "title": "Fosstodon",
+      "description": "A community for free and open source software enthusiasts",
+      "activeUsers": 35000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Stay on topic about FOSS",
+        "Be respectful in discussions",
+        "No commercial promotion",
+        "English language preferred"
+      ]
+    },
+    {
+      "domain": "mas.to",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en", "de", "fr"],
+      "moderationStyle": "balanced",
+      "loadScore": 15.0,
+      "title": "mas.to",
+      "description": "A fast, reliable Mastodon instance with multilingual support",
+      "activeUsers": 28000,
+      "region": "Europe",
+      "photoFocused": false,
+      "rules": [
+        "Multilingual welcome",
+        "No hate speech",
+        "Respect privacy",
+        "Follow local laws"
+      ]
+    },
+    {
+      "domain": "social.vivaldi.net",
+      "platform": "mastodon",
+      "openRegistration": false,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "stricter",
+      "loadScore": 10.0,
+      "title": "Vivaldi Social",
+      "description": "Official Mastodon instance for Vivaldi browser users",
+      "activeUsers": 18000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Vivaldi users only",
+        "Professional conduct",
+        "No harassment",
+        "Tech-focused discussions"
+      ]
+    },
+    {
+      "domain": "mstdn.social",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "freer",
+      "loadScore": 30.0,
+      "title": "mstdn.social",
+      "description": "A general-purpose Mastodon instance with relaxed moderation",
+      "activeUsers": 55000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Free speech friendly",
+        "Minimal moderation",
+        "Adults only",
+        "No illegal content"
+      ]
+    },
+    {
+      "domain": "mastodon.art",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 22.0,
+      "title": "Mastodon Art",
+      "description": "A Mastodon instance for artists and art enthusiasts",
+      "activeUsers": 42000,
+      "region": "Global",
+      "photoFocused": true,
+      "rules": [
+        "Art-focused content",
+        "Support fellow artists",
+        "Credit original creators",
+        "Safe space for creativity"
+      ]
+    },
+    {
+      "domain": "techhub.social",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 18.0,
+      "title": "Tech Hub",
+      "description": "Technology professionals and enthusiasts welcome",
+      "activeUsers": 25000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Tech-related content",
+        "Professional networking",
+        "Share knowledge",
+        "Respectful debates"
+      ]
+    },
+    {
+      "domain": "mstdn.jp",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["ja", "en"],
+      "moderationStyle": "balanced",
+      "loadScore": 35.0,
+      "title": "Mastodon Japan",
+      "description": "Japanese Mastodon community with English support",
+      "activeUsers": 180000,
+      "region": "Asia",
+      "photoFocused": false,
+      "rules": [
+        "Japanese and English welcome",
+        "Respect cultural differences",
+        "No harassment",
+        "Follow Japanese internet etiquette"
+      ]
+    },
+    {
+      "domain": "piaille.fr",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["fr", "en"],
+      "moderationStyle": "balanced",
+      "loadScore": 25.0,
+      "title": "Piaille",
+      "description": "French-speaking Mastodon community",
+      "activeUsers": 32000,
+      "region": "Europe",
+      "photoFocused": false,
+      "rules": [
+        "Français bienvenu",
+        "Respectez les autres",
+        "Pas de harcèlement",
+        "Contenu approprié uniquement"
+      ]
+    },
+    {
+      "domain": "mastodon.online",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 40.0,
+      "title": "Mastodon Online",
+      "description": "A general-purpose instance with reliable uptime",
+      "activeUsers": 95000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "General discussions welcome",
+        "Be kind and respectful",
+        "No spam or self-promotion",
+        "Use appropriate warnings"
+      ]
+    },
+    {
+      "domain": "pixey.org",
+      "platform": "pixelfed",
+      "openRegistration": true,
+      "maxMediaPerPost": 20,
+      "supportsStories": true,
+      "languages": ["en"],
+      "moderationStyle": "stricter",
+      "loadScore": 15.0,
+      "title": "Pixey",
+      "description": "Family-friendly photo sharing community",
+      "activeUsers": 8500,
+      "region": "Global",
+      "photoFocused": true,
+      "rules": [
+        "Family-friendly content only",
+        "No nudity or adult content",
+        "Respect others' photography",
+        "Original content preferred"
+      ]
+    },
+    {
+      "domain": "photog.social",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 20.0,
+      "title": "Photog Social",
+      "description": "A Mastodon community for photographers",
+      "activeUsers": 15000,
+      "region": "Global",
+      "photoFocused": true,
+      "rules": [
+        "Photography focused",
+        "Share techniques and tips",
+        "Constructive criticism welcome",
+        "Respect intellectual property"
+      ]
+    },
+    {
+      "domain": "scholar.social",
+      "platform": "mastodon",
+      "openRegistration": false,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "stricter",
+      "loadScore": 12.0,
+      "title": "Scholar Social",
+      "description": "Academic and research community",
+      "activeUsers": 12000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "Academic community only",
+        "Scholarly discussions",
+        "Peer review mentality",
+        "Evidence-based discourse"
+      ]
+    },
+    {
+      "domain": "masto.ai",
+      "platform": "mastodon",
+      "openRegistration": true,
+      "maxMediaPerPost": 4,
+      "supportsStories": false,
+      "languages": ["en"],
+      "moderationStyle": "balanced",
+      "loadScore": 28.0,
+      "title": "Masto AI",
+      "description": "Community focused on artificial intelligence and machine learning",
+      "activeUsers": 22000,
+      "region": "Global",
+      "photoFocused": false,
+      "rules": [
+        "AI/ML focused content",
+        "Share research and insights",
+        "Ethical AI discussions",
+        "Technical accuracy valued"
+      ]
+    }
+  ],
+  "lastUpdated": "2024-08-30T20:16:00Z",
+  "version": "1.0"
+}

@@ -16,6 +16,7 @@ import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
+import 'package:pixelodon/features/onboarding/presentation/onboarding_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -27,7 +28,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     navigatorKey: rootNavigatorKey,
     
-    // Global redirect function to handle authentication
+    // Global redirect function to handle authentication and onboarding
     redirect: (context, state) {
       // Check if the user is authenticated using ref.read to avoid circular dependency
       final authRepository = ref.read(authRepositoryProvider);
@@ -35,25 +36,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggingIn = state.matchedLocation.startsWith('/auth');
       final isOAuthCallback = state.matchedLocation == '/oauth/callback';
       final isSplash = state.matchedLocation == '/splash';
+      final isOnboarding = state.matchedLocation == '/onboarding';
       
-      // Always allow splash screen
-      if (isSplash) {
+      // Always allow splash screen and onboarding
+      if (isSplash || isOnboarding) {
         return null;
       }
       
-      // If on root path, redirect to home
+      // If on root path, redirect based on auth state
       if (state.matchedLocation == '/') {
-        return '/home';
+        if (isLoggedIn) {
+          return '/home';
+        } else {
+          // For first-time users, show onboarding instead of login
+          return '/onboarding';
+        }
       }
       
-      // If the user is not logged in and not on the login screen or OAuth callback, redirect to login
+      // If the user is not logged in and not on auth/onboarding screens, redirect to onboarding
       if (!isLoggedIn && !isLoggingIn && !isOAuthCallback) {
-        return '/auth/login';
+        // Allow direct access to login for power users, but default to onboarding
+        if (state.matchedLocation == '/auth/login') {
+          return null;
+        }
+        return '/onboarding';
       }
       
-      // If the user is logged in and on the login screen, allow it (for adding accounts)
+      // If the user is logged in and on the login/onboarding screen, allow it (for adding accounts)
       // But don't redirect if on the callback screen
-      if (isLoggedIn && isLoggingIn && state.matchedLocation != '/auth/callback' && state.matchedLocation != '/auth/login') {
+      if (isLoggedIn && (isLoggingIn || isOnboarding) && 
+          state.matchedLocation != '/auth/callback' && 
+          state.matchedLocation != '/auth/login') {
         return '/home';
       }
       
@@ -97,6 +110,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      
+      // Onboarding route for new users
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       
       // Auth routes
