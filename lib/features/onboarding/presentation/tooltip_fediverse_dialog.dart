@@ -32,7 +32,7 @@ class TooltipFediverseDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Think of it like email: you can have a Gmail account and still send messages to someone with a Yahoo account. Similarly, you can join any Fediverse server and interact with people on other servers.',
+              'Think of it like email: Gmail users can message Yahoo users. Similarly, Mastodon (like Twitter) and Pixelfed (like Instagram) users can interact across servers, but you own your data instead of big tech companies.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
