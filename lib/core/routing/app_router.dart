@@ -18,6 +18,7 @@ import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 import 'package:pixelodon/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:pixelodon/features/guest/screens/guest_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -47,23 +48,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
       
-      // If on root path, redirect based on auth state and onboarding completion
+      // If on root path, redirect based on auth state
       if (state.matchedLocation == '/') {
         if (isLoggedIn) {
           return '/home';
         } else {
-          // For first-time users, show onboarding; for returning users, show login
-          return onboardingCompleted ? '/auth/login' : '/onboarding';
+          // Always show onboarding for non-authenticated users
+          return '/onboarding';
         }
       }
 
-      // If the user is not logged in and not on auth/onboarding screens, redirect appropriately
-      if (!isLoggedIn && !isLoggingIn && !isOAuthCallback) {
-        // Allow direct access to login for power users, but default based on onboarding status
-        if (state.matchedLocation == '/auth/login') {
+      // If the user is not logged in and not on auth/onboarding/guest screens, redirect to onboarding
+      if (!isLoggedIn && !isLoggingIn && !isOAuthCallback && !state.matchedLocation.startsWith('/guest')) {
+        // Allow direct access to login and guest mode
+        if (state.matchedLocation == '/auth/login' || state.matchedLocation == '/guest') {
           return null;
         }
-        return onboardingCompleted ? '/auth/login' : '/onboarding';
+        return '/onboarding';
       }
       
       // If the user is logged in and on the login/onboarding screen, allow it (for adding accounts)
@@ -127,6 +128,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/auth/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+
+      // Guest mode route
+      GoRoute(
+        path: '/guest',
+        builder: (context, state) => const GuestScreen(),
       ),
       
       // OAuth callback route

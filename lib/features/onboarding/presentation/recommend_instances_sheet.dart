@@ -473,10 +473,7 @@ class RecommendInstancesSheet extends ConsumerWidget {
     ref.read(onboardingControllerProvider.notifier).selectInstance(instance);
     Navigator.of(context).pop();
 
-    // Mark onboarding as completed
-    await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
-
-    // Show success message and navigate to login
+    // Show success message and navigate to login (don't mark onboarding as completed yet)
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

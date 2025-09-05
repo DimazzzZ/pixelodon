@@ -196,19 +196,27 @@ class OnboardingController extends _$OnboardingController {
 
   /// Start guest browsing mode
   Future<void> startGuestMode() async {
+    // Set loading state
+    state = state.copyWith(
+      isLoadingAllInstances: true,
+      recommendationError: null,
+    );
+
     try {
       final engine = ref.read(recommendationEngineProvider);
       final guestInstances = await engine.getGuestModeInstances(count: 5);
-      
+
       // For guest mode, we would typically navigate to a guest timeline
       // This would be handled by the UI layer
       state = state.copyWith(
         allInstances: guestInstances,
         currentStep: OnboardingStep.completed,
+        isLoadingAllInstances: false,
       );
     } catch (e) {
       state = state.copyWith(
         recommendationError: 'Failed to load guest mode instances.',
+        isLoadingAllInstances: false,
       );
     }
   }
@@ -307,11 +315,7 @@ class OnboardingController extends _$OnboardingController {
       final settingsService = ref.read(settingsServiceProvider);
       await settingsService.setOnboardingPreferences(preferences.toJson());
 
-      // Also update the onboarding completed status
-      if (preferences.hasCompletedQuiz) {
-        final onboardingCompletedNotifier = ref.read(onboardingCompletedProvider.notifier);
-        await onboardingCompletedNotifier.setOnboardingCompleted(true);
-      }
+      // Don't mark onboarding as completed here - only when user actually logs in
     } catch (e) {
       // Ignore errors
     }

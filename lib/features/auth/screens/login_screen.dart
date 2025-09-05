@@ -7,6 +7,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -104,11 +105,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final authRepository = ref.watch(authRepositoryProvider);
+    final isLoggedIn = authRepository.instances.isNotEmpty;
+
     return AppPageScaffold(
       appBar: PlatformAppBarWrapper(
         platformAppBar: PlatformAppBar(
           title: const Text('Login'),
+          // Show back button only if user is not logged in (to go back to onboarding)
+          leading: !isLoggedIn ? PlatformIconButton(
+            icon: Icon(PlatformIcons(context).back),
+            onPressed: () => context.go('/onboarding'),
+          ) : null,
         ),
       ),
       usesSlivers: false, // SingleChildScrollView is not sliver-based

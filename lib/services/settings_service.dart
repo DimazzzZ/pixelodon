@@ -159,6 +159,16 @@ class SettingsService {
     }
   }
 
+  /// Reset onboarding status (useful for testing)
+  Future<void> resetOnboarding() async {
+    try {
+      await _storage.delete(key: _onboardingCompletedKey);
+      await _storage.delete(key: _onboardingPreferencesKey);
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
   /// Clear all settings (useful for logout/reset)
   Future<void> clearAllSettings() async {
     try {

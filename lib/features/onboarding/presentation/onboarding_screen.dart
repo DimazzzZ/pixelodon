@@ -450,11 +450,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (selectedInstance != null && mounted) {
       Navigator.of(context).pop(); // Close the sheet
 
-      // Mark onboarding as completed
-      await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
-
       if (mounted) {
-        // Navigate to login screen
+        // Navigate to login screen (don't mark onboarding as completed yet)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
@@ -471,20 +468,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(onboardingControllerProvider.notifier).startGuestMode();
 
     if (mounted) {
-      // Mark onboarding as completed
-      await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
+      // Navigate to guest mode (don't mark onboarding as completed)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Guest mode activated! Browsing public timelines...'),
+        ),
+      );
 
-      if (mounted) {
-        // Navigate to guest timeline or show guest mode UI
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Guest mode activated! Browsing public timelines...'),
-          ),
-        );
-
-        // For now, redirect to login since guest mode isn't fully implemented
-        context.go('/auth/login');
-      }
+      // Navigate to guest mode
+      context.go('/guest');
     }
   }
 
