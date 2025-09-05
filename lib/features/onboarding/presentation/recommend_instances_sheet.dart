@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/presentation/manual_instance_picker_page.dart';
-import 'package:pixelodon/providers/settings_provider.dart';
 
 /// Sheet showing recommended instances based on user preferences
 class RecommendInstancesSheet extends ConsumerWidget {
@@ -290,6 +291,44 @@ class RecommendInstancesSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
             ],
+
+            // Server thumbnail - only show if available
+            if (instance.thumbnail != null && instance.thumbnail!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    instance.thumbnail!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      // If image fails to load, show nothing (as requested)
+                      return const SizedBox.shrink();
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             
             // Primary reason
             if (recommendation.primaryReason != null) ...[
@@ -473,16 +512,45 @@ class RecommendInstancesSheet extends ConsumerWidget {
     ref.read(onboardingControllerProvider.notifier).selectInstance(instance);
     Navigator.of(context).pop();
 
-    // Show success message and navigate to login (don't mark onboarding as completed yet)
+    // Start OAuth flow directly for the selected instance
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selected ${instance.domain}! Redirecting to login...'),
+          content: Text('Starting registration for ${instance.domain}...'),
         ),
       );
 
-      // Navigate to login screen
-      context.go('/auth/login');
+      await _startDirectOAuthFlow(context, ref, instance.domain);
+    }
+  }
+
+  /// Start OAuth flow directly for the selected instance
+  Future<void> _startDirectOAuthFlow(BuildContext context, WidgetRef ref, String domain) async {
+    try {
+      // Get the authorization URL from the auth repository
+      final authRepository = ref.read(authRepositoryProvider);
+      final authInfo = await authRepository.startOAuthFlow(domain);
+
+      // Launch the authorization URL in browser
+      final browser = BrowserService();
+      await browser.launchURL(authInfo['url']!);
+
+      // Navigate to the callback screen to wait for the OAuth response
+      if (context.mounted) {
+        context.push('/oauth/callback', extra: {
+          'domain': domain,
+          'state': authInfo['state'],
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start registration: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

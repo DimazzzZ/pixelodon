@@ -112,6 +112,7 @@ flutter:
     - assets/icons/
     - assets/fonts/
     - assets/translations/
+    - assets/instances/
   
   fonts:
     - family: Inter

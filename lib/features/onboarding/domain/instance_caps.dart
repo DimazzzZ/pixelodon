@@ -36,7 +36,10 @@ class InstanceCaps with _$InstanceCaps {
     
     /// Instance description
     @Default('') String description,
-    
+
+    /// Instance thumbnail URL
+    String? thumbnail,
+
     /// Number of active users
     @Default(0) int activeUsers,
     

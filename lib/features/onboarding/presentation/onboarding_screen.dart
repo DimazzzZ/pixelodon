@@ -232,87 +232,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final theme = Theme.of(context);
     
     return SizedBox(
-      height: 56,
+      height: 72,
       child: PlatformElevatedButton(
         onPressed: onPressed,
         material: (context, platform) => MaterialElevatedButtonData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: isPrimary 
-                ? theme.colorScheme.primary 
+            backgroundColor: isPrimary
+                ? theme.colorScheme.primary
                 : theme.colorScheme.surface,
-            foregroundColor: isPrimary 
-                ? theme.colorScheme.onPrimary 
+            foregroundColor: isPrimary
+                ? theme.colorScheme.onPrimary
                 : theme.colorScheme.onSurface,
             elevation: isPrimary ? 2 : 1,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: isPrimary 
-                  ? BorderSide.none 
+              side: isPrimary
+                  ? BorderSide.none
                   : BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
             ),
           ),
         ),
         cupertino: (context, platform) => CupertinoElevatedButtonData(
-          color: isPrimary 
-              ? theme.colorScheme.primary 
+          color: isPrimary
+              ? theme.colorScheme.primary
               : theme.colorScheme.surface,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isPrimary 
-                    ? theme.colorScheme.onPrimary 
-                    : theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isPrimary
-                              ? theme.colorScheme.onPrimary
-                              : theme.colorScheme.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isPrimary
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isPrimary
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
                     ),
-                    const SizedBox(height: 1),
-                    Flexible(
-                      child: Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isPrimary
-                              ? theme.colorScheme.onPrimary.withOpacity(0.8)
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isPrimary
+                          ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: isPrimary 
-                    ? theme.colorScheme.onPrimary.withOpacity(0.7) 
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: isPrimary
+                  ? theme.colorScheme.onPrimary.withOpacity(0.7)
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
         ),
       ),
     );

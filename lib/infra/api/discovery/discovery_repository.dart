@@ -183,6 +183,7 @@ class DiscoveryRepository {
       loadScore: loadScore,
       title: data['metadata']?['nodeName'] as String? ?? domain,
       description: data['metadata']?['nodeDescription'] as String? ?? '',
+      thumbnail: data['metadata']?['thumbnail'] as String?,
       activeUsers: activeUsers,
     );
   }
@@ -215,6 +216,7 @@ class DiscoveryRepository {
       loadScore: loadScore,
       title: title,
       description: description,
+      thumbnail: data['thumbnail'] as String?,
       activeUsers: userCount,
     );
   }
@@ -243,6 +245,7 @@ class DiscoveryRepository {
       loadScore: loadScore,
       title: title,
       description: description,
+      thumbnail: data['thumbnail'] as String?,
       activeUsers: userCount,
       photoFocused: true, // Pixelfed is photo-focused
     );

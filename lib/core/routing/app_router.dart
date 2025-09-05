@@ -19,6 +19,7 @@ import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 import 'package:pixelodon/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:pixelodon/features/guest/screens/guest_screen.dart';
+import 'package:pixelodon/features/guest/screens/guest_status_detail_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -40,8 +41,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
       final isOnboarding = state.matchedLocation == '/onboarding';
 
-      // Check onboarding completion status
-      final onboardingCompleted = ref.read(onboardingCompletedProvider);
+      // Note: onboarding completion is checked in individual route logic
       
       // Always allow splash screen and onboarding
       if (isSplash || isOnboarding) {
@@ -59,8 +59,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // If the user is not logged in and not on auth/onboarding/guest screens, redirect to onboarding
-      if (!isLoggedIn && !isLoggingIn && !isOAuthCallback && !state.matchedLocation.startsWith('/guest')) {
-        // Allow direct access to login and guest mode
+      if (!isLoggedIn && !isLoggingIn && !isOAuthCallback &&
+          !state.matchedLocation.startsWith('/guest') &&
+          !state.matchedLocation.startsWith('/status/')) {
+        // Allow direct access to login, guest mode, and status pages (which will redirect to guest)
         if (state.matchedLocation == '/auth/login' || state.matchedLocation == '/guest') {
           return null;
         }
@@ -134,6 +136,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/guest',
         builder: (context, state) => const GuestScreen(),
+      ),
+
+      // Guest status detail route
+      GoRoute(
+        path: '/guest/status/:statusId',
+        pageBuilder: (context, state) {
+          final statusId = state.pathParameters['statusId']!;
+          return MaterialPage(
+            child: GuestStatusDetailScreen(statusId: statusId),
+          );
+        },
       ),
       
       // OAuth callback route
@@ -278,6 +291,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return MaterialPage(
             child: StatusDetailScreen(statusId: statusId),
           );
+        },
+        redirect: (context, state) {
+          // Check if user is not authenticated and redirect to guest mode
+          final authRepository = ref.read(authRepositoryProvider);
+          final isLoggedIn = authRepository.instances.isNotEmpty;
+
+          if (!isLoggedIn) {
+            final statusId = state.pathParameters['statusId']!;
+            return '/guest/status/$statusId';
+          }
+
+          return null; // No redirect needed
         },
       ),
 
