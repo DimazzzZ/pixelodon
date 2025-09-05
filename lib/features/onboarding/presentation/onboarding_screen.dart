@@ -180,7 +180,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               icon: Icons.account_circle,
               title: 'I already have an account',
               subtitle: 'Sign in to your existing server',
-              onPressed: isLoading ? null : () => _showExistingAccountFlow(context),
+              onPressed: isLoading ? null : () => _navigateToLogin(context),
             ),
 
             const SizedBox(height: 12),
@@ -323,12 +323,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  void _showExistingAccountFlow(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _buildExistingAccountSheet(context),
-    );
+  void _navigateToLogin(BuildContext context) {
+    context.go('/auth/login');
   }
 
   Widget _buildExistingAccountSheet(BuildContext context) {

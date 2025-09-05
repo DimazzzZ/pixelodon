@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixelodon/features/onboarding/data/recommendation_engine.dart';
+import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
+import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
-import 'package:pixelodon/providers/settings_provider.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -20,14 +23,20 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _instanceController = TextEditingController();
-  
+
   bool _isLoading = false;
   String? _errorMessage;
   Instance? _discoveredInstance;
+
+  // Search suggestions state
+  List<InstanceCaps> _suggestions = [];
+  bool _isSearching = false;
+  Timer? _searchDebounce;
   
   @override
   void dispose() {
     _instanceController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
   
@@ -42,6 +51,199 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Search for instances based on user input with debouncing
+  void _onSearchChanged(String query) {
+    // Cancel previous search
+    _searchDebounce?.cancel();
+
+    // Clear suggestions if query is too short
+    if (query.trim().length < 3) {
+      setState(() {
+        _suggestions = [];
+        _isSearching = false;
+      });
+      return;
+    }
+
+    // Set searching state
+    setState(() {
+      _isSearching = true;
+    });
+
+    // Debounce the search
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(query.trim().toLowerCase());
+    });
+  }
+
+  /// Perform the actual search
+  Future<void> _performSearch(String query) async {
+    try {
+      final suggestions = <InstanceCaps>[];
+
+      // 1. First, search in curated instances for quick results
+      final recommendationEngine = ref.read(recommendationEngineProvider);
+      final curatedInstances = await recommendationEngine.getAllInstances();
+
+      final curatedMatches = curatedInstances.where((instance) {
+        final domain = instance.domain.toLowerCase();
+        final title = instance.title.toLowerCase();
+        final description = instance.description.toLowerCase();
+
+        return domain.contains(query) ||
+               title.contains(query) ||
+               description.contains(query);
+      }).take(3).toList(); // Limit curated to 3
+
+      suggestions.addAll(curatedMatches);
+
+      // 2. Try to discover the query as a direct domain
+      if (query.contains('.') && !query.contains(' ')) {
+        try {
+          final discoveryRepository = ref.read(discoveryRepositoryProvider);
+          final discoveredInstance = await discoveryRepository.discoverInstance(query);
+
+          // Check if this instance is not already in curated results
+          final alreadyExists = suggestions.any((instance) =>
+              instance.domain.toLowerCase() == discoveredInstance.domain.toLowerCase());
+
+          if (!alreadyExists) {
+            suggestions.insert(0, discoveredInstance); // Add at the beginning
+          }
+        } catch (e) {
+          // Discovery failed, that's okay - we'll show curated results
+        }
+      }
+
+      // 3. Search for instances containing the query as substring
+      if (!query.contains('.')) {
+        await _searchBySubstring(query, suggestions);
+      }
+
+      // 4. Try common domain variations if still no results
+      if (suggestions.isEmpty && !query.contains('.')) {
+        final commonDomains = [
+          '$query.social',
+          '$query.org',
+          '$query.com',
+          'mastodon.$query.social',
+          'pixelfed.$query.social',
+        ];
+
+        for (final domain in commonDomains) {
+          try {
+            final discoveryRepository = ref.read(discoveryRepositoryProvider);
+            final discoveredInstance = await discoveryRepository.discoverInstance(domain);
+            suggestions.add(discoveredInstance);
+
+            // Stop after finding 2 variations to avoid too many results
+            if (suggestions.length >= 2) break;
+          } catch (e) {
+            // This variation doesn't exist, try next
+            continue;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _suggestions = suggestions.take(5).toList(); // Limit total to 5
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _suggestions = [];
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  /// Search for instances by substring in domain names
+  Future<void> _searchBySubstring(String query, List<InstanceCaps> suggestions) async {
+    // List of known instance domains that might contain the query
+    final knownDomains = [
+      // Pixelfed instances
+      'pixelfed.social',
+      'pixelfed.de',
+      'pixelfed.art',
+      'pixelfed.fr',
+      'pixelfed.tokyo',
+      'pixelfed.nz',
+      'pixelfed.uno',
+
+      // Mastodon instances
+      'mastodon.social',
+      'mastodon.online',
+      'mastodon.world',
+      'mastodon.art',
+      'mastodon.gamedev.place',
+      'mas.to',
+      'mstdn.social',
+      'fosstodon.org',
+      'hachyderm.io',
+      'chaos.social',
+      'scholar.social',
+      'tech.lgbt',
+      'ruby.social',
+      'indieweb.social',
+      'mozilla.social',
+      'vivaldi.net',
+      'toot.community',
+      'universeodon.com',
+      'mathstodon.xyz',
+      'photog.social',
+      'musicians.today',
+      'writing.exchange',
+      'bookwyrm.social',
+      'wandering.shop',
+      'dice.camp',
+      'tabletop.social',
+      'gamedev.place',
+      'techhub.social',
+      'infosec.exchange',
+      'social.vivaldi.net',
+    ];
+
+    // Filter domains that contain the query
+    final matchingDomains = knownDomains
+        .where((domain) => domain.toLowerCase().contains(query.toLowerCase()))
+        .take(3) // Limit to 3 substring matches
+        .toList();
+
+    // Try to discover each matching domain
+    for (final domain in matchingDomains) {
+      try {
+        final discoveryRepository = ref.read(discoveryRepositoryProvider);
+        final discoveredInstance = await discoveryRepository.discoverInstance(domain);
+
+        // Check if this instance is not already in results
+        final alreadyExists = suggestions.any((instance) =>
+            instance.domain.toLowerCase() == discoveredInstance.domain.toLowerCase());
+
+        if (!alreadyExists) {
+          suggestions.add(discoveredInstance);
+        }
+      } catch (e) {
+        // This instance doesn't exist or discovery failed, continue with next
+        continue;
+      }
+    }
+  }
+
+  /// Select a suggested instance
+  void _selectSuggestion(InstanceCaps instance) {
+    _instanceController.text = instance.domain;
+    setState(() {
+      _suggestions = [];
+      _isSearching = false;
+    });
+    // Automatically discover the instance
+    _discoverInstance();
   }
   
   /// Discover an instance by domain
@@ -73,16 +275,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Start the OAuth flow for the discovered instance
   Future<void> _startOAuthFlow() async {
     if (_discoveredInstance == null) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    
+
     try {
       final domain = _discoveredInstance!.domain;
       final authInfo = await ref.read(authRepositoryProvider).startOAuthFlow(domain);
-      
+
       // Launch the authorization URL via centralized BrowserService
       final browser = BrowserService();
       await browser.launchURL(authInfo['url']!);
@@ -100,6 +302,217 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Build the suggestions widget
+  Widget _buildSuggestions() {
+    final theme = Theme.of(context);
+
+    if (_isSearching) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: PlatformCircularProgressIndicator(),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Searching servers...',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_suggestions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Suggested servers',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._suggestions.map((instance) => _buildSuggestionCard(instance)),
+      ],
+    );
+  }
+
+  /// Build a single suggestion card
+  Widget _buildSuggestionCard(InstanceCaps instance) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => _selectSuggestion(instance),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with title and platform badge
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          instance.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          instance.domain,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Platform badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: instance.platform == InstancePlatform.pixelfed
+                          ? theme.colorScheme.secondaryContainer
+                          : theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          instance.platform == InstancePlatform.pixelfed
+                              ? Icons.photo_camera
+                              : Icons.forum,
+                          size: 14,
+                          color: instance.platform == InstancePlatform.pixelfed
+                              ? theme.colorScheme.onSecondaryContainer
+                              : theme.colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          instance.platform == InstancePlatform.pixelfed ? 'Pixelfed' : 'Mastodon',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: instance.platform == InstancePlatform.pixelfed
+                                ? theme.colorScheme.onSecondaryContainer
+                                : theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Description
+              if (instance.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  instance.description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+
+              // Server thumbnail - only show if available
+              if (instance.thumbnail != null && instance.thumbnail!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Image.network(
+                      instance.thumbnail!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        // If image fails to load, show nothing
+                        return const SizedBox.shrink();
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+
+              // Stats and info
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.people,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${instance.activeUsers} users',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.touch_app,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Tap to select',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
   
   @override
@@ -175,6 +588,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       keyboardType: TextInputType.url,
                       textInputAction: TextInputAction.go,
+                      onChanged: _onSearchChanged,
                       onFieldSubmitted: (_) => _discoverInstance(),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -198,6 +612,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
               ),
             ),
+
+            // Server suggestions
+            if (_isSearching || _suggestions.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildSuggestions(),
+            ],
             
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
