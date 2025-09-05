@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/presentation/quick_quiz_sheet.dart';
 import 'package:pixelodon/features/onboarding/presentation/tooltip_fediverse_dialog.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
@@ -40,21 +41,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           backgroundColor: Colors.transparent,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            
-            // App logo/icon (placeholder)
-            Icon(
-              Icons.public,
-              size: 80,
-              color: theme.colorScheme.primary,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                         MediaQuery.of(context).padding.top -
+                         MediaQuery.of(context).padding.bottom -
+                         kToolbarHeight - 48, // Account for app bar and padding
             ),
-            
-            const SizedBox(height: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+
+                // App logo/icon (placeholder)
+                Icon(
+                  Icons.public,
+                  size: 64,
+                  color: theme.colorScheme.primary,
+                ),
+
+                const SizedBox(height: 16),
             
             // Welcome title
             Text(
@@ -66,64 +75,54 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               textAlign: TextAlign.center,
             ),
             
-            const SizedBox(height: 16),
-            
-            // Subtitle with Fediverse info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    'One app for Mastodon & Pixelfed. Start in one tap — you can change servers later.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-            
             const SizedBox(height: 12),
-            
+
+            // Subtitle with Fediverse info
+            Text(
+              'One app for Mastodon & Pixelfed. Start in one tap — you can change servers later.',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 8),
+
             // Fediverse info chip
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                InkWell(
-                  onTap: () => _showFediverseInfo(context),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.5),
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+            Center(
+              child: InkWell(
+                onTap: () => _showFediverseInfo(context),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.5),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 16,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'What is Fediverse?',
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'What is Fediverse?',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-            
-            const SizedBox(height: 48),
+
+            const SizedBox(height: 32),
             
             // Error message
             if (error != null) ...[
@@ -173,8 +172,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               isPrimary: true,
             ),
             
-            const SizedBox(height: 16),
-            
+            const SizedBox(height: 12),
+
             _buildActionButton(
               context: context,
               icon: Icons.account_circle,
@@ -182,9 +181,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               subtitle: 'Sign in to your existing server',
               onPressed: isLoading ? null : () => _showExistingAccountFlow(context),
             ),
-            
-            const SizedBox(height: 16),
-            
+
+            const SizedBox(height: 12),
+
             _buildActionButton(
               context: context,
               icon: Icons.explore,
@@ -192,17 +191,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               subtitle: 'Explore public content without signing up',
               onPressed: isLoading ? null : () => _startGuestMode(context),
             ),
-            
-            const SizedBox(height: 48),
+
+            const SizedBox(height: 24),
             
             // Loading indicator
             if (isLoading) ...[
               const Center(
                 child: CircularProgressIndicator(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
             ],
-            
+
             // Footer text
             Text(
               'Pixelodon is free, open source, and respects your privacy.',
@@ -211,7 +210,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-          ],
+
+            // Add some bottom padding to ensure content is not cut off
+            const SizedBox(height: 24),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -228,7 +232,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final theme = Theme.of(context);
     
     return SizedBox(
-      height: 72,
+      height: 56,
       child: PlatformElevatedButton(
         onPressed: onPressed,
         material: (context, platform) => MaterialElevatedButtonData(
@@ -269,23 +273,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isPrimary 
-                            ? theme.colorScheme.onPrimary 
-                            : theme.colorScheme.onSurface,
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isPrimary
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isPrimary 
-                            ? theme.colorScheme.onPrimary.withOpacity(0.8) 
-                            : theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 1),
+                    Flexible(
+                      child: Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isPrimary
+                              ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -436,30 +449,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final selectedInstance = ref.read(selectedInstanceProvider);
     if (selectedInstance != null && mounted) {
       Navigator.of(context).pop(); // Close the sheet
-      // Navigate to OAuth flow (this would be handled by the router/auth system)
-      // For now, we'll just show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
-        ),
-      );
-      // In a real implementation, this would trigger OAuth flow:
-      // context.push('/auth/oauth', extra: {'instance': selectedInstance});
+
+      // Mark onboarding as completed
+      await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
+
+      if (mounted) {
+        // Navigate to login screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
+          ),
+        );
+
+        // Navigate to login
+        context.go('/auth/login');
+      }
     }
   }
 
   void _startGuestMode(BuildContext context) async {
     await ref.read(onboardingControllerProvider.notifier).startGuestMode();
-    
+
     if (mounted) {
-      // Navigate to guest timeline or show guest mode UI
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Guest mode activated! Browsing public timelines...'),
-        ),
-      );
-      // In a real implementation:
-      // context.go('/guest');
+      // Mark onboarding as completed
+      await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
+
+      if (mounted) {
+        // Navigate to guest timeline or show guest mode UI
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Guest mode activated! Browsing public timelines...'),
+          ),
+        );
+
+        // For now, redirect to login since guest mode isn't fully implemented
+        context.go('/auth/login');
+      }
     }
   }
 

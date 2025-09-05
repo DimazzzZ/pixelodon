@@ -10,6 +10,8 @@ class SettingsService {
   static const _themeModeKey = 'theme_mode';
   static const _languageKey = 'language';
   static const _notificationSettingsKey = 'notification_settings';
+  static const _onboardingCompletedKey = 'onboarding_completed';
+  static const _onboardingPreferencesKey = 'onboarding_preferences';
 
   /// Get the current theme mode
   Future<ThemeMode> getThemeMode() async {
@@ -117,12 +119,54 @@ class SettingsService {
     }
   }
 
+  /// Get onboarding completion status
+  Future<bool> getOnboardingCompleted() async {
+    try {
+      final completedString = await _storage.read(key: _onboardingCompletedKey);
+      return completedString == 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Set onboarding completion status
+  Future<void> setOnboardingCompleted(bool completed) async {
+    try {
+      await _storage.write(key: _onboardingCompletedKey, value: completed.toString());
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  /// Get onboarding preferences
+  Future<Map<String, dynamic>?> getOnboardingPreferences() async {
+    try {
+      final preferencesString = await _storage.read(key: _onboardingPreferencesKey);
+      if (preferencesString == null) return null;
+      return jsonDecode(preferencesString) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Set onboarding preferences
+  Future<void> setOnboardingPreferences(Map<String, dynamic> preferences) async {
+    try {
+      final preferencesString = jsonEncode(preferences);
+      await _storage.write(key: _onboardingPreferencesKey, value: preferencesString);
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
   /// Clear all settings (useful for logout/reset)
   Future<void> clearAllSettings() async {
     try {
       await _storage.delete(key: _themeModeKey);
       await _storage.delete(key: _languageKey);
       await _storage.delete(key: _notificationSettingsKey);
+      await _storage.delete(key: _onboardingCompletedKey);
+      await _storage.delete(key: _onboardingPreferencesKey);
     } catch (e) {
       // Handle error silently
     }

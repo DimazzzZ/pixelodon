@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/presentation/manual_instance_picker_page.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 
 /// Sheet showing recommended instances based on user preferences
 class RecommendInstancesSheet extends ConsumerWidget {
@@ -467,19 +469,24 @@ class RecommendInstancesSheet extends ConsumerWidget {
     return 'Moderate';
   }
 
-  void _selectInstance(BuildContext context, WidgetRef ref, InstanceCaps instance) {
+  void _selectInstance(BuildContext context, WidgetRef ref, InstanceCaps instance) async {
     ref.read(onboardingControllerProvider.notifier).selectInstance(instance);
     Navigator.of(context).pop();
-    
-    // Show success message and navigate to account creation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Selected ${instance.domain}! Redirecting to account creation...'),
-      ),
-    );
-    
-    // In a real implementation, this would navigate to account creation:
-    // context.push('/auth/create-account', extra: {'instance': instance});
+
+    // Mark onboarding as completed
+    await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
+
+    // Show success message and navigate to login
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selected ${instance.domain}! Redirecting to login...'),
+        ),
+      );
+
+      // Navigate to login screen
+      context.go('/auth/login');
+    }
   }
 
   void _showWhySuggested(BuildContext context, InstanceRecommendation recommendation) {

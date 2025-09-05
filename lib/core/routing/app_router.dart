@@ -14,6 +14,7 @@ import 'package:pixelodon/features/profile/screens/follow_list_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 import 'package:pixelodon/features/onboarding/presentation/onboarding_screen.dart';
@@ -37,29 +38,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isOAuthCallback = state.matchedLocation == '/oauth/callback';
       final isSplash = state.matchedLocation == '/splash';
       final isOnboarding = state.matchedLocation == '/onboarding';
+
+      // Check onboarding completion status
+      final onboardingCompleted = ref.read(onboardingCompletedProvider);
       
       // Always allow splash screen and onboarding
       if (isSplash || isOnboarding) {
         return null;
       }
       
-      // If on root path, redirect based on auth state
+      // If on root path, redirect based on auth state and onboarding completion
       if (state.matchedLocation == '/') {
         if (isLoggedIn) {
           return '/home';
         } else {
-          // For first-time users, show onboarding instead of login
-          return '/onboarding';
+          // For first-time users, show onboarding; for returning users, show login
+          return onboardingCompleted ? '/auth/login' : '/onboarding';
         }
       }
-      
-      // If the user is not logged in and not on auth/onboarding screens, redirect to onboarding
+
+      // If the user is not logged in and not on auth/onboarding screens, redirect appropriately
       if (!isLoggedIn && !isLoggingIn && !isOAuthCallback) {
-        // Allow direct access to login for power users, but default to onboarding
+        // Allow direct access to login for power users, but default based on onboarding status
         if (state.matchedLocation == '/auth/login') {
           return null;
         }
-        return '/onboarding';
+        return onboardingCompleted ? '/auth/login' : '/onboarding';
       }
       
       // If the user is logged in and on the login/onboarding screen, allow it (for adding accounts)

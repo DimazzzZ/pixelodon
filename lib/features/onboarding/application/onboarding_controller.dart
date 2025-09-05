@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/data/recommendation_engine.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -19,7 +19,10 @@ class OnboardingController extends _$OnboardingController {
       languages: deviceLanguage != null ? [deviceLanguage] : [],
       createdAt: DateTime.now(),
     );
-    
+
+    // Load persisted preferences if available
+    _loadPersistedPreferences();
+
     return OnboardingState(
       preferences: defaultPreferences,
     );
@@ -37,12 +40,15 @@ class OnboardingController extends _$OnboardingController {
 
   /// Update user preferences from quick quiz
   void updatePreferences(OnboardingPreferences preferences) {
-    state = state.copyWith(
-      preferences: preferences.copyWith(
-        hasCompletedQuiz: true,
-        createdAt: DateTime.now(),
-      ),
+    final updatedPreferences = preferences.copyWith(
+      hasCompletedQuiz: true,
+      createdAt: DateTime.now(),
     );
+
+    state = state.copyWith(preferences: updatedPreferences);
+
+    // Persist preferences
+    _persistPreferences(updatedPreferences);
   }
 
   /// Generate recommendations based on current preferences
@@ -278,6 +284,37 @@ class OnboardingController extends _$OnboardingController {
       // Fallback to system locale if Platform.localeName fails
     }
     return null;
+  }
+
+  /// Load persisted preferences from storage
+  Future<void> _loadPersistedPreferences() async {
+    try {
+      final settingsService = ref.read(settingsServiceProvider);
+      final preferencesMap = await settingsService.getOnboardingPreferences();
+
+      if (preferencesMap != null) {
+        final preferences = OnboardingPreferences.fromJson(preferencesMap);
+        state = state.copyWith(preferences: preferences);
+      }
+    } catch (e) {
+      // Ignore errors and use default preferences
+    }
+  }
+
+  /// Persist preferences to storage
+  Future<void> _persistPreferences(OnboardingPreferences preferences) async {
+    try {
+      final settingsService = ref.read(settingsServiceProvider);
+      await settingsService.setOnboardingPreferences(preferences.toJson());
+
+      // Also update the onboarding completed status
+      if (preferences.hasCompletedQuiz) {
+        final onboardingCompletedNotifier = ref.read(onboardingCompletedProvider.notifier);
+        await onboardingCompletedNotifier.setOnboardingCompleted(true);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
   }
 }
 

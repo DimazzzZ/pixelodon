@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:pixelodon/core/routing/app_router.dart';
 
 /// Splash screen that shows the app logo and loading indicator
 class SplashScreen extends ConsumerStatefulWidget {
@@ -31,16 +30,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await Future.delayed(const Duration(seconds: 2));
       
       if (mounted) {
-        // Check authentication status and navigate accordingly
-        final isLoggedIn = authRepository.instances.isNotEmpty;
-        
-        final target = isLoggedIn ? '/home' : '/auth/login';
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final navCtx = rootNavigatorKey.currentContext;
-          if (navCtx != null) {
-            navCtx.go(target);
-          }
-        });
+        // Let the router handle redirection based on auth state and onboarding status
+        // Navigate to root and let the router redirect appropriately
+        context.go('/');
       }
     } catch (e) {
       // If initialization fails, still allow navigation to login
@@ -49,7 +41,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await Future.delayed(const Duration(seconds: 2));
       
       if (mounted) {
-        context.go('/auth/login');
+        // Let the router handle redirection
+        context.go('/');
       }
     }
   }
@@ -67,8 +60,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // App logo
             Image.asset(
               'assets/images/logo.png',
-              width: 200,
-              height: 200,
+              width: 120,
+              height: 120,
             ),
             
             const SizedBox(height: 24),

@@ -25,6 +25,12 @@ final notificationSettingsProvider = StateNotifierProvider<NotificationSettingsN
   return NotificationSettingsNotifier(settingsService);
 });
 
+/// Provider for onboarding completion status
+final onboardingCompletedProvider = StateNotifierProvider<OnboardingCompletedNotifier, bool>((ref) {
+  final settingsService = ref.watch(settingsServiceProvider);
+  return OnboardingCompletedNotifier(settingsService);
+});
+
 /// State notifier for theme mode management
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   final SettingsService _settingsService;
@@ -112,5 +118,24 @@ class NotificationSettingsNotifier extends StateNotifier<Map<String, bool>> {
     final newSettings = {...state, key: value};
     await _settingsService.setNotificationSettings(newSettings);
     state = newSettings;
+  }
+}
+
+/// State notifier for onboarding completion status
+class OnboardingCompletedNotifier extends StateNotifier<bool> {
+  final SettingsService _settingsService;
+
+  OnboardingCompletedNotifier(this._settingsService) : super(false) {
+    _loadOnboardingCompleted();
+  }
+
+  Future<void> _loadOnboardingCompleted() async {
+    final completed = await _settingsService.getOnboardingCompleted();
+    state = completed;
+  }
+
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _settingsService.setOnboardingCompleted(completed);
+    state = completed;
   }
 }
