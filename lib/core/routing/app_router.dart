@@ -135,7 +135,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Guest mode route
       GoRoute(
         path: '/guest',
-        builder: (context, state) => const GuestScreen(),
+        builder: (context, state) {
+          final instance = state.uri.queryParameters['instance'];
+          return GuestScreen(instance: instance);
+        },
       ),
 
       // Guest status detail route

@@ -25,16 +25,16 @@ final guestApiServiceProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-/// Provider for guest mode public timeline
-final guestPublicTimelineProvider = StateNotifierProvider<GuestTimelineNotifier, GuestTimelineState>((ref) {
+/// Provider for guest mode public timeline with dynamic instance
+final guestPublicTimelineProvider = StateNotifierProvider.family<GuestTimelineNotifier, GuestTimelineState, String>((ref, domain) {
   final dio = ref.watch(guestApiServiceProvider);
-  return GuestTimelineNotifier(dio, _defaultGuestInstance, isLocal: false);
+  return GuestTimelineNotifier(dio, domain, isLocal: false);
 });
 
-/// Provider for guest mode local timeline
-final guestLocalTimelineProvider = StateNotifierProvider<GuestTimelineNotifier, GuestTimelineState>((ref) {
+/// Provider for guest mode local timeline with dynamic instance
+final guestLocalTimelineProvider = StateNotifierProvider.family<GuestTimelineNotifier, GuestTimelineState, String>((ref, domain) {
   final dio = ref.watch(guestApiServiceProvider);
-  return GuestTimelineNotifier(dio, _defaultGuestInstance, isLocal: true);
+  return GuestTimelineNotifier(dio, domain, isLocal: true);
 });
 
 /// State for guest timeline
@@ -171,7 +171,9 @@ class GuestTimelineNotifier extends StateNotifier<GuestTimelineState> {
 
 /// Guest mode screen that allows browsing public timelines without authentication
 class GuestScreen extends ConsumerStatefulWidget {
-  const GuestScreen({super.key});
+  final String? instance;
+
+  const GuestScreen({super.key, this.instance});
 
   @override
   ConsumerState<GuestScreen> createState() => _GuestScreenState();
@@ -179,10 +181,12 @@ class GuestScreen extends ConsumerStatefulWidget {
 
 class _GuestScreenState extends ConsumerState<GuestScreen> {
   int _selectedIndex = 0;
+  late String _instanceDomain;
 
   @override
   void initState() {
     super.initState();
+    _instanceDomain = widget.instance ?? _defaultGuestInstance;
     // Guest mode timelines will be loaded automatically by the providers
   }
 
@@ -193,7 +197,9 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
     return AppPageScaffold(
       appBar: PlatformAppBarWrapper(
         platformAppBar: PlatformAppBar(
-          title: const Text('Guest Mode'),
+          title: Text(_instanceDomain == _defaultGuestInstance
+              ? 'Guest Mode'
+              : 'Preview: $_instanceDomain'),
           leading: PlatformIconButton(
             icon: Icon(PlatformIcons(context).back),
             onPressed: () => context.go('/onboarding'),
@@ -227,7 +233,7 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Browsing mastodon.social as guest • Sign in to interact',
+                    'Browsing $_instanceDomain as guest • Sign in to interact',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.w500,
@@ -322,8 +328,8 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
   }
 
   Widget _buildGlobalTimeline() {
-    final timelineState = ref.watch(guestPublicTimelineProvider);
-    final timelineNotifier = ref.read(guestPublicTimelineProvider.notifier);
+    final timelineState = ref.watch(guestPublicTimelineProvider(_instanceDomain));
+    final timelineNotifier = ref.read(guestPublicTimelineProvider(_instanceDomain).notifier);
 
     return _buildGuestFeedList(
       timelineState: timelineState,
@@ -333,8 +339,8 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
   }
 
   Widget _buildLocalTimeline() {
-    final timelineState = ref.watch(guestLocalTimelineProvider);
-    final timelineNotifier = ref.read(guestLocalTimelineProvider.notifier);
+    final timelineState = ref.watch(guestLocalTimelineProvider(_instanceDomain));
+    final timelineNotifier = ref.read(guestLocalTimelineProvider(_instanceDomain).notifier);
 
     return _buildGuestFeedList(
       timelineState: timelineState,
@@ -470,7 +476,7 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
     return _GuestPostCard(
       key: Key('guest_status_card_${status.id}'),
       status: status,
-      domain: _defaultGuestInstance,
+      domain: _instanceDomain,
       onInteractionTap: _showInteractionPrompt,
     );
   }

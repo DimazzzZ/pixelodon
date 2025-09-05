@@ -582,11 +582,21 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                   ],
                   
                   const Spacer(),
-                  
-                  // Select button
-                  PlatformTextButton(
-                    onPressed: () => _selectInstance(context, instance),
-                    child: const Text('Select'),
+
+                  // Action buttons
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PlatformTextButton(
+                        onPressed: () => _previewInstance(context, instance),
+                        child: const Text('Preview'),
+                      ),
+                      const SizedBox(width: 8),
+                      PlatformElevatedButton(
+                        onPressed: () => _selectInstance(context, instance),
+                        child: const Text('Select'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -705,6 +715,22 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
       );
 
       await _startDirectOAuthFlow(context, instance.domain);
+    }
+  }
+
+  void _previewInstance(BuildContext context, InstanceCaps instance) {
+    Navigator.of(context).pop();
+
+    // Navigate to guest mode with the specific instance
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Previewing ${instance.domain}...'),
+        ),
+      );
+
+      // Navigate to guest mode
+      context.go('/guest?instance=${instance.domain}');
     }
   }
 

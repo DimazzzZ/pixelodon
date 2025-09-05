@@ -6,6 +6,7 @@ import 'package:pixelodon/features/onboarding/application/onboarding_controller.
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
+import 'package:pixelodon/features/guest/screens/guest_screen.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/presentation/manual_instance_picker_page.dart';
 
@@ -411,14 +412,22 @@ class RecommendInstancesSheet extends ConsumerWidget {
               children: [
                 Expanded(
                   child: PlatformElevatedButton(
-                    onPressed: () => _selectInstance(context, ref, instance),
-                    child: const Text('Create Account'),
+                    onPressed: () => _previewInstance(context, ref, instance),
+                    material: (context, platform) => MaterialElevatedButtonData(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        foregroundColor: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    child: const Text('Preview'),
                   ),
                 ),
                 const SizedBox(width: 12),
-                PlatformTextButton(
-                  onPressed: () => _showWhySuggested(context, recommendation),
-                  child: const Text('Why suggested?'),
+                Expanded(
+                  child: PlatformElevatedButton(
+                    onPressed: () => _selectInstance(context, ref, instance),
+                    child: const Text('Create Account'),
+                  ),
                 ),
               ],
             ),
@@ -520,6 +529,22 @@ class RecommendInstancesSheet extends ConsumerWidget {
       );
 
       await _startDirectOAuthFlow(context, ref, instance.domain);
+    }
+  }
+
+  void _previewInstance(BuildContext context, WidgetRef ref, InstanceCaps instance) {
+    Navigator.of(context).pop();
+
+    // Navigate to guest mode with the specific instance
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Previewing ${instance.domain}...'),
+        ),
+      );
+
+      // Navigate to guest mode
+      context.go('/guest?instance=${instance.domain}');
     }
   }
 

@@ -53,10 +53,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Show default suggestions when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showDefaultSuggestions();
+    });
+  }
+
   /// Search for instances based on user input with debouncing
   void _onSearchChanged(String query) {
     // Cancel previous search
     _searchDebounce?.cancel();
+
+    // Show default suggestions if input is empty
+    if (query.trim().isEmpty) {
+      _showDefaultSuggestions();
+      return;
+    }
 
     // Clear suggestions if query is too short
     if (query.trim().length < 3) {
@@ -122,30 +137,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await _searchBySubstring(query, suggestions);
       }
 
-      // 4. Try common domain variations if still no results
-      if (suggestions.isEmpty && !query.contains('.')) {
-        final commonDomains = [
-          '$query.social',
-          '$query.org',
-          '$query.com',
-          'mastodon.$query.social',
-          'pixelfed.$query.social',
-        ];
-
-        for (final domain in commonDomains) {
-          try {
-            final discoveryRepository = ref.read(discoveryRepositoryProvider);
-            final discoveredInstance = await discoveryRepository.discoverInstance(domain);
-            suggestions.add(discoveredInstance);
-
-            // Stop after finding 2 variations to avoid too many results
-            if (suggestions.length >= 2) break;
-          } catch (e) {
-            // This variation doesn't exist, try next
-            continue;
-          }
-        }
-      }
+      // Note: Removed automatic domain variations to avoid suggesting fake instances
+      // Users should type the complete domain if they know it exists
 
       if (mounted) {
         setState(() {
@@ -231,6 +224,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } catch (e) {
         // This instance doesn't exist or discovery failed, continue with next
         continue;
+      }
+    }
+  }
+
+  /// Show default popular suggestions
+  void _showDefaultSuggestions() async {
+    try {
+      final suggestions = <InstanceCaps>[];
+      final discoveryRepository = ref.read(discoveryRepositoryProvider);
+
+      // Try to discover the most popular instances
+      final popularDomains = ['mastodon.social', 'pixelfed.social'];
+
+      for (final domain in popularDomains) {
+        try {
+          final discoveredInstance = await discoveryRepository.discoverInstance(domain);
+          suggestions.add(discoveredInstance);
+        } catch (e) {
+          // If discovery fails, continue with next instance
+          continue;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _suggestions = suggestions;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      // If all fails, show empty suggestions
+      if (mounted) {
+        setState(() {
+          _suggestions = [];
+          _isSearching = false;
+        });
       }
     }
   }
@@ -334,13 +363,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return const SizedBox.shrink();
     }
 
+    // Determine if these are default suggestions or search results
+    final isDefaultSuggestions = _instanceController.text.trim().isEmpty;
+    final headerText = isDefaultSuggestions ? 'Popular servers' : 'Suggested servers';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Suggested servers',
+            headerText,
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -613,7 +646,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
 
-            // Server suggestions
+            // Server suggestions - show when searching, have suggestions, or input is empty
             if (_isSearching || _suggestions.isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildSuggestions(),
