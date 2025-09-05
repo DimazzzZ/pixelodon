@@ -309,9 +309,10 @@ class AuthService {
   }
   
   /// Gets the authorization URL for an instance
-  /// 
+  ///
   /// Returns the URL to redirect the user to and the state to verify the callback
-  Future<Map<String, String>> getAuthorizationUrl(String domain) async {
+  /// If [forRegistration] is true, will attempt to show registration page
+  Future<Map<String, String>> getAuthorizationUrl(String domain, {bool forRegistration = false}) async {
     debugPrint('Getting authorization URL for domain: $domain');
     
     // Normalize domain
@@ -333,15 +334,31 @@ class AuthService {
     // Store the code verifier for later use
     await _storeCodeVerifier(domain, state, codeVerifier);
     
-    final url = 'https://$domain/oauth/authorize?'
-        'client_id=${Uri.encodeComponent(credentials['client_id']!)}&'
-        'redirect_uri=${Uri.encodeComponent(_redirectUri)}&'
-        'response_type=code&'
-        'scope=${Uri.encodeComponent(_scopes)}&'
-        'state=$state&'
-        'code_challenge=$codeChallenge&'
-        'code_challenge_method=S256&'
-        'domain=$domain';
+    // Build the URL - use sign-up page for registration, OAuth for login
+    String url;
+    if (forRegistration) {
+      // For registration, go directly to the sign-up page with OAuth parameters
+      url = 'https://$domain/auth/sign_up?'
+          'client_id=${Uri.encodeComponent(credentials['client_id']!)}&'
+          'redirect_uri=${Uri.encodeComponent(_redirectUri)}&'
+          'response_type=code&'
+          'scope=${Uri.encodeComponent(_scopes)}&'
+          'state=$state&'
+          'code_challenge=$codeChallenge&'
+          'code_challenge_method=S256&'
+          'domain=$domain';
+    } else {
+      // For login, use the standard OAuth authorize endpoint
+      url = 'https://$domain/oauth/authorize?'
+          'client_id=${Uri.encodeComponent(credentials['client_id']!)}&'
+          'redirect_uri=${Uri.encodeComponent(_redirectUri)}&'
+          'response_type=code&'
+          'scope=${Uri.encodeComponent(_scopes)}&'
+          'state=$state&'
+          'code_challenge=$codeChallenge&'
+          'code_challenge_method=S256&'
+          'domain=$domain';
+    }
     
     debugPrint('Generated authorization URL: $url');
     

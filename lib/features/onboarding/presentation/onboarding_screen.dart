@@ -37,7 +37,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return AppPageScaffold(
       appBar: PlatformAppBarWrapper(
         platformAppBar: PlatformAppBar(
-          title: const Text('Welcome'),
+          // title: const Text(''),
           backgroundColor: Colors.transparent,
         ),
       ),
@@ -57,13 +57,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 const SizedBox(height: 20),
 
                 // App logo/icon (placeholder)
-                Icon(
-                  Icons.public,
-                  size: 64,
-                  color: theme.colorScheme.primary,
+                // App logo
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 100,
+                  height: 100,
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 70),
             
             // Welcome title
             Text(

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
@@ -163,7 +166,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -488,7 +491,45 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+              ],
+
+              // Server thumbnail - only show if available
+              if (instance.thumbnail != null && instance.thumbnail!.isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Image.network(
+                      instance.thumbnail!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        // If image fails to load, show nothing
+                        return const SizedBox.shrink();
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
               ],
               
               // Stats and badges row
@@ -652,15 +693,48 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     ref.read(onboardingControllerProvider.notifier).updateFilter(const InstanceFilter());
   }
 
-  void _selectInstance(BuildContext context, InstanceCaps instance) {
-    ref.read(onboardingControllerProvider.notifier).selectInstance(instance);
+  void _selectInstance(BuildContext context, InstanceCaps instance) async {
     Navigator.of(context).pop();
-    
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Selected ${instance.domain}! Redirecting to account creation...'),
-      ),
-    );
+
+    // Start OAuth flow directly for the selected instance
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Starting registration for ${instance.domain}...'),
+        ),
+      );
+
+      await _startDirectOAuthFlow(context, instance.domain);
+    }
+  }
+
+  /// Start OAuth flow directly for the selected instance
+  Future<void> _startDirectOAuthFlow(BuildContext context, String domain) async {
+    try {
+      // Get the authorization URL from the auth repository (for registration)
+      final authRepository = ref.read(authRepositoryProvider);
+      final authInfo = await authRepository.startOAuthFlow(domain, forRegistration: true);
+
+      // Launch the authorization URL in browser
+      final browser = BrowserService();
+      await browser.launchURL(authInfo['url']!);
+
+      // Navigate to the callback screen to wait for the OAuth response
+      if (context.mounted) {
+        context.push('/oauth/callback', extra: {
+          'domain': domain,
+          'state': authInfo['state'],
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start registration: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

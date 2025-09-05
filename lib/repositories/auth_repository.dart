@@ -86,10 +86,11 @@ class AuthRepository extends ChangeNotifier {
   }
   
   /// Start the OAuth flow for an instance
-  /// 
+  ///
   /// Returns the URL to redirect the user to and the state to verify the callback
-  Future<Map<String, String>> startOAuthFlow(String domain) async {
-    return await _authService.getAuthorizationUrl(domain);
+  /// If [forRegistration] is true, will attempt to show registration page
+  Future<Map<String, String>> startOAuthFlow(String domain, {bool forRegistration = false}) async {
+    return await _authService.getAuthorizationUrl(domain, forRegistration: forRegistration);
   }
   
   /// Complete the OAuth flow for an instance

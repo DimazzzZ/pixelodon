@@ -22,6 +22,8 @@ class RecommendationEngine {
   List<InstanceCaps>? _curatedInstances;
   DateTime? _lastLoaded;
   static const Duration _cacheTimeout = Duration(hours: 6);
+  static const int _cacheVersion = 2; // Increment when data structure changes
+  int? _loadedCacheVersion;
 
   RecommendationEngine({
     required this.discoveryRepository,
@@ -29,8 +31,10 @@ class RecommendationEngine {
 
   /// Load curated instances from assets
   Future<List<InstanceCaps>> _loadCuratedInstances() async {
-    // Return cached instances if still valid
-    if (_curatedInstances != null && _lastLoaded != null) {
+    // Return cached instances if still valid and cache version matches
+    if (_curatedInstances != null &&
+        _lastLoaded != null &&
+        _loadedCacheVersion == _cacheVersion) {
       final age = DateTime.now().difference(_lastLoaded!);
       if (age < _cacheTimeout) {
         return _curatedInstances!;
@@ -46,8 +50,9 @@ class RecommendationEngine {
           .cast<Map<String, dynamic>>()
           .map((data) => InstanceCaps.fromJson(data))
           .toList();
-      
+
       _lastLoaded = DateTime.now();
+      _loadedCacheVersion = _cacheVersion;
       return _curatedInstances!;
     } catch (e) {
       // Return empty list if loading fails

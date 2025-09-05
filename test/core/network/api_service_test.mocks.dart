@@ -904,11 +904,15 @@ class MockAuthRepository extends _i1.Mock implements _i11.AuthRepository {
       ) as _i9.Future<_i8.Instance>);
 
   @override
-  _i9.Future<Map<String, String>> startOAuthFlow(String? domain) =>
+  _i9.Future<Map<String, String>> startOAuthFlow(
+    String? domain, {
+    bool? forRegistration = false,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #startOAuthFlow,
           [domain],
+          {#forRegistration: forRegistration},
         ),
         returnValue: _i9.Future<Map<String, String>>.value(<String, String>{}),
       ) as _i9.Future<Map<String, String>>);

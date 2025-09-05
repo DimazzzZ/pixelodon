@@ -509,7 +509,6 @@ class RecommendInstancesSheet extends ConsumerWidget {
   }
 
   void _selectInstance(BuildContext context, WidgetRef ref, InstanceCaps instance) async {
-    ref.read(onboardingControllerProvider.notifier).selectInstance(instance);
     Navigator.of(context).pop();
 
     // Start OAuth flow directly for the selected instance
@@ -527,9 +526,9 @@ class RecommendInstancesSheet extends ConsumerWidget {
   /// Start OAuth flow directly for the selected instance
   Future<void> _startDirectOAuthFlow(BuildContext context, WidgetRef ref, String domain) async {
     try {
-      // Get the authorization URL from the auth repository
+      // Get the authorization URL from the auth repository (for registration)
       final authRepository = ref.read(authRepositoryProvider);
-      final authInfo = await authRepository.startOAuthFlow(domain);
+      final authInfo = await authRepository.startOAuthFlow(domain, forRegistration: true);
 
       // Launch the authorization URL in browser
       final browser = BrowserService();
