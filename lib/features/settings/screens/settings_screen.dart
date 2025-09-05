@@ -277,22 +277,20 @@ class SettingsScreen extends ConsumerWidget {
     try {
       // Show loading indicator
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 16),
-                Text('Logging out...'),
-              ],
-            ),
-            duration: Duration(seconds: 2),
+        _showSnackBar(context, const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Text('Logging out...'),
+            ],
           ),
-        );
+          duration: Duration(seconds: 2),
+        ));
       }
       
       // Perform logout through the auth repository
@@ -306,12 +304,10 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       // Show error message
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to log out: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        _showSnackBar(context, SnackBar(
+          content: Text('Failed to log out: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
       }
     }
   }
@@ -533,22 +529,20 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _removeAccount(BuildContext context, WidgetRef ref, String domain) async {
     try {
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              SizedBox(width: 16),
-              Text('Removing account...'),
-            ],
-          ),
-          duration: Duration(seconds: 3),
+      _showSnackBar(context, const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 16),
+            Text('Removing account...'),
+          ],
         ),
-      );
+        duration: Duration(seconds: 3),
+      ));
       
       // Perform logout through the auth repository
       final authRepository = ref.read(authRepositoryProvider);
@@ -556,12 +550,10 @@ class SettingsScreen extends ConsumerWidget {
       
       // Show success message
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Account removed from $domain'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
+        _showSnackBar(context, SnackBar(
+          content: Text('Account removed from $domain'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ));
         
         // If no accounts left, navigate to login
         final instances = ref.read(instancesProvider);
@@ -572,13 +564,21 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       // Show error message
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to remove account: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        _showSnackBar(context, SnackBar(
+          content: Text('Failed to remove account: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
       }
+    }
+  }
+
+  /// Safely shows a SnackBar, handling cases where ScaffoldMessenger is not available
+  void _showSnackBar(BuildContext context, SnackBar snackBar) {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // If ScaffoldMessenger is not available, print to debug console
+      debugPrint('Could not show SnackBar: ${snackBar.content}');
     }
   }
 

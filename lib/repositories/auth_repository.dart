@@ -16,7 +16,10 @@ class AuthRepository extends ChangeNotifier {
   
   /// Currently authenticated accounts
   final Map<String, Account> _accounts = {};
-  
+
+  /// Flag to track if initialization has been completed
+  bool _isInitialized = false;
+
   /// Constructor
   AuthRepository({
     AuthService? authService,
@@ -24,31 +27,38 @@ class AuthRepository extends ChangeNotifier {
   
   /// Initialize the repository
   Future<void> initialize() async {
+    // Prevent multiple initializations
+    if (_isInitialized) {
+      return;
+    }
+
     // Load authenticated instances
     final domains = await _authService.getAuthenticatedInstances();
-    
+
     if (domains.isNotEmpty) {
       // Load instance information for each domain
       for (final domain in domains) {
         try {
           final instance = await _authService.discoverInstance(domain);
           _instances.add(instance);
-          
+
           // Load account information
           final account = await _authService.getAccountInfo(domain);
           if (account != null) {
             _accounts[domain] = account;
           }
-          
+
           // Set the first instance as active if none is set
           _activeInstanceDomain ??= domain;
         } catch (e) {
           debugPrint('Failed to load instance $domain: $e');
         }
       }
-      
+
       notifyListeners();
     }
+
+    _isInitialized = true;
   }
   
   /// Get the list of authenticated instances

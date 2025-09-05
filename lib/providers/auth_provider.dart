@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
@@ -12,7 +13,17 @@ final authServiceProvider = Provider<AuthService>((ref) {
 /// Provider for the AuthRepository
 final authRepositoryProvider = ChangeNotifierProvider<AuthRepository>((ref) {
   final authService = ref.watch(authServiceProvider);
-  return AuthRepository(authService: authService);
+  final repository = AuthRepository(authService: authService);
+
+  // Initialize the repository to load stored authentication data
+  // This is done asynchronously and will notify listeners when complete
+  // The repository has internal protection against multiple initializations
+  repository.initialize().catchError((error) {
+    // Log initialization errors but don't prevent the provider from being created
+    debugPrint('Failed to initialize AuthRepository: $error');
+  });
+
+  return repository;
 });
 
 /// Provider for the list of authenticated instances

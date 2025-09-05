@@ -22,13 +22,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeAndNavigate() async {
     try {
-      // Initialize authentication repository to load stored accounts
-      final authRepository = ref.read(authRepositoryProvider);
-      await authRepository.initialize();
-      
+      // The AuthRepository is now automatically initialized by the provider
+      // Just ensure the provider is created by reading it
+      ref.read(authRepositoryProvider);
+
       // Wait at least 2 seconds to show the splash screen
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         // Let the router handle redirection based on auth state and onboarding status
         // Navigate to root and let the router redirect appropriately
@@ -37,9 +37,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     } catch (e) {
       // If initialization fails, still allow navigation to login
       debugPrint('Failed to initialize auth repository: $e');
-      
+
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         // Let the router handle redirection
         context.go('/');
