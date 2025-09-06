@@ -32,10 +32,27 @@ class OnboardingScreen extends ConsumerWidget {
           builder: (context, constraints) {
             // Calculate spacing for true vertical centering
             final screenHeight = constraints.maxHeight;
-            final footerHeight = 100.0; // Approximate footer height
+            final footerHeight = 120.0; // Approximate footer height including padding
             final availableHeight = screenHeight - footerHeight;
-            final contentHeight = 600.0; // Approximate content height
-            final topSpacing = math.max(24.0, (availableHeight - contentHeight) / 2);
+
+            // Estimate content height more accurately
+            final logoHeight = _getLogoSize(context);
+            final estimatedContentHeight = logoHeight +
+                                         24 + // logo to title spacing
+                                         60 + // title height (2 lines max)
+                                         12 + // title to subtitle spacing
+                                         45 + // subtitle height (3 lines max)
+                                         12 + // subtitle to info spacing
+                                         20 + // info link height
+                                         24 + // info to primary button spacing
+                                         52 + // primary button height (iOS max)
+                                         12 + // button spacing
+                                         52 + // secondary button height
+                                         16 + // button spacing
+                                         44;  // tertiary button height
+
+            // Calculate equal spacing above and below content
+            final centeringSpacing = math.max(24.0, (availableHeight - estimatedContentHeight) / 2);
 
             return Column(
               children: [
@@ -46,14 +63,14 @@ class OnboardingScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Dynamic top spacing for true centering
-                        SizedBox(height: topSpacing),
+                        // Top spacing for true centering (equal to bottom spacing)
+                        SizedBox(height: centeringSpacing),
 
-                        // Main content
+                        // Main content group (logo, description, tooltip, buttons)
                         _buildMainContent(context, theme, isIOS, isLoading, error, ref),
 
-                        // Bottom spacing to ensure content doesn't touch footer
-                        SizedBox(height: math.max(32.0, topSpacing)),
+                        // Bottom spacing (equal to top spacing for true centering)
+                        SizedBox(height: centeringSpacing),
                       ],
                     ),
                   ),
