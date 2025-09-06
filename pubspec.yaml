@@ -104,7 +104,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
+
   generate: true # For localization
 
   assets:
@@ -113,7 +113,7 @@ flutter:
     - assets/fonts/
     - assets/translations/
     - assets/instances/
-  
+
   fonts:
     - family: Inter
       fonts:
@@ -125,6 +125,9 @@ flutter:
           weight: 600
         - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
+
+flutter_intl:
+  enabled: true
 
 
 # App icon generation configuration

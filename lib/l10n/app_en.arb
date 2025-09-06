@@ -1,0 +1,87 @@
+{
+  "@@locale": "en",
+  "appTitle": "Pixelodon",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "onboardingTitle": "Welcome to Pixelodon",
+  "@onboardingTitle": {
+    "description": "Main title on the onboarding screen"
+  },
+  
+  "onboardingSubtitle": "One app for Mastodon & Pixelfed. Start in one tap — you can change servers later.",
+  "@onboardingSubtitle": {
+    "description": "Subtitle explaining the app's purpose"
+  },
+  
+  "onboardingPrimaryButtonIOS": "Start in One Step",
+  "@onboardingPrimaryButtonIOS": {
+    "description": "Primary CTA button text for iOS (Title Case)"
+  },
+  
+  "onboardingPrimaryButtonAndroid": "Start in one step",
+  "@onboardingPrimaryButtonAndroid": {
+    "description": "Primary CTA button text for Android (Sentence case)"
+  },
+  
+  "onboardingSecondaryButtonIOS": "I Already Have an Account",
+  "@onboardingSecondaryButtonIOS": {
+    "description": "Secondary CTA button text for iOS (Title Case)"
+  },
+  
+  "onboardingSecondaryButtonAndroid": "I already have an account",
+  "@onboardingSecondaryButtonAndroid": {
+    "description": "Secondary CTA button text for Android (Sentence case)"
+  },
+  
+  "onboardingTertiaryButton": "Browse as guest",
+  "@onboardingTertiaryButton": {
+    "description": "Tertiary CTA button text (same for both platforms)"
+  },
+  
+  "onboardingFediverseInfo": "What is the Fediverse?",
+  "@onboardingFediverseInfo": {
+    "description": "Info link text about the Fediverse"
+  },
+  
+  "onboardingFooter": "Pixelodon is free, open source, and respects your privacy.",
+  "@onboardingFooter": {
+    "description": "Footer text on the onboarding screen"
+  },
+  
+  "onboardingPrivacyLink": "Privacy",
+  "@onboardingPrivacyLink": {
+    "description": "Privacy policy link text"
+  },
+  
+  "onboardingLicensesLink": "Licenses",
+  "@onboardingLicensesLink": {
+    "description": "Open source licenses link text"
+  },
+  
+  "onboardingStartSetupLabel": "Start setup",
+  "@onboardingStartSetupLabel": {
+    "description": "Accessibility label for the primary CTA button"
+  },
+  
+  "onboardingSignInLabel": "Sign in to existing account",
+  "@onboardingSignInLabel": {
+    "description": "Accessibility label for the secondary CTA button"
+  },
+  
+  "onboardingBrowseGuestLabel": "Browse as guest",
+  "@onboardingBrowseGuestLabel": {
+    "description": "Accessibility label for the tertiary CTA button"
+  },
+  
+  "onboardingFediverseInfoLabel": "What is the Fediverse?",
+  "@onboardingFediverseInfoLabel": {
+    "description": "Accessibility label for the Fediverse info link"
+  },
+  
+  "onboardingLogoLabel": "Pixelodon logo",
+  "@onboardingLogoLabel": {
+    "description": "Accessibility label for the app logo"
+  }
+}

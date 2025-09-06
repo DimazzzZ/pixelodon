@@ -708,7 +708,8 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
 
     // Start OAuth flow directly for the selected instance
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showSafeSnackBar(
+        context,
         SnackBar(
           content: Text('Starting registration for ${instance.domain}...'),
         ),
@@ -723,7 +724,8 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
 
     // Navigate to guest mode with the specific instance
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showSafeSnackBar(
+        context,
         SnackBar(
           content: Text('Previewing ${instance.domain}...'),
         ),
@@ -754,7 +756,8 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _showSafeSnackBar(
+          context,
           SnackBar(
             content: Text('Failed to start registration: $e'),
             backgroundColor: Colors.red,
@@ -762,5 +765,44 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
         );
       }
     }
+  }
+
+  /// Safely shows a SnackBar, handling cases where ScaffoldMessenger is not available
+  void _showSafeSnackBar(BuildContext context, SnackBar snackBar) {
+    try {
+      // Check if ScaffoldMessenger is available in the widget tree
+      final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+      if (scaffoldMessenger != null) {
+        scaffoldMessenger.showSnackBar(snackBar);
+      } else {
+        // Fallback: show as a dialog if no ScaffoldMessenger
+        _showSnackBarAsDialog(context, snackBar);
+      }
+    } catch (e) {
+      // If all else fails, print to debug console
+      debugPrint('Could not show SnackBar: ${snackBar.content}');
+    }
+  }
+
+  /// Fallback method to show SnackBar content as a dialog
+  void _showSnackBarAsDialog(BuildContext context, SnackBar snackBar) {
+    String message = 'Notification';
+    if (snackBar.content is Text) {
+      final textWidget = snackBar.content as Text;
+      message = textWidget.data ?? 'Notification';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }

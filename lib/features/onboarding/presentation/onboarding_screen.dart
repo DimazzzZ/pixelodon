@@ -1,319 +1,530 @@
+import 'dart:io';
+import 'dart:math' as math;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/presentation/quick_quiz_sheet.dart';
 import 'package:pixelodon/features/onboarding/presentation/tooltip_fediverse_dialog.dart';
-import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
-/// Main onboarding screen with welcome message and three primary actions
-class OnboardingScreen extends ConsumerStatefulWidget {
+/// Main onboarding/welcome screen with platform-appropriate design
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _domainController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isDiscovering = false;
-
-  @override
-  void dispose() {
-    _domainController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLoading = ref.watch(isOnboardingLoadingProvider);
     final error = ref.watch(onboardingErrorProvider);
+    final mediaQuery = MediaQuery.of(context);
+    final isIOS = Platform.isIOS;
 
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          // title: const Text(''),
-          backgroundColor: Colors.transparent,
+    // Platform-specific padding
+    final horizontalPadding = isIOS ? 24.0 : 16.0;
+    final bottomPadding = math.max(mediaQuery.viewInsets.bottom, 16.0);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate spacing for true vertical centering
+            final screenHeight = constraints.maxHeight;
+            final footerHeight = 100.0; // Approximate footer height
+            final availableHeight = screenHeight - footerHeight;
+            final contentHeight = 600.0; // Approximate content height
+            final topSpacing = math.max(24.0, (availableHeight - contentHeight) / 2);
+
+            return Column(
+              children: [
+                // Main scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Dynamic top spacing for true centering
+                        SizedBox(height: topSpacing),
+
+                        // Main content
+                        _buildMainContent(context, theme, isIOS, isLoading, error, ref),
+
+                        // Bottom spacing to ensure content doesn't touch footer
+                        SizedBox(height: math.max(32.0, topSpacing)),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Footer pinned to bottom
+                _buildFooter(context, theme, bottomPadding),
+              ],
+            );
+          },
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                         MediaQuery.of(context).padding.top -
-                         MediaQuery.of(context).padding.bottom -
-                         kToolbarHeight - 48, // Account for app bar and padding
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 20),
+    );
+  }
 
-                // App logo/icon (placeholder)
-                // App logo
-                Image.asset(
-                  'assets/images/logo.png',
-                  width: 100,
-                  height: 100,
+  Widget _buildMainContent(BuildContext context, ThemeData theme, bool isIOS, bool isLoading, String? error, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // App logo with simple animation
+        TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 800),
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          curve: Curves.easeOutBack,
+          builder: (context, value, child) {
+            // Clamp values to ensure they're within valid ranges
+            final clampedOpacity = value.clamp(0.0, 1.0);
+            final clampedScale = (0.8 + (0.2 * value)).clamp(0.1, 2.0);
+
+            return Opacity(
+              opacity: clampedOpacity,
+              child: Transform.scale(
+                scale: clampedScale,
+                child: child,
+              ),
+            );
+          },
+          child: Semantics(
+            label: 'Pixelodon logo', // TODO: Localize
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: _getLogoSize(context),
+              height: _getLogoSize(context),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Welcome title with platform-appropriate typography
+        Text(
+          'Welcome to Pixelodon', // TODO: Localize
+          style: _getTitleStyle(theme, isIOS),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+
+        const SizedBox(height: 12),
+
+        // Subtitle with platform-appropriate styling
+        Text(
+          'One app for Mastodon & Pixelfed. Start in one tap — you can change servers later.', // TODO: Localize
+          style: _getSubtitleStyle(theme, isIOS),
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+
+        const SizedBox(height: 12),
+
+        // Fediverse info link
+        _buildFediverseInfoLink(context, theme, isIOS),
+
+        const SizedBox(height: 24),
+
+        // Error message
+        if (error != null) ...[
+          _buildErrorMessage(context, theme, error, ref),
+          const SizedBox(height: 24),
+        ],
+
+        // Primary CTA
+        _buildPrimaryCTA(context, theme, isIOS, isLoading),
+
+        const SizedBox(height: 12),
+
+        // Secondary CTA
+        _buildSecondaryCTA(context, theme, isIOS, isLoading),
+
+        const SizedBox(height: 16),
+
+        // Tertiary CTA (Browse as guest)
+        _buildTertiaryCTA(context, theme, isIOS, isLoading, ref),
+
+        // Loading indicator
+        if (isLoading) ...[
+          const SizedBox(height: 16),
+          Center(
+            child: isIOS
+                ? const CupertinoActivityIndicator()
+                : const CircularProgressIndicator(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFooter(BuildContext context, ThemeData theme, double bottomPadding) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        bottom: bottomPadding,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Pixelodon is free, open source, and respects your privacy.', // TODO: Localize
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () => _showPrivacyPolicy(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: const Size(44, 44),
                 ),
-
-                const SizedBox(height: 70),
-            
-            // Welcome title
-            Text(
-              'Welcome to Pixelodon',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 12),
-
-            // Subtitle with Fediverse info
-            Text(
-              'One app for Mastodon & Pixelfed. Start in one tap — you can change servers later.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 8),
-
-            // Fediverse info chip
-            Center(
-              child: InkWell(
-                onTap: () => _showFediverseInfo(context),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.5),
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+                child: Text(
+                  'Privacy', // TODO: Localize
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'What is Fediverse?',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
+                ),
+              ),
+              Text(
+                ' • ',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              TextButton(
+                onPressed: () => _showLicenses(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: const Size(44, 44),
+                ),
+                child: Text(
+                  'Licenses', // TODO: Localize
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 32),
-            
-            // Error message
-            if (error != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: theme.colorScheme.onErrorContainer,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        error,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => ref.read(onboardingControllerProvider.notifier).clearErrors(),
-                      icon: Icon(
-                        Icons.close,
-                        size: 18,
-                        color: theme.colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
             ],
-            
-            // Primary action buttons
-            _buildActionButton(
-              context: context,
-              icon: Icons.rocket_launch,
-              title: 'Start in 1 step',
-              subtitle: 'Quick setup with recommendations',
-              onPressed: isLoading ? null : () => _startQuickSetup(context),
-              isPrimary: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper methods for responsive design and platform-specific styling
+
+  double _getLogoSize(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final textScaleFactor = mediaQuery.textScaler.scale(1.0);
+    final baseSize = 96.0;
+    final scaledSize = baseSize * textScaleFactor;
+    return scaledSize.clamp(72.0, 144.0); // Min 72, max 144
+  }
+
+  TextStyle _getTitleStyle(ThemeData theme, bool isIOS) {
+    if (isIOS) {
+      // iOS Large Title (~34pt)
+      return theme.textTheme.headlineLarge?.copyWith(
+        fontSize: 34,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      ) ?? TextStyle(
+        fontSize: 34,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      );
+    } else {
+      // Android headlineMedium
+      return theme.textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      ) ?? TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      );
+    }
+  }
+
+  TextStyle _getSubtitleStyle(ThemeData theme, bool isIOS) {
+    if (isIOS) {
+      // iOS Body with 60-70% opacity
+      return theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurface.withOpacity(0.65),
+      ) ?? TextStyle(
+        fontSize: 17,
+        color: theme.colorScheme.onSurface.withOpacity(0.65),
+      );
+    } else {
+      // Android bodyLarge with onSurfaceVariant
+      return theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ) ?? TextStyle(
+        fontSize: 16,
+        color: theme.colorScheme.onSurfaceVariant,
+      );
+    }
+  }
+
+  Widget _buildFediverseInfoLink(BuildContext context, ThemeData theme, bool isIOS) {
+    return Semantics(
+      button: true,
+      label: 'What is the Fediverse?', // TODO: Localize
+      child: GestureDetector(
+        onTap: () => _showFediverseInfo(context),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isIOS ? CupertinoIcons.info_circle : Icons.info_outline,
+              size: isIOS ? 17 : 16,
+              color: theme.colorScheme.primary,
             ),
-            
-            const SizedBox(height: 12),
-
-            _buildActionButton(
-              context: context,
-              icon: Icons.account_circle,
-              title: 'I already have an account',
-              subtitle: 'Sign in to your existing server',
-              onPressed: isLoading ? null : () => _navigateToLogin(context),
-            ),
-
-            const SizedBox(height: 12),
-
-            _buildActionButton(
-              context: context,
-              icon: Icons.explore,
-              title: 'Browse as guest',
-              subtitle: 'Explore public content without signing up',
-              onPressed: isLoading ? null : () => _startGuestMode(context),
-            ),
-
-            const SizedBox(height: 24),
-            
-            // Loading indicator
-            if (isLoading) ...[
-              const Center(
-                child: CircularProgressIndicator(),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Footer text
+            const SizedBox(width: 4),
             Text(
-              'Pixelodon is free, open source, and respects your privacy.',
+              'What is the Fediverse?', // TODO: Localize
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: theme.colorScheme.primary,
               ),
-              textAlign: TextAlign.center,
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Add some bottom padding to ensure content is not cut off
-            const SizedBox(height: 24),
+  Widget _buildErrorMessage(BuildContext context, ThemeData theme, String error, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: theme.colorScheme.onErrorContainer,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              error,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => ref.read(onboardingControllerProvider.notifier).clearErrors(),
+            icon: Icon(
+              Icons.close,
+              size: 18,
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryCTA(BuildContext context, ThemeData theme, bool isIOS, bool isLoading) {
+    final onPressed = isLoading ? null : () => _startQuickSetup(context);
+
+    if (isIOS) {
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: Semantics(
+          button: true,
+          label: 'Start setup', // TODO: Localize
+          child: CupertinoButton.filled(
+            onPressed: onPressed,
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.rocket_fill,
+                  size: 20,
+                  color: CupertinoColors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Start in One Step', // TODO: Localize (iOS Title Case)
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.white,
+                  ),
+                ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback? onPressed,
-    bool isPrimary = false,
-  }) {
-    final theme = Theme.of(context);
-
-    return PlatformElevatedButton(
-      onPressed: onPressed,
-      material: (context, platform) => MaterialElevatedButtonData(
-        style: isPrimary
-            ? ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                elevation: 2,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              )
-            : OutlinedButton.styleFrom(
-                backgroundColor: theme.colorScheme.surface,
-                foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.outline),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-      ),
-      cupertino: (context, platform) => CupertinoElevatedButtonData(
-        color: isPrimary
-            ? theme.colorScheme.primary
-            : theme.colorScheme.surface,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isPrimary
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.onSurface,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isPrimary
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isPrimary
-                          ? theme.colorScheme.onPrimary.withOpacity(0.8)
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+      );
+    } else {
+      return SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: Semantics(
+          button: true,
+          label: 'Start setup', // TODO: Localize
+          child: FilledButton.icon(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: isPrimary
-                  ? theme.colorScheme.onPrimary.withOpacity(0.7)
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+            icon: Icon(
+              Icons.rocket_launch,
+              size: 20,
             ),
-          ],
+            label: Text(
+              'Start in one step', // TODO: Localize (Android sentence case)
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ),
-    );
+      );
+    }
   }
+
+  Widget _buildSecondaryCTA(BuildContext context, ThemeData theme, bool isIOS, bool isLoading) {
+    final onPressed = isLoading ? null : () => _navigateToLogin(context);
+
+    if (isIOS) {
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: Semantics(
+          button: true,
+          label: 'Sign in to existing account', // TODO: Localize
+          child: CupertinoButton(
+            onPressed: onPressed,
+            color: Colors.transparent,
+            padding: EdgeInsets.zero,
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                border: Border.all(color: CupertinoColors.systemBlue),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  'I Already Have an Account', // TODO: Localize (iOS Title Case)
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.systemBlue,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: Semantics(
+          button: true,
+          label: 'Sign in to existing account', // TODO: Localize
+          child: OutlinedButton.icon(
+            onPressed: onPressed,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.primary,
+              side: BorderSide(color: theme.colorScheme.outline, width: 1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: Icon(
+              Icons.account_circle,
+              size: 20,
+            ),
+            label: Text(
+              'I already have an account', // TODO: Localize (Android sentence case)
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildTertiaryCTA(BuildContext context, ThemeData theme, bool isIOS, bool isLoading, WidgetRef ref) {
+    final onPressed = isLoading ? null : () => _startGuestMode(context, ref);
+
+    if (isIOS) {
+      return Semantics(
+        button: true,
+        label: 'Browse as guest', // TODO: Localize
+        child: CupertinoButton(
+          onPressed: onPressed,
+          minSize: 44,
+          child: Text(
+            'Browse as guest', // TODO: Localize
+            style: TextStyle(
+              fontSize: 17,
+              color: theme.colorScheme.primary,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Semantics(
+        button: true,
+        label: 'Browse as guest', // TODO: Localize
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.primary,
+            minimumSize: const Size(0, 48),
+          ),
+          child: Text(
+            'Browse as guest', // TODO: Localize
+            style: TextStyle(
+              fontSize: 16,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  // Action methods with haptic feedback
 
   void _startQuickSetup(BuildContext context) {
+    _triggerHapticFeedback();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -323,143 +534,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _navigateToLogin(BuildContext context) {
+    _triggerHapticFeedback();
     context.go('/auth/login');
   }
 
-  Widget _buildExistingAccountSheet(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            width: 32,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Text(
-                  'Sign in to your account',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter your username@server or just the server domain',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          
-          // Form
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _domainController,
-                      decoration: InputDecoration(
-                        labelText: 'Username or server',
-                        hintText: '@user@mastodon.social or mastodon.social',
-                        prefixIcon: const Icon(Icons.alternate_email),
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a username or server';
-                        }
-                        return null;
-                      },
-                      onFieldSubmitted: (_) => _discoverExistingAccount(),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    SizedBox(
-                      width: double.infinity,
-                      child: PlatformElevatedButton(
-                        onPressed: _isDiscovering ? null : _discoverExistingAccount,
-                        child: _isDiscovering
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Continue'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _discoverExistingAccount() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    setState(() {
-      _isDiscovering = true;
-    });
-    
-    final domain = _domainController.text.trim();
-    await ref.read(onboardingControllerProvider.notifier)
-        .discoverInstanceByDomain(domain);
-    
-    setState(() {
-      _isDiscovering = false;
-    });
-    
-    // Check if discovery was successful
-    final selectedInstance = ref.read(selectedInstanceProvider);
-    if (selectedInstance != null && mounted) {
-      Navigator.of(context).pop(); // Close the sheet
-
-      if (mounted) {
-        // Navigate to login screen (don't mark onboarding as completed yet)
-        _showSnackBar(context, SnackBar(
-          content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
-        ));
-
-        // Navigate to login
-        context.go('/auth/login');
-      }
-    }
-  }
-
-  void _startGuestMode(BuildContext context) async {
+  void _startGuestMode(BuildContext context, WidgetRef ref) async {
+    _triggerHapticFeedback();
     try {
       debugPrint('Starting guest mode...');
       await ref.read(onboardingControllerProvider.notifier).startGuestMode();
       debugPrint('Guest mode controller completed');
 
-      if (mounted) {
+      if (context.mounted) {
         // Navigate to guest mode (don't mark onboarding as completed)
         _showSnackBar(context, const SnackBar(
           content: Text('Guest mode activated! Browsing public timelines...'),
@@ -472,7 +558,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     } catch (e) {
       debugPrint('Error in _startGuestMode: $e');
-      if (mounted) {
+      if (context.mounted) {
         _showSnackBar(context, SnackBar(
           content: Text('Failed to start guest mode: $e'),
           backgroundColor: Theme.of(context).colorScheme.error,
@@ -481,13 +567,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  /// Safely shows a SnackBar, handling cases where ScaffoldMessenger is not available
-  void _showSnackBar(BuildContext context, SnackBar snackBar) {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (e) {
-      // If ScaffoldMessenger is not available, print to debug console
-      debugPrint('Could not show SnackBar: ${snackBar.content}');
+  void _triggerHapticFeedback() {
+    if (Platform.isIOS) {
+      HapticFeedback.selectionClick();
+    } else {
+      HapticFeedback.lightImpact();
     }
   }
 
@@ -495,6 +579,71 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     showDialog(
       context: context,
       builder: (context) => const TooltipFediverseDialog(),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    // TODO: Implement privacy policy display
+    // For now, show a simple dialog instead of SnackBar
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Privacy Policy'),
+        content: const Text('Privacy policy coming soon. We respect your privacy and will provide detailed information about our data practices.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLicenses(BuildContext context) {
+    showLicensePage(
+      context: context,
+      applicationName: 'Pixelodon',
+      applicationVersion: '0.1.0',
+    );
+  }
+
+  /// Safely shows a SnackBar, handling cases where ScaffoldMessenger is not available
+  void _showSnackBar(BuildContext context, SnackBar snackBar) {
+    try {
+      // Check if ScaffoldMessenger is available in the widget tree
+      final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+      if (scaffoldMessenger != null) {
+        scaffoldMessenger.showSnackBar(snackBar);
+      } else {
+        // Fallback: show as a dialog if no ScaffoldMessenger
+        _showSnackBarAsDialog(context, snackBar);
+      }
+    } catch (e) {
+      // If all else fails, print to debug console
+      debugPrint('Could not show SnackBar: ${snackBar.content}');
+    }
+  }
+
+  /// Fallback method to show SnackBar content as a dialog
+  void _showSnackBarAsDialog(BuildContext context, SnackBar snackBar) {
+    String message = 'Notification';
+    if (snackBar.content is Text) {
+      final textWidget = snackBar.content as Text;
+      message = textWidget.data ?? 'Notification';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }
