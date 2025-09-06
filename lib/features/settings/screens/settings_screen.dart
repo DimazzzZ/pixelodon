@@ -210,10 +210,9 @@ class SettingsScreen extends ConsumerWidget {
           
           // Logout Button (only show if there are accounts)
           if (instances.isNotEmpty)
-            SizedBox(
-              width: double.infinity,
+            Center(
               child: PlatformElevatedButton(
-                onPressed: activeInstance != null 
+                onPressed: activeInstance != null
                     ? () => _showLogoutDialog(context, ref, activeInstance.domain)
                     : null,
                 child: Row(
@@ -231,7 +230,6 @@ class SettingsScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
                     foregroundColor: Theme.of(context).colorScheme.onError,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
               ),
@@ -547,17 +545,17 @@ class SettingsScreen extends ConsumerWidget {
       // Perform logout through the auth repository
       final authRepository = ref.read(authRepositoryProvider);
       await authRepository.logout(domain);
-      
+
       // Show success message
       if (context.mounted) {
         _showSnackBar(context, SnackBar(
           content: Text('Account removed from $domain'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ));
-        
+
         // If no accounts left, navigate to login
-        final instances = ref.read(instancesProvider);
-        if (instances.isEmpty) {
+        // Check the repository directly since provider might not be updated immediately
+        if (authRepository.instances.isEmpty) {
           context.go('/auth/login');
         }
       }

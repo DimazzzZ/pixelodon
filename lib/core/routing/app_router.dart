@@ -14,7 +14,7 @@ import 'package:pixelodon/features/profile/screens/follow_list_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
-import 'package:pixelodon/providers/settings_provider.dart';
+
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
 import 'package:pixelodon/features/tags/screens/tag_timeline_screen.dart';
 import 'package:pixelodon/features/onboarding/presentation/onboarding_screen.dart';

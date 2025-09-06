@@ -44,7 +44,7 @@ void main() {
     group('Initialization Tests', () {
       test('should handle initial link when present', () async {
         final testUri = Uri.parse('pixelodon://oauth/callback?code=test123');
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => testUri);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => testUri);
 
         final linksFuture = deepLinkService.links.first;
         
@@ -52,20 +52,20 @@ void main() {
         
         final receivedUri = await linksFuture;
         expect(receivedUri, equals(testUri));
-        verify(mockAppLinks.getInitialLink()).called(1);
+        verify(mockAppLinks.getInitialAppLink()).called(1);
       });
 
       test('should handle no initial link', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
 
         await deepLinkService.init();
 
-        verify(mockAppLinks.getInitialLink()).called(1);
+        verify(mockAppLinks.getInitialAppLink()).called(1);
         expect(deepLinkService.links, isA<Stream<Uri>>());
       });
 
       test('should listen to uri link stream after initialization', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
 
         await deepLinkService.init();
 
@@ -79,7 +79,7 @@ void main() {
       });
 
       test('should handle stream errors gracefully', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
 
         await deepLinkService.init();
 
@@ -99,7 +99,7 @@ void main() {
 
     group('Stream Management Tests', () {
       test('should provide broadcast stream', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
         await deepLinkService.init();
 
         final stream = deepLinkService.links;
@@ -107,7 +107,7 @@ void main() {
       });
 
       test('should handle multiple listeners', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
         await deepLinkService.init();
 
         final testUri = Uri.parse('pixelodon://test');
@@ -257,17 +257,17 @@ void main() {
       });
 
       test('should handle multiple initialization calls', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
 
         await deepLinkService.init();
         await deepLinkService.init(); // Second initialization
 
         // Should not cause errors and still work
-        verify(mockAppLinks.getInitialLink()).called(2);
+        verify(mockAppLinks.getInitialAppLink()).called(2);
       });
 
       test('should handle disposal after initialization', () async {
-        when(mockAppLinks.getInitialLink()).thenAnswer((_) async => null);
+        when(mockAppLinks.getInitialAppLink()).thenAnswer((_) async => null);
 
         await deepLinkService.init();
         deepLinkService.dispose();

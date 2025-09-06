@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/presentation/quick_quiz_sheet.dart';
 import 'package:pixelodon/features/onboarding/presentation/tooltip_fediverse_dialog.dart';
-import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
@@ -231,43 +230,44 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     bool isPrimary = false,
   }) {
     final theme = Theme.of(context);
-    
-    return SizedBox(
-      height: 72,
-      child: PlatformElevatedButton(
-        onPressed: onPressed,
-        material: (context, platform) => MaterialElevatedButtonData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isPrimary
-                ? theme.colorScheme.primary
-                : theme.colorScheme.surface,
-            foregroundColor: isPrimary
-                ? theme.colorScheme.onPrimary
-                : theme.colorScheme.onSurface,
-            elevation: isPrimary ? 2 : 1,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: isPrimary
-                  ? BorderSide.none
-                  : BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
-            ),
-          ),
-        ),
-        cupertino: (context, platform) => CupertinoElevatedButtonData(
-          color: isPrimary
-              ? theme.colorScheme.primary
-              : theme.colorScheme.surface,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-        child: Row(
+
+    return PlatformElevatedButton(
+      onPressed: onPressed,
+      material: (context, platform) => MaterialElevatedButtonData(
+        style: isPrimary
+            ? ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              )
+            : OutlinedButton.styleFrom(
+                backgroundColor: theme.colorScheme.surface,
+                foregroundColor: theme.colorScheme.onSurface,
+                side: BorderSide(color: theme.colorScheme.outline),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+      ),
+      cupertino: (context, platform) => CupertinoElevatedButtonData(
+        color: isPrimary
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surface,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      child: Row(
           children: [
             Icon(
               icon,
               size: 24,
               color: isPrimary
                   ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
+                  : theme.colorScheme.onSurface,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -306,11 +306,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               size: 16,
               color: isPrimary
                   ? theme.colorScheme.onPrimary.withOpacity(0.7)
-                  : theme.colorScheme.onSurfaceVariant,
+                  : theme.colorScheme.onSurface.withOpacity(0.7),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -444,11 +443,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       if (mounted) {
         // Navigate to login screen (don't mark onboarding as completed yet)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
-          ),
-        );
+        _showSnackBar(context, SnackBar(
+          content: Text('Found ${selectedInstance.domain}! Redirecting to login...'),
+        ));
 
         // Navigate to login
         context.go('/auth/login');
@@ -457,18 +454,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _startGuestMode(BuildContext context) async {
-    await ref.read(onboardingControllerProvider.notifier).startGuestMode();
+    try {
+      debugPrint('Starting guest mode...');
+      await ref.read(onboardingControllerProvider.notifier).startGuestMode();
+      debugPrint('Guest mode controller completed');
 
-    if (mounted) {
-      // Navigate to guest mode (don't mark onboarding as completed)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      if (mounted) {
+        // Navigate to guest mode (don't mark onboarding as completed)
+        _showSnackBar(context, const SnackBar(
           content: Text('Guest mode activated! Browsing public timelines...'),
-        ),
-      );
+        ));
 
-      // Navigate to guest mode
-      context.go('/guest');
+        debugPrint('Navigating to /guest...');
+        // Navigate to guest mode
+        context.go('/guest');
+        debugPrint('Navigation to /guest completed');
+      }
+    } catch (e) {
+      debugPrint('Error in _startGuestMode: $e');
+      if (mounted) {
+        _showSnackBar(context, SnackBar(
+          content: Text('Failed to start guest mode: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
+      }
+    }
+  }
+
+  /// Safely shows a SnackBar, handling cases where ScaffoldMessenger is not available
+  void _showSnackBar(BuildContext context, SnackBar snackBar) {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // If ScaffoldMessenger is not available, print to debug console
+      debugPrint('Could not show SnackBar: ${snackBar.content}');
     }
   }
 

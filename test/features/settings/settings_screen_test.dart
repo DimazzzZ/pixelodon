@@ -7,7 +7,59 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
+import 'package:pixelodon/services/settings_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+
+// Mock classes for testing
+class MockThemeModeNotifier extends ThemeModeNotifier {
+  final ThemeMode _themeMode;
+  MockThemeModeNotifier([this._themeMode = ThemeMode.system]) : super(MockSettingsService());
+
+  @override
+  ThemeMode get state => _themeMode;
+}
+
+class MockLanguageNotifier extends LanguageNotifier {
+  final Locale _locale;
+  MockLanguageNotifier([this._locale = const Locale('en', 'US')]) : super(MockSettingsService());
+
+  @override
+  Locale get state => _locale;
+}
+
+class MockNotificationSettingsNotifier extends NotificationSettingsNotifier {
+  final Map<String, bool> _settings;
+  MockNotificationSettingsNotifier([this._settings = const {
+    'mentions': true,
+    'follows': true,
+    'likes': true,
+    'reposts': true,
+    'posts': true,
+  }]) : super(MockSettingsService());
+
+  @override
+  Map<String, bool> get state => _settings;
+}
+
+class MockSettingsService extends SettingsService {
+  @override
+  Future<ThemeMode> getThemeMode() async => ThemeMode.system;
+
+  @override
+  Future<Locale> getLanguage() async => const Locale('en', 'US');
+
+  @override
+  Future<Map<String, bool>> getNotificationSettings() async => {
+    'mentions': true,
+    'follows': true,
+    'likes': true,
+    'reposts': true,
+    'posts': true,
+  };
+
+  @override
+  Future<bool> getOnboardingCompleted() async => true;
+}
 
 void main() {
   group('SettingsScreen Multiple Account Tests', () {
@@ -59,15 +111,9 @@ void main() {
                   return null;
               }
             }),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {
-              'mentions': true,
-              'follows': true,
-              'likes': true,
-              'reposts': true,
-              'posts': true,
-            }),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier()),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -98,15 +144,9 @@ void main() {
           overrides: [
             instancesProvider.overrideWith((ref) => <Instance>[]),
             activeInstanceProvider.overrideWith((ref) => null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {
-              'mentions': true,
-              'follows': true,
-              'likes': true,
-              'reposts': true,
-              'posts': true,
-            }),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier()),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -147,15 +187,9 @@ void main() {
             activeInstanceProvider.overrideWith((ref) => testInstance),
             accountInfoProvider.overrideWith((ref, domain) => 
               domain == 'mastodon.social' ? testAccount : null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {
-              'mentions': true,
-              'follows': true,
-              'likes': true,
-              'reposts': true,
-              'posts': true,
-            }),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier()),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -182,15 +216,15 @@ void main() {
           overrides: [
             instancesProvider.overrideWith((ref) => <Instance>[]),
             activeInstanceProvider.overrideWith((ref) => null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.dark),
-            languageProvider.overrideWith((ref) => const Locale('es', 'ES')),
-            notificationSettingsProvider.overrideWith((ref) => {
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier(ThemeMode.dark)),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier(const Locale('es', 'ES'))),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier({
               'mentions': true,
               'follows': false,
               'likes': true,
               'reposts': false,
               'posts': true,
-            }),
+            })),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -218,9 +252,9 @@ void main() {
           overrides: [
             instancesProvider.overrideWith((ref) => <Instance>[]),
             activeInstanceProvider.overrideWith((ref) => null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {}),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier({})),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -257,9 +291,9 @@ void main() {
             activeInstanceProvider.overrideWith((ref) => testInstance),
             accountInfoProvider.overrideWith((ref, domain) => 
               domain == 'mastodon.social' ? testAccount : null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {}),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier({})),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),
@@ -277,9 +311,9 @@ void main() {
           overrides: [
             instancesProvider.overrideWith((ref) => <Instance>[]),
             activeInstanceProvider.overrideWith((ref) => null),
-            themeModeProvider.overrideWith((ref) => ThemeMode.system),
-            languageProvider.overrideWith((ref) => const Locale('en', 'US')),
-            notificationSettingsProvider.overrideWith((ref) => {}),
+            themeModeProvider.overrideWith((ref) => MockThemeModeNotifier()),
+            languageProvider.overrideWith((ref) => MockLanguageNotifier()),
+            notificationSettingsProvider.overrideWith((ref) => MockNotificationSettingsNotifier({})),
           ],
           child: PlatformApp(
             home: const SettingsScreen(),

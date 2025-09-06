@@ -6,7 +6,7 @@ import 'package:pixelodon/features/onboarding/application/onboarding_controller.
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
-import 'package:pixelodon/features/guest/screens/guest_screen.dart';
+
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/presentation/manual_instance_picker_page.dart';
 

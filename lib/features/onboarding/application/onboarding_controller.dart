@@ -208,9 +208,9 @@ class OnboardingController extends _$OnboardingController {
 
       // For guest mode, we would typically navigate to a guest timeline
       // This would be handled by the UI layer
+      // Note: Don't mark onboarding as completed for guest mode
       state = state.copyWith(
         allInstances: guestInstances,
-        currentStep: OnboardingStep.completed,
         isLoadingAllInstances: false,
       );
     } catch (e) {
