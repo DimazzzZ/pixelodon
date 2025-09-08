@@ -426,7 +426,7 @@ class RecommendInstancesSheet extends ConsumerWidget {
                 Expanded(
                   child: PlatformElevatedButton(
                     onPressed: () => _selectInstance(context, ref, instance),
-                    child: const Text('Create Account'),
+                    child: const Text('Join'),
                   ),
                 ),
               ],

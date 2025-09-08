@@ -98,11 +98,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final suggestions = <InstanceCaps>[];
 
-      // 1. First, search in curated instances for quick results
-      final recommendationEngine = ref.read(recommendationEngineProvider);
-      final curatedInstances = await recommendationEngine.getAllInstances();
-
-      final curatedMatches = curatedInstances.where((instance) {
+      // 1. First, search in static curated instances for instant results
+      final staticCuratedInstances = _getCuratedPopularServers();
+      final curatedMatches = staticCuratedInstances.where((instance) {
         final domain = instance.domain.toLowerCase();
         final title = instance.title.toLowerCase();
         final description = instance.description.toLowerCase();
@@ -114,7 +112,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       suggestions.addAll(curatedMatches);
 
-      // 2. Try to discover the query as a direct domain
+      // 2. Also search in recommendation engine curated instances
+      try {
+        final recommendationEngine = ref.read(recommendationEngineProvider);
+        final engineCuratedInstances = await recommendationEngine.getAllInstances();
+
+        final engineMatches = engineCuratedInstances.where((instance) {
+          final domain = instance.domain.toLowerCase();
+          final title = instance.title.toLowerCase();
+          final description = instance.description.toLowerCase();
+
+          // Don't add duplicates from static list
+          final alreadyExists = suggestions.any((existing) =>
+              existing.domain.toLowerCase() == domain);
+
+          return !alreadyExists && (domain.contains(query) ||
+                 title.contains(query) ||
+                 description.contains(query));
+        }).take(2).toList(); // Limit engine results to 2
+
+        suggestions.addAll(engineMatches);
+      } catch (e) {
+        // If recommendation engine fails, continue with static results
+      }
+
+      // 3. Try to discover the query as a direct domain
       if (query.contains('.') && !query.contains(' ')) {
         try {
           final discoveryRepository = ref.read(discoveryRepositoryProvider);
@@ -132,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       }
 
-      // 3. Search for instances containing the query as substring
+      // 4. Search for instances containing the query as substring
       if (!query.contains('.')) {
         await _searchBySubstring(query, suggestions);
       }
@@ -228,40 +250,138 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  /// Show default popular suggestions
-  void _showDefaultSuggestions() async {
-    try {
-      final suggestions = <InstanceCaps>[];
-      final discoveryRepository = ref.read(discoveryRepositoryProvider);
+  /// Show default popular suggestions (static, curated list)
+  void _showDefaultSuggestions() {
+    // Static curated list of popular servers - loads immediately
+    final suggestions = _getCuratedPopularServers();
 
-      // Try to discover the most popular instances
-      final popularDomains = ['mastodon.social', 'pixelfed.social'];
+    setState(() {
+      _suggestions = suggestions;
+      _isSearching = false;
+    });
+  }
 
-      for (final domain in popularDomains) {
-        try {
-          final discoveredInstance = await discoveryRepository.discoverInstance(domain);
-          suggestions.add(discoveredInstance);
-        } catch (e) {
-          // If discovery fails, continue with next instance
-          continue;
-        }
-      }
+  /// Get curated list of popular servers (static data)
+  List<InstanceCaps> _getCuratedPopularServers() {
+    return [
+      // Mastodon instances
+      InstanceCaps(
+        domain: 'mastodon.social',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 25.0,
+        title: 'Mastodon Social',
+        description: 'The original Mastodon server operated by the Mastodon gGmbH non-profit',
+        activeUsers: 850000,
+        languages: ['en'],
+      ),
+      InstanceCaps(
+        domain: 'mastodon.world',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 20.0,
+        title: 'Mastodon World',
+        description: 'A general-purpose Mastodon server with a focus on community and moderation',
+        activeUsers: 180000,
+        languages: ['en'],
+      ),
+      InstanceCaps(
+        domain: 'mas.to',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 15.0,
+        title: 'mas.to',
+        description: 'A fast, secure and up-to-date Mastodon instance',
+        activeUsers: 95000,
+        languages: ['en'],
+      ),
+      InstanceCaps(
+        domain: 'fosstodon.org',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 18.0,
+        title: 'Fosstodon',
+        description: 'A community for anyone interested in technology, particularly free & open source software',
+        activeUsers: 45000,
+        languages: ['en'],
+      ),
+      InstanceCaps(
+        domain: 'hachyderm.io',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 22.0,
+        title: 'Hachyderm',
+        description: 'A safe space for tech workers, academics, digital rights activists, and more',
+        activeUsers: 35000,
+        languages: ['en'],
+      ),
+      InstanceCaps(
+        domain: 'mastodon.online',
+        platform: InstancePlatform.mastodon,
+        openRegistration: true,
+        maxMediaPerPost: 4,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 28.0,
+        title: 'Mastodon Online',
+        description: 'A general-purpose Mastodon instance with a focus on being fast and reliable',
+        activeUsers: 120000,
+        languages: ['en'],
+      ),
 
-      if (mounted) {
-        setState(() {
-          _suggestions = suggestions;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      // If all fails, show empty suggestions
-      if (mounted) {
-        setState(() {
-          _suggestions = [];
-          _isSearching = false;
-        });
-      }
-    }
+      // Pixelfed instances
+      InstanceCaps(
+        domain: 'pixelfed.social',
+        platform: InstancePlatform.pixelfed,
+        openRegistration: true,
+        maxMediaPerPost: 20,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 30.0,
+        title: 'Pixelfed Social',
+        description: 'The flagship Pixelfed instance for photo sharing',
+        activeUsers: 25000,
+        languages: ['en'],
+        photoFocused: true,
+        supportsStories: true,
+      ),
+      InstanceCaps(
+        domain: 'pixelfed.art',
+        platform: InstancePlatform.pixelfed,
+        openRegistration: true,
+        maxMediaPerPost: 20,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 25.0,
+        title: 'Pixelfed Art',
+        description: 'A Pixelfed instance focused on art and creative photography',
+        activeUsers: 8000,
+        languages: ['en'],
+        photoFocused: true,
+        supportsStories: true,
+      ),
+      InstanceCaps(
+        domain: 'pixelfed.de',
+        platform: InstancePlatform.pixelfed,
+        openRegistration: true,
+        maxMediaPerPost: 20,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 35.0,
+        title: 'Pixelfed DE',
+        description: 'A German Pixelfed instance for photo sharing',
+        activeUsers: 5000,
+        languages: ['de'],
+        photoFocused: true,
+        supportsStories: true,
+      ),
+    ];
   }
 
   /// Select a suggested instance

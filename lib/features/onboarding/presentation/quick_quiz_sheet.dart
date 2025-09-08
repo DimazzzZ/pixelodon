@@ -159,7 +159,7 @@ class _QuickQuizSheetState extends ConsumerState<QuickQuizSheet> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(_currentPage == 2 ? 'Get Recommendations' : 'Next'),
+                        : Text(_currentPage == 2 ? 'Get Servers' : 'Next'),
                   ),
                 ),
               ],

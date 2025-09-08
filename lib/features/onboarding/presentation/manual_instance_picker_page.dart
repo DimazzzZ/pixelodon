@@ -539,7 +539,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: instance.openRegistration 
+                      color: instance.openRegistration
                           ? Colors.green.withOpacity(0.1)
                           : Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -552,17 +552,20 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 8),
-                  
-                  // User count
-                  Text(
-                    _formatUserCount(instance.activeUsers),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+
+                  // User count - flexible to prevent overflow
+                  Flexible(
+                    child: Text(
+                      _formatUserCount(instance.activeUsers),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  
+
                   const SizedBox(width: 8),
                   
                   // Load indicator
@@ -583,20 +586,28 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                   
                   const Spacer(),
 
-                  // Action buttons
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PlatformTextButton(
-                        onPressed: () => _previewInstance(context, instance),
-                        child: const Text('Preview'),
-                      ),
-                      const SizedBox(width: 8),
-                      PlatformElevatedButton(
-                        onPressed: () => _selectInstance(context, instance),
-                        child: const Text('Select'),
-                      ),
-                    ],
+                  // Action buttons - constrained to prevent overflow
+                  IntrinsicHeight(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 60, maxWidth: 80),
+                          child: PlatformTextButton(
+                            onPressed: () => _previewInstance(context, instance),
+                            child: const Text('Preview'),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 60, maxWidth: 80),
+                          child: PlatformElevatedButton(
+                            onPressed: () => _selectInstance(context, instance),
+                            child: const Text('Select'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
