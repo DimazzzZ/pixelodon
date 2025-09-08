@@ -254,18 +254,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Show default popular suggestions (static, curated list)
   void _showDefaultSuggestions() {
     // Static curated list of popular servers - loads immediately
-    final suggestions = _getCuratedPopularServers();
+    final allSuggestions = _getCuratedPopularServers();
 
     setState(() {
-      _suggestions = suggestions;
+      _suggestions = allSuggestions;
       _isSearching = false;
     });
   }
 
-  /// Get curated list of popular servers (static data)
-  List<InstanceCaps> _getCuratedPopularServers() {
+  /// Get featured instances (flagship servers)
+  List<InstanceCaps> _getFeaturedInstances() {
     return [
-      // Mastodon instances
       InstanceCaps(
         domain: 'mastodon.social',
         platform: InstancePlatform.mastodon,
@@ -278,6 +277,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 850000,
         languages: ['en'],
       ),
+      InstanceCaps(
+        domain: 'pixelfed.social',
+        platform: InstancePlatform.pixelfed,
+        openRegistration: true,
+        maxMediaPerPost: 20,
+        moderationStyle: ModerationStyle.balanced,
+        loadScore: 30.0,
+        title: 'Pixelfed Social',
+        description: 'The flagship Pixelfed instance for photo sharing',
+        activeUsers: 25000,
+        languages: ['en'],
+        photoFocused: true,
+        supportsStories: true,
+      ),
+    ];
+  }
+
+  /// Get other popular servers (non-flagship)
+  List<InstanceCaps> _getOtherPopularServers() {
+    return [
+      // Other popular Mastodon instances
       InstanceCaps(
         domain: 'mastodon.world',
         platform: InstancePlatform.mastodon,
@@ -339,21 +359,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         languages: ['en'],
       ),
 
-      // Pixelfed instances
-      InstanceCaps(
-        domain: 'pixelfed.social',
-        platform: InstancePlatform.pixelfed,
-        openRegistration: true,
-        maxMediaPerPost: 20,
-        moderationStyle: ModerationStyle.balanced,
-        loadScore: 30.0,
-        title: 'Pixelfed Social',
-        description: 'The flagship Pixelfed instance for photo sharing',
-        activeUsers: 25000,
-        languages: ['en'],
-        photoFocused: true,
-        supportsStories: true,
-      ),
+      // Other Pixelfed instances (flagship already included above)
       InstanceCaps(
         domain: 'pixelfed.art',
         platform: InstancePlatform.pixelfed,
@@ -383,6 +389,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         supportsStories: true,
       ),
     ];
+  }
+
+  /// Get curated list of popular servers (combines featured and other popular)
+  List<InstanceCaps> _getCuratedPopularServers() {
+    return [..._getFeaturedInstances(), ..._getOtherPopularServers()];
   }
 
   /// Select a suggested instance
@@ -486,15 +497,82 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Determine if these are default suggestions or search results
     final isDefaultSuggestions = _instanceController.text.trim().isEmpty;
-    final headerText = isDefaultSuggestions ? 'Popular servers' : 'Suggested servers';
 
+    if (isDefaultSuggestions) {
+      return _buildDefaultSuggestions(theme);
+    } else {
+      return _buildSearchResults(theme);
+    }
+  }
+
+  Widget _buildDefaultSuggestions(ThemeData theme) {
+    final featuredInstances = _getFeaturedInstances();
+    final otherInstances = _getOtherPopularServers();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Featured servers section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Featured servers',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...featuredInstances.map((instance) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ServerCard(
+            instance: instance,
+            onTap: () => _selectSuggestion(instance),
+            showActions: false,
+            showThumbnail: false,
+            maxDescriptionLines: 2,
+            badges: _getInstanceBadges(instance),
+            isFeatured: true,
+          ),
+        )),
+
+        const SizedBox(height: 16),
+
+        // Other popular servers section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Other popular servers',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...otherInstances.map((instance) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ServerCard(
+            instance: instance,
+            onTap: () => _selectSuggestion(instance),
+            showActions: false,
+            showThumbnail: false,
+            maxDescriptionLines: 2,
+            badges: _getInstanceBadges(instance),
+            isFeatured: false,
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildSearchResults(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            headerText,
+            'Suggested servers',
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -510,6 +588,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             showThumbnail: false,
             maxDescriptionLines: 2,
             badges: _getInstanceBadges(instance),
+            isFeatured: _isFlagshipInstance(instance),
           ),
         )),
       ],
@@ -523,16 +602,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       badges.add(InstanceBadge.openRegistration);
     }
 
-    // Add other badges based on instance properties
+    // Add community size badges
     if (instance.activeUsers > 50000) {
       badges.add(InstanceBadge.largeCommunity);
     } else if (instance.activeUsers > 10000) {
       badges.add(InstanceBadge.growingCommunity);
     }
 
-    if (instance.loadScore < 50) {
-      badges.add(InstanceBadge.lowLoad);
-    }
+    // Don't add performance badges since we show performance in stats
+    // if (instance.loadScore < 50) {
+    //   badges.add(InstanceBadge.lowLoad);
+    // }
 
     if (instance.platform == InstancePlatform.mastodon) {
       badges.add(InstanceBadge.mastodon);
@@ -541,6 +621,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return badges;
+  }
+
+  bool _isFlagshipInstance(InstanceCaps instance) {
+    return instance.domain == 'mastodon.social' || instance.domain == 'pixelfed.social';
   }
   
   @override

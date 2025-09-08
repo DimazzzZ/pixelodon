@@ -450,6 +450,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
                 secondaryActionText: 'Preview',
                 badges: _getInstanceBadges(instance),
                 maxDescriptionLines: 2,
+                isFeatured: _isFlagshipInstance(instance),
               ),
             );
           },
@@ -466,16 +467,17 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
       badges.add(InstanceBadge.openRegistration);
     }
 
-    // Add other badges based on instance properties
+    // Add community size badges
     if (instance.activeUsers > 50000) {
       badges.add(InstanceBadge.largeCommunity);
     } else if (instance.activeUsers > 10000) {
       badges.add(InstanceBadge.growingCommunity);
     }
 
-    if (instance.loadScore < 50) {
-      badges.add(InstanceBadge.lowLoad);
-    }
+    // Don't add performance badges since we show performance in stats
+    // if (instance.loadScore < 50) {
+    //   badges.add(InstanceBadge.lowLoad);
+    // }
 
     if (instance.platform == InstancePlatform.mastodon) {
       badges.add(InstanceBadge.mastodon);
@@ -484,6 +486,10 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     }
 
     return badges;
+  }
+
+  bool _isFlagshipInstance(InstanceCaps instance) {
+    return instance.domain == 'mastodon.social' || instance.domain == 'pixelfed.social';
   }
 
   String _getSortOrderLabel(InstanceSortOrder order) {

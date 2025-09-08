@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
+import 'dart:io';
 
 /// Standardized server card widget used across the app
 class ServerCard extends StatelessWidget {
@@ -35,7 +36,56 @@ class ServerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
+    if (Platform.isIOS) {
+      return _buildIOSCard(context, theme);
+    } else {
+      return _buildAndroidCard(context, theme);
+    }
+  }
+
+  Widget _buildIOSCard(BuildContext context, ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: isFeatured
+            ? Border.all(color: theme.colorScheme.primary, width: 2)
+            : Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, theme),
+                const SizedBox(height: 12),
+                _buildDescription(context, theme),
+                if (showThumbnail) _buildThumbnail(context, theme),
+                _buildBadges(context, theme),
+                _buildStats(context, theme),
+                if (showActions) _buildActions(context, theme),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAndroidCard(BuildContext context, ThemeData theme) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -76,32 +126,11 @@ class ServerCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      instance.title.isNotEmpty ? instance.title : instance.domain,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (isFeatured)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Featured',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
+              Text(
+                instance.title.isNotEmpty ? instance.title : instance.domain,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -190,44 +219,8 @@ class ServerCard extends StatelessWidget {
 
   Widget _buildBadges(BuildContext context, ThemeData theme) {
     final allBadges = <Widget>[];
-    
-    // Registration status badge
-    allBadges.add(
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: instance.openRegistration
-              ? Colors.green.withOpacity(0.1)
-              : Colors.orange.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: instance.openRegistration
-                ? Colors.green.withOpacity(0.3)
-                : Colors.orange.withOpacity(0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              instance.openRegistration ? Icons.lock_open : Icons.lock,
-              size: 14,
-              color: instance.openRegistration ? Colors.green : Colors.orange,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              instance.openRegistration ? 'Open Registration' : 'Closed Registration',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: instance.openRegistration ? Colors.green : Colors.orange,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
 
-    // Additional badges
+    // Only add badges from the badges list (no automatic registration badge)
     for (final badge in badges) {
       allBadges.add(_buildBadge(context, theme, badge));
     }
@@ -250,15 +243,15 @@ class ServerCard extends StatelessWidget {
 
   Widget _buildBadge(BuildContext context, ThemeData theme, InstanceBadge badge) {
     final badgeInfo = _getBadgeInfo(badge);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: badgeInfo.color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: badgeInfo.color.withOpacity(0.3),
-        ),
+        color: badgeInfo.color.withOpacity(Platform.isIOS ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(Platform.isIOS ? 8 : 12),
+        border: Platform.isIOS
+            ? null
+            : Border.all(color: badgeInfo.color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -273,7 +266,7 @@ class ServerCard extends StatelessWidget {
             badgeInfo.label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: badgeInfo.color,
-              fontWeight: FontWeight.w500,
+              fontWeight: Platform.isIOS ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
         ],
@@ -323,17 +316,62 @@ class ServerCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    if (Platform.isIOS) {
+      return _buildIOSActions(context, theme);
+    } else {
+      return _buildAndroidActions(context, theme);
+    }
+  }
+
+  Widget _buildIOSActions(BuildContext context, ThemeData theme) {
     return Row(
       children: [
         if (onPreview != null)
           Expanded(
-            child: PlatformElevatedButton(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              color: theme.colorScheme.surfaceContainerHighest,
               onPressed: onPreview,
-              material: (context, platform) => MaterialElevatedButtonData(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  foregroundColor: theme.colorScheme.onSurface,
+              child: Text(
+                secondaryActionText ?? 'Preview',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
                 ),
+              ),
+            ),
+          ),
+        if (onPreview != null && onJoin != null) const SizedBox(width: 12),
+        if (onJoin != null)
+          Expanded(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              color: theme.colorScheme.primary,
+              onPressed: onJoin,
+              child: Text(
+                primaryActionText ?? 'Join',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAndroidActions(BuildContext context, ThemeData theme) {
+    return Row(
+      children: [
+        if (onPreview != null)
+          Expanded(
+            child: ElevatedButton(
+              onPressed: onPreview,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                foregroundColor: theme.colorScheme.onSurface,
+                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(secondaryActionText ?? 'Preview'),
             ),
@@ -341,8 +379,13 @@ class ServerCard extends StatelessWidget {
         if (onPreview != null && onJoin != null) const SizedBox(width: 12),
         if (onJoin != null)
           Expanded(
-            child: PlatformElevatedButton(
+            child: ElevatedButton(
               onPressed: onJoin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
               child: Text(primaryActionText ?? 'Join'),
             ),
           ),
