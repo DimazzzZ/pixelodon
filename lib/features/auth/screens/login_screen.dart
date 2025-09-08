@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/widgets/common/server_card.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -626,6 +629,124 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isFlagshipInstance(InstanceCaps instance) {
     return instance.domain == 'mastodon.social' || instance.domain == 'pixelfed.social';
   }
+
+  Widget _buildInstanceTextField(BuildContext context, ThemeData theme) {
+    if (Platform.isIOS) {
+      return _buildIOSTextField(context, theme);
+    } else {
+      return _buildAndroidTextField(context, theme);
+    }
+  }
+
+  Widget _buildIOSTextField(BuildContext context, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 4),
+          child: Text(
+            'INSTANCE DOMAIN',
+            style: CupertinoTheme.of(context).textTheme.tabLabelTextStyle.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg(context),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: CupertinoTextFormFieldRow(
+            controller: _instanceController,
+            placeholder: 'mastodon.social',
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.go,
+            onChanged: _onSearchChanged,
+            onFieldSubmitted: (_) => _discoverInstance(),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter an instance domain';
+              }
+              return null;
+            },
+            style: TextStyle(
+              color: CupertinoColors.label.resolveFrom(context),
+              fontSize: 17,
+            ),
+            decoration: const BoxDecoration(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAndroidTextField(BuildContext context, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter your instance domain',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Material(
+          child: TextFormField(
+            controller: _instanceController,
+            decoration: const InputDecoration(
+              hintText: 'e.g., mastodon.social, pixelfed.social',
+              prefixIcon: Icon(Icons.language),
+            ),
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.go,
+            onChanged: _onSearchChanged,
+            onFieldSubmitted: (_) => _discoverInstance(),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter an instance domain';
+              }
+              return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStickyTextField(BuildContext context, ThemeData theme) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: Platform.isIOS ? 20 : 16,
+        vertical: 12,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildInstanceTextField(context, theme),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: PlatformElevatedButton(
+                onPressed: _isLoading ? null : _discoverInstance,
+                child: _isLoading && _discoveredInstance == null
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: PlatformCircularProgressIndicator(),
+                      )
+                    : const Text('Connect'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -633,96 +754,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authRepository = ref.watch(authRepositoryProvider);
     final isLoggedIn = authRepository.instances.isNotEmpty;
 
-    return AppPageScaffold.sliver(
-      largeTitle: 'Login',
+    return AppPageScaffold.standard(
+      title: 'Login',
       // Show back button only if user is not logged in (to go back to onboarding)
       leading: !isLoggedIn ? IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.go('/onboarding'),
       ) : null,
-      sliverBodyBuilder: () => CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(16.0),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-            
-            // Instance form
-            Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Enter your instance domain',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Material(
-                    child: TextFormField(
-                      controller: _instanceController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g., mastodon.social, pixelfed.social',
-                        prefixIcon: Icon(Icons.language),
-                      ),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.go,
-                      onChanged: _onSearchChanged,
-                      onFieldSubmitted: (_) => _discoverInstance(),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter an instance domain';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  PlatformElevatedButton(
-                    onPressed: _isLoading ? null : _discoverInstance,
-                    child: _isLoading && _discoveredInstance == null
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: PlatformCircularProgressIndicator(),
-                          )
-                        : const Text('Continue'),
-                  ),
-                ],
-              ),
+      body: Column(
+        children: [
+          // Sticky text field header - positioned below nav bar
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.pageBg(context),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
+            child: SafeArea(
+              bottom: false,
+              child: _buildStickyTextField(context, theme),
+            ),
+          ),
 
-            // Server suggestions - show when searching, have suggestions, or input is empty
-            if (_isSearching || _suggestions.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildSuggestions(),
-            ],
-            
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                ),
-              ),
-            ],
-            
-            // Discovered instance info
-            if (_discoveredInstance != null) ...[
-              const SizedBox(height: 32),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Server suggestions - show when searching, have suggestions, or input is empty
+                  if (_isSearching || _suggestions.isNotEmpty) ...[
+                    _buildSuggestions(),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Error message
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Discovered instance info
+                  if (_discoveredInstance != null) ...[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -801,21 +894,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : const Text('Login with this instance'),
                       ),
                     ],
-                  ),
-                ),
-              ),
-            ],
-            
-            const SizedBox(height: 24),
-            
-            // Existing accounts
-            Consumer(
-              builder: (context, ref, child) {
-                final instances = ref.watch(instancesProvider);
-                
-                if (instances.isEmpty) return const SizedBox.shrink();
-                
-                return Column(
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+              ], // Close the if (_discoveredInstance != null) block
+
+              // Existing accounts
+              Consumer(
+                    builder: (context, ref, child) {
+                      final instances = ref.watch(instancesProvider);
+
+                      if (instances.isEmpty) return const SizedBox.shrink();
+
+                      return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Divider(),
@@ -842,9 +934,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       },
                     )),
                   ],
-                );
-              },
-            ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

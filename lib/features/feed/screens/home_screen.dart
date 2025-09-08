@@ -342,25 +342,28 @@ class HomeScreen extends ConsumerWidget {
       );
     }
 
-    return AppPageScaffold.sliver(
-      largeTitle: 'Pixelodon',
-      headerBelowSliver: _buildTabBar(context),
-      sliverBodyBuilder: () => CustomScrollView(
-        slivers: [
-          _buildTabBarView(context, timelineState, timelineNotifier),
-        ],
+    return DefaultTabController(
+      length: 3,
+      child: AppPageScaffold.sliver(
+        largeTitle: 'Pixelodon',
+        sliverBodyBuilder: () => CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildTabBar(context),
+            ),
+            _buildTabBarView(context, timelineState, timelineNotifier),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTabBar(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: TabBar(
+    return Theme(
+      data: Theme.of(context).copyWith(
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: TabBar(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           labelPadding: const EdgeInsets.symmetric(horizontal: 8),
           indicatorSize: TabBarIndicatorSize.label,
@@ -402,8 +405,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildTabBarView(BuildContext context, TimelineState timelineState, TimelineNotifier timelineNotifier) {

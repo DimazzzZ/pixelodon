@@ -492,6 +492,45 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     return instance.domain == 'mastodon.social' || instance.domain == 'pixelfed.social';
   }
 
+  Widget _buildSearchField() {
+    if (Platform.isIOS) {
+      return CupertinoSearchTextField(
+        controller: _searchController,
+        placeholder: 'Search servers...',
+        onChanged: _updateSearch,
+        onSuffixTap: () {
+          _searchController.clear();
+          _updateSearch('');
+        },
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      );
+    } else {
+      return TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search servers...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _updateSearch('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        onChanged: _updateSearch,
+      );
+    }
+  }
+
   String _getSortOrderLabel(InstanceSortOrder order) {
     switch (order) {
       case InstanceSortOrder.recommended:
@@ -692,27 +731,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
       child: Container(
         height: 60,
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search servers...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      _updateSearch('');
-                    },
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          onChanged: _updateSearch,
-        ),
+        child: _buildSearchField(),
       ),
     );
   }

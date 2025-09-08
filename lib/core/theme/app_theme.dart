@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 
 enum ThemeType { light, dark, amoled }
 
@@ -279,4 +281,67 @@ class AppTheme {
       ),
     );
   }
+
+  // Platform-specific semantic color tokens
+  static const _IOSColors _ios = _IOSColors();
+  static _AndroidColors _android(ThemeData theme) => _AndroidColors(theme);
+
+  // Platform-agnostic color helpers
+  static Color pageBg(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoDynamicColor.resolve(_ios.pageBg, context);
+    } else {
+      final theme = Theme.of(context);
+      return _android(theme).pageBg;
+    }
+  }
+
+  static Color cardBg(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoDynamicColor.resolve(_ios.cardBg, context);
+    } else {
+      final theme = Theme.of(context);
+      return _android(theme).cardBg;
+    }
+  }
+
+  static Color tertiaryBg(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoDynamicColor.resolve(_ios.tertiaryBg, context);
+    } else {
+      final theme = Theme.of(context);
+      return _android(theme).tertiaryBg;
+    }
+  }
+
+  static Color separator(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoDynamicColor.resolve(_ios.separator, context);
+    } else {
+      final theme = Theme.of(context);
+      return _android(theme).separator;
+    }
+  }
+}
+
+// iOS semantic colors
+class _IOSColors {
+  const _IOSColors();
+
+  CupertinoDynamicColor get pageBg => CupertinoColors.systemGroupedBackground;
+  CupertinoDynamicColor get cardBg => CupertinoColors.secondarySystemGroupedBackground;
+  CupertinoDynamicColor get tertiaryBg => CupertinoColors.tertiarySystemGroupedBackground;
+  CupertinoDynamicColor get separator => CupertinoColors.separator;
+}
+
+// Android semantic colors
+class _AndroidColors {
+  final ThemeData theme;
+
+  _AndroidColors(this.theme);
+
+  Color get pageBg => theme.colorScheme.surface;
+  Color get cardBg => theme.colorScheme.surfaceContainerLow;
+  Color get tertiaryBg => theme.colorScheme.surfaceContainer;
+  Color get separator => theme.colorScheme.outline;
 }

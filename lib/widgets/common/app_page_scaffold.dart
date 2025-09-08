@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 import 'dart:io';
 
 /// A unified cross-platform scaffold with standard and sliver patterns
@@ -418,12 +419,15 @@ class _BodyHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      bottom: false,
+    return Container(
+      color: AppTheme.pageBg(context),
       child: Material(
         type: MaterialType.transparency,
-        child: child,
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: child,
+        ),
       ),
     );
   }

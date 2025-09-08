@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 import 'dart:io';
 
 /// Platform-native app bar implementation with two factory constructors
@@ -127,7 +128,7 @@ class PlatformAppBar extends StatelessWidget implements PreferredSizeWidget {
               }).toList(),
             )
           : null,
-      backgroundColor: backgroundColor,
+      backgroundColor: backgroundColor ?? AppTheme.pageBg(context),
     );
   }
 
@@ -186,7 +187,7 @@ class PlatformAppBar extends StatelessWidget implements PreferredSizeWidget {
               }).toList(),
             )
           : null,
-      backgroundColor: backgroundColor,
+      backgroundColor: backgroundColor ?? AppTheme.pageBg(context),
       stretch: false,
     );
   }

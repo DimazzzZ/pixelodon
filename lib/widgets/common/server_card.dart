@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 import 'dart:io';
 
 /// Standardized server card widget used across the app
@@ -47,11 +48,11 @@ class ServerCard extends StatelessWidget {
   Widget _buildIOSCard(BuildContext context, ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: AppTheme.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         border: isFeatured
             ? Border.all(color: theme.colorScheme.primary, width: 2)
-            : Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+            : Border.all(color: AppTheme.separator(context).withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -88,6 +89,7 @@ class ServerCard extends StatelessWidget {
   Widget _buildAndroidCard(BuildContext context, ThemeData theme) {
     return Card(
       elevation: 2,
+      color: AppTheme.cardBg(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: isFeatured
