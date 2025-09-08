@@ -183,7 +183,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
     final l10n = AppLocalizations.of(context);
 
     return Text(
-      l10n?.fediverseEducationTldr ?? 'The Fediverse is a network of social apps that interoperate. You pick a home server, follow anyone across servers, and you can move later.',
+      l10n?.fediverseEducationTldr ?? 'Think of it like email! You can pick any email company (Gmail, Yahoo, etc.) but still send messages to anyone. The Fediverse works the same way with social media.',
       style: theme.textTheme.bodyLarge,
       textAlign: isIOS ? TextAlign.center : TextAlign.start,
     );
@@ -196,18 +196,18 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
     final blocks = [
       {
         'icon': isIOS ? CupertinoIcons.house_fill : Icons.home,
-        'title': l10n?.fediverseEducationBlock1Title ?? 'Choose a home',
-        'subtitle': l10n?.fediverseEducationBlock1Subtitle ?? 'Like picking an email provider. Pixelodon suggests good starters.',
+        'title': l10n?.fediverseEducationBlock1Title ?? 'Pick your neighborhood',
+        'subtitle': l10n?.fediverseEducationBlock1Subtitle ?? 'Just like choosing where to live! Each server is like a friendly neighborhood with its own rules.',
       },
       {
         'icon': isIOS ? CupertinoIcons.person_2_fill : Icons.diversity_3,
         'title': l10n?.fediverseEducationBlock2Title ?? 'Talk to everyone',
-        'subtitle': l10n?.fediverseEducationBlock2Subtitle ?? 'Mastodon (posts), Pixelfed (photos) — accounts interact across apps.',
+        'subtitle': l10n?.fediverseEducationBlock2Subtitle ?? 'You can follow and chat with people from any neighborhood, not just your own!',
       },
       {
         'icon': isIOS ? CupertinoIcons.arrow_right_arrow_left_circle_fill : Icons.compare_arrows,
-        'title': l10n?.fediverseEducationBlock3Title ?? 'Move later',
-        'subtitle': l10n?.fediverseEducationBlock3Subtitle ?? 'Migrate and keep your followers; posts may not transfer.',
+        'title': l10n?.fediverseEducationBlock3Title ?? 'You can move',
+        'subtitle': l10n?.fediverseEducationBlock3Subtitle ?? 'Don\'t like your neighborhood? You can move to a different one and keep your friends!',
       },
     ];
 
@@ -259,16 +259,16 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
 
     final faqItems = [
       {
-        'question': l10n?.fediverseEducationFaq1Question ?? 'Who moderates?',
-        'answer': l10n?.fediverseEducationFaq1Answer ?? 'Each server has its own rules and admins.',
+        'question': l10n?.fediverseEducationFaq1Question ?? 'Who\'s in charge?',
+        'answer': l10n?.fediverseEducationFaq1Answer ?? 'Each neighborhood has its own friendly helpers who make sure everyone plays nice.',
       },
       {
-        'question': l10n?.fediverseEducationFaq2Question ?? 'Is there one company?',
-        'answer': l10n?.fediverseEducationFaq2Answer ?? 'No. It\'s a federation of independent servers.',
+        'question': l10n?.fediverseEducationFaq2Question ?? 'Who owns this?',
+        'answer': l10n?.fediverseEducationFaq2Answer ?? 'Nobody! It\'s like a bunch of independent neighborhoods that decided to be friends.',
       },
       {
-        'question': l10n?.fediverseEducationFaq3Question ?? 'Can I change servers?',
-        'answer': l10n?.fediverseEducationFaq3Answer ?? 'Yes. Export your data and switch; your followers can move with you.',
+        'question': l10n?.fediverseEducationFaq3Question ?? 'What if I don\'t like my server?',
+        'answer': l10n?.fediverseEducationFaq3Answer ?? 'You can pack up and move to a different neighborhood anytime! Your friends can come with you.',
       },
     ];
 

@@ -100,17 +100,17 @@
     "description": "Accessibility label for close button"
   },
 
-  "fediverseEducationTldr": "The Fediverse is a network of social apps that interoperate. You pick a home server, follow anyone across servers, and you can move later.",
+  "fediverseEducationTldr": "Think of it like email! You can pick any email company (Gmail, Yahoo, etc.) but still send messages to anyone. The Fediverse works the same way with social media.",
   "@fediverseEducationTldr": {
     "description": "TL;DR explanation of the Fediverse"
   },
 
-  "fediverseEducationBlock1Title": "Choose a home",
+  "fediverseEducationBlock1Title": "Pick your neighborhood",
   "@fediverseEducationBlock1Title": {
     "description": "Title for the first education block"
   },
 
-  "fediverseEducationBlock1Subtitle": "Like picking an email provider. Pixelodon suggests good starters.",
+  "fediverseEducationBlock1Subtitle": "Just like choosing where to live! Each server is like a friendly neighborhood with its own rules.",
   "@fediverseEducationBlock1Subtitle": {
     "description": "Subtitle for the first education block"
   },
@@ -120,47 +120,47 @@
     "description": "Title for the second education block"
   },
 
-  "fediverseEducationBlock2Subtitle": "Mastodon (posts), Pixelfed (photos) — accounts interact across apps.",
+  "fediverseEducationBlock2Subtitle": "You can follow and chat with people from any neighborhood, not just your own!",
   "@fediverseEducationBlock2Subtitle": {
     "description": "Subtitle for the second education block"
   },
 
-  "fediverseEducationBlock3Title": "Move later",
+  "fediverseEducationBlock3Title": "You can move",
   "@fediverseEducationBlock3Title": {
     "description": "Title for the third education block"
   },
 
-  "fediverseEducationBlock3Subtitle": "Migrate and keep your followers; posts may not transfer.",
+  "fediverseEducationBlock3Subtitle": "Don't like your neighborhood? You can move to a different one and keep your friends!",
   "@fediverseEducationBlock3Subtitle": {
     "description": "Subtitle for the third education block"
   },
 
-  "fediverseEducationFaq1Question": "Who moderates?",
+  "fediverseEducationFaq1Question": "Who's in charge?",
   "@fediverseEducationFaq1Question": {
     "description": "First FAQ question"
   },
 
-  "fediverseEducationFaq1Answer": "Each server has its own rules and admins.",
+  "fediverseEducationFaq1Answer": "Each neighborhood has its own friendly helpers who make sure everyone plays nice.",
   "@fediverseEducationFaq1Answer": {
     "description": "First FAQ answer"
   },
 
-  "fediverseEducationFaq2Question": "Is there one company?",
+  "fediverseEducationFaq2Question": "Who owns this?",
   "@fediverseEducationFaq2Question": {
     "description": "Second FAQ question"
   },
 
-  "fediverseEducationFaq2Answer": "No. It's a federation of independent servers.",
+  "fediverseEducationFaq2Answer": "Nobody! It's like a bunch of independent neighborhoods that decided to be friends.",
   "@fediverseEducationFaq2Answer": {
     "description": "Second FAQ answer"
   },
 
-  "fediverseEducationFaq3Question": "Can I change servers?",
+  "fediverseEducationFaq3Question": "What if I don't like my server?",
   "@fediverseEducationFaq3Question": {
     "description": "Third FAQ question"
   },
 
-  "fediverseEducationFaq3Answer": "Yes. Export your data and switch; your followers can move with you.",
+  "fediverseEducationFaq3Answer": "You can pack up and move to a different neighborhood anytime! Your friends can come with you.",
   "@fediverseEducationFaq3Answer": {
     "description": "Third FAQ answer"
   },
