@@ -83,5 +83,95 @@
   "onboardingLogoLabel": "Pixelodon logo",
   "@onboardingLogoLabel": {
     "description": "Accessibility label for the app logo"
+  },
+
+  "fediverseEducationTitle": "What is the Fediverse?",
+  "@fediverseEducationTitle": {
+    "description": "Title for the Fediverse education sheet"
+  },
+
+  "fediverseEducationDoneIOS": "Done",
+  "@fediverseEducationDoneIOS": {
+    "description": "iOS Done button text for closing the Fediverse education sheet"
+  },
+
+  "fediverseEducationCloseLabel": "Close",
+  "@fediverseEducationCloseLabel": {
+    "description": "Accessibility label for close button"
+  },
+
+  "fediverseEducationTldr": "The Fediverse is a network of social apps that interoperate. You pick a home server, follow anyone across servers, and you can move later.",
+  "@fediverseEducationTldr": {
+    "description": "TL;DR explanation of the Fediverse"
+  },
+
+  "fediverseEducationBlock1Title": "Choose a home",
+  "@fediverseEducationBlock1Title": {
+    "description": "Title for the first education block"
+  },
+
+  "fediverseEducationBlock1Subtitle": "Like picking an email provider. Pixelodon suggests good starters.",
+  "@fediverseEducationBlock1Subtitle": {
+    "description": "Subtitle for the first education block"
+  },
+
+  "fediverseEducationBlock2Title": "Talk to everyone",
+  "@fediverseEducationBlock2Title": {
+    "description": "Title for the second education block"
+  },
+
+  "fediverseEducationBlock2Subtitle": "Mastodon (posts), Pixelfed (photos) — accounts interact across apps.",
+  "@fediverseEducationBlock2Subtitle": {
+    "description": "Subtitle for the second education block"
+  },
+
+  "fediverseEducationBlock3Title": "Move later",
+  "@fediverseEducationBlock3Title": {
+    "description": "Title for the third education block"
+  },
+
+  "fediverseEducationBlock3Subtitle": "Migrate and keep your followers; posts may not transfer.",
+  "@fediverseEducationBlock3Subtitle": {
+    "description": "Subtitle for the third education block"
+  },
+
+  "fediverseEducationFaq1Question": "Who moderates?",
+  "@fediverseEducationFaq1Question": {
+    "description": "First FAQ question"
+  },
+
+  "fediverseEducationFaq1Answer": "Each server has its own rules and admins.",
+  "@fediverseEducationFaq1Answer": {
+    "description": "First FAQ answer"
+  },
+
+  "fediverseEducationFaq2Question": "Is there one company?",
+  "@fediverseEducationFaq2Question": {
+    "description": "Second FAQ question"
+  },
+
+  "fediverseEducationFaq2Answer": "No. It's a federation of independent servers.",
+  "@fediverseEducationFaq2Answer": {
+    "description": "Second FAQ answer"
+  },
+
+  "fediverseEducationFaq3Question": "Can I change servers?",
+  "@fediverseEducationFaq3Question": {
+    "description": "Third FAQ question"
+  },
+
+  "fediverseEducationFaq3Answer": "Yes. Export your data and switch; your followers can move with you.",
+  "@fediverseEducationFaq3Answer": {
+    "description": "Third FAQ answer"
+  },
+
+  "fediverseEducationContinueButton": "Continue",
+  "@fediverseEducationContinueButton": {
+    "description": "Continue button text to close the sheet"
+  },
+
+  "fediverseEducationRecommendServersButton": "See recommended servers",
+  "@fediverseEducationRecommendServersButton": {
+    "description": "Secondary button text to see recommended servers"
   }
 }

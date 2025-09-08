@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/presentation/quick_quiz_sheet.dart';
-import 'package:pixelodon/features/onboarding/presentation/tooltip_fediverse_dialog.dart';
+import 'package:pixelodon/features/onboarding/presentation/fediverse_education_sheet.dart';
 
 /// Main onboarding/welcome screen with platform-appropriate design
 class OnboardingScreen extends ConsumerWidget {
@@ -593,9 +593,12 @@ class OnboardingScreen extends ConsumerWidget {
   }
 
   void _showFediverseInfo(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => const TooltipFediverseDialog(),
+      isScrollControlled: true,
+      useSafeArea: true,
+      // showDragHandle: true,
+      builder: (context) => const FediverseEducationSheet(),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 import 'package:pixelodon/services/deep_link_service.dart';
@@ -67,6 +68,7 @@ class _PixelodonAppState extends ConsumerState<PixelodonApp> {
         themeMode: themeMode,
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
+          AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
@@ -81,6 +83,7 @@ class _PixelodonAppState extends ConsumerState<PixelodonApp> {
         ),
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
+          AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
