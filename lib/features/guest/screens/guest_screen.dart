@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/features/common/widgets/sliver_fixed_header.dart';
 import 'dart:io';
 
 
@@ -201,23 +200,11 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.go('/onboarding'),
       ),
-      actions: [
-        Platform.isIOS
-            ? CupertinoButton(
-                padding: EdgeInsets.zero,
-                minSize: 44.0,
-                child: const Icon(CupertinoIcons.person_circle),
-                onPressed: () => _showLoginOptions(context),
-              )
-            : IconButton(
-                icon: const Icon(Icons.account_circle),
-                onPressed: () => _showLoginOptions(context),
-              ),
-      ],
+      // Removed profile action from top right corner
       sliverBodyBuilder: () => CustomScrollView(
         slivers: [
-          _buildSegmentedHeader(context, theme),
           _buildInfoBannerSliver(context, theme),
+          _buildSegmentedControlSliver(context, theme),
           _buildContentSliver(),
         ],
       ),
@@ -491,12 +478,10 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
     );
   }
 
-  Widget _buildSegmentedHeader(BuildContext context, ThemeData theme) {
-    return SliverFixedHeader(
-      baseHeight: 56, // Increased from 48 to accommodate CupertinoSegmentedControl
+  Widget _buildSegmentedControlSliver(BuildContext context, ThemeData theme) {
+    return SliverToBoxAdapter(
       child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Platform.isIOS
             ? CupertinoSegmentedControl<int>(
                 children: const {
@@ -514,25 +499,31 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
                 },
                 groupValue: _selectedIndex,
               )
-            : Row(
-                children: [
-                  Expanded(
-                    child: _buildTabButton(
-                      context: context,
-                      title: 'Global',
-                      isSelected: _selectedIndex == 0,
-                      onTap: () => setState(() => _selectedIndex = 0),
+            : Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildTabButton(
+                        context: context,
+                        title: 'Global',
+                        isSelected: _selectedIndex == 0,
+                        onTap: () => setState(() => _selectedIndex = 0),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _buildTabButton(
-                      context: context,
-                      title: 'Local',
-                      isSelected: _selectedIndex == 1,
-                      onTap: () => setState(() => _selectedIndex = 1),
+                    Expanded(
+                      child: _buildTabButton(
+                        context: context,
+                        title: 'Local',
+                        isSelected: _selectedIndex == 1,
+                        onTap: () => setState(() => _selectedIndex = 1),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
       ),
     );
