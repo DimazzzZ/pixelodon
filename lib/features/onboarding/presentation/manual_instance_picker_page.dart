@@ -803,12 +803,12 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
       message = textWidget.data ?? 'Notification';
     }
 
-    showDialog(
+    showPlatformDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PlatformAlertDialog(
         content: Text(message),
         actions: [
-          TextButton(
+          PlatformDialogAction(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
           ),

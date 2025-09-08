@@ -581,7 +581,7 @@ class RecommendInstancesSheet extends ConsumerWidget {
   }
 
   void _showWhySuggested(BuildContext context, InstanceRecommendation recommendation) {
-    showDialog(
+    showPlatformDialog(
       context: context,
       builder: (context) => _WhySuggestedDialog(recommendation: recommendation),
     );
@@ -614,7 +614,7 @@ class _WhySuggestedDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return AlertDialog(
+    return PlatformAlertDialog(
       title: Text('Why ${recommendation.instance.domain}?'),
       content: SingleChildScrollView(
         child: Column(
@@ -662,7 +662,7 @@ class _WhySuggestedDialog extends StatelessWidget {
         ),
       ),
       actions: [
-        PlatformTextButton(
+        PlatformDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),
         ),
@@ -697,12 +697,12 @@ void _showSnackBarAsDialog(BuildContext context, SnackBar snackBar) {
     message = textWidget.data ?? 'Notification';
   }
 
-  showDialog(
+  showPlatformDialog(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => PlatformAlertDialog(
       content: Text(message),
       actions: [
-        TextButton(
+        PlatformDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('OK'),
         ),

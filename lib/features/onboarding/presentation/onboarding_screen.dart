@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
@@ -605,13 +606,13 @@ class OnboardingScreen extends ConsumerWidget {
   void _showPrivacyPolicy(BuildContext context) {
     // TODO: Implement privacy policy display
     // For now, show a simple dialog instead of SnackBar
-    showDialog(
+    showPlatformDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PlatformAlertDialog(
         title: const Text('Privacy Policy'),
         content: const Text('Privacy policy coming soon. We respect your privacy and will provide detailed information about our data practices.'),
         actions: [
-          TextButton(
+          PlatformDialogAction(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
           ),
@@ -653,12 +654,12 @@ class OnboardingScreen extends ConsumerWidget {
       message = textWidget.data ?? 'Notification';
     }
 
-    showDialog(
+    showPlatformDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PlatformAlertDialog(
         content: Text(message),
         actions: [
-          TextButton(
+          PlatformDialogAction(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
           ),
