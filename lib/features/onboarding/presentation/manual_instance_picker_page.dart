@@ -10,6 +10,7 @@ import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/features/common/widgets/sliver_fixed_header.dart';
+import 'package:pixelodon/widgets/common/server_card.dart';
 import 'dart:io';
 
 /// Full-page manual instance picker with filtering and search
@@ -441,7 +442,15 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
             final instance = instances[instanceIndex];
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _buildInstanceCard(context, instance),
+              child: ServerCard(
+                instance: instance,
+                onPreview: () => _previewInstance(context, instance),
+                onJoin: () => _selectInstance(context, instance),
+                primaryActionText: 'Select',
+                secondaryActionText: 'Preview',
+                badges: _getInstanceBadges(instance),
+                maxDescriptionLines: 2,
+              ),
             );
           },
           childCount: instances.length + 1, // +1 for the header
@@ -450,190 +459,31 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     );
   }
 
-  Widget _buildInstanceCard(BuildContext context, InstanceCaps instance) {
-    final theme = Theme.of(context);
-    
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () => _selectInstance(context, instance),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          instance.title.isNotEmpty ? instance.title : instance.domain,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          instance.domain,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    instance.platform == InstancePlatform.pixelfed
-                        ? Icons.photo_camera
-                        : Icons.forum,
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Description
-              if (instance.description.isNotEmpty) ...[
-                Text(
-                  instance.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-              ],
+  List<InstanceBadge> _getInstanceBadges(InstanceCaps instance) {
+    final badges = <InstanceBadge>[];
 
-              // Server thumbnail - only show if available
-              if (instance.thumbnail != null && instance.thumbnail!.isNotEmpty) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Image.network(
-                      instance.thumbnail!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        // If image fails to load, show nothing
-                        return const SizedBox.shrink();
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              
-              // Stats and badges row
-              Row(
-                children: [
-                  // Registration status
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: instance.openRegistration
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      instance.openRegistration ? 'Open' : 'Closed',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: instance.openRegistration ? Colors.green : Colors.orange,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+    if (instance.openRegistration) {
+      badges.add(InstanceBadge.openRegistration);
+    }
 
-                  const SizedBox(width: 8),
+    // Add other badges based on instance properties
+    if (instance.activeUsers > 50000) {
+      badges.add(InstanceBadge.largeCommunity);
+    } else if (instance.activeUsers > 10000) {
+      badges.add(InstanceBadge.growingCommunity);
+    }
 
-                  // User count - flexible to prevent overflow
-                  Flexible(
-                    child: Text(
-                      _formatUserCount(instance.activeUsers),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+    if (instance.loadScore < 50) {
+      badges.add(InstanceBadge.lowLoad);
+    }
 
-                  const SizedBox(width: 8),
-                  
-                  // Load indicator
-                  if (instance.loadScore < 30) ...[
-                    Icon(
-                      Icons.speed,
-                      size: 14,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      'Fast',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                  
-                  const Spacer(),
+    if (instance.platform == InstancePlatform.mastodon) {
+      badges.add(InstanceBadge.mastodon);
+    } else if (instance.platform == InstancePlatform.pixelfed) {
+      badges.add(InstanceBadge.pixelfed);
+    }
 
-                  // Action buttons - constrained to prevent overflow
-                  IntrinsicHeight(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 60, maxWidth: 80),
-                          child: PlatformTextButton(
-                            onPressed: () => _previewInstance(context, instance),
-                            child: const Text('Preview'),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 60, maxWidth: 80),
-                          child: PlatformElevatedButton(
-                            onPressed: () => _selectInstance(context, instance),
-                            child: const Text('Select'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return badges;
   }
 
   String _getSortOrderLabel(InstanceSortOrder order) {
@@ -673,14 +523,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     }
   }
 
-  String _formatUserCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    } else if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
-    return count.toString();
-  }
+
 
   void _updateSearch(String query) {
     final currentFilter = ref.read(currentInstanceFilterProvider);

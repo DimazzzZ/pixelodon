@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/data/recommendation_engine.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
+import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/widgets/common/server_card.dart';
 
 /// Screen for logging in to a Mastodon or Pixelfed instance
 class LoginScreen extends ConsumerStatefulWidget {
@@ -499,172 +501,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        ..._suggestions.map((instance) => _buildSuggestionCard(instance)),
+        ..._suggestions.map((instance) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ServerCard(
+            instance: instance,
+            onTap: () => _selectSuggestion(instance),
+            showActions: false,
+            showThumbnail: false,
+            maxDescriptionLines: 2,
+            badges: _getInstanceBadges(instance),
+          ),
+        )),
       ],
     );
   }
 
-  /// Build a single suggestion card
-  Widget _buildSuggestionCard(InstanceCaps instance) {
-    final theme = Theme.of(context);
+  List<InstanceBadge> _getInstanceBadges(InstanceCaps instance) {
+    final badges = <InstanceBadge>[];
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () => _selectSuggestion(instance),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with title and platform badge
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          instance.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          instance.domain,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Platform badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: instance.platform == InstancePlatform.pixelfed
-                          ? theme.colorScheme.secondaryContainer
-                          : theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          instance.platform == InstancePlatform.pixelfed
-                              ? Icons.photo_camera
-                              : Icons.forum,
-                          size: 14,
-                          color: instance.platform == InstancePlatform.pixelfed
-                              ? theme.colorScheme.onSecondaryContainer
-                              : theme.colorScheme.onPrimaryContainer,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          instance.platform == InstancePlatform.pixelfed ? 'Pixelfed' : 'Mastodon',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: instance.platform == InstancePlatform.pixelfed
-                                ? theme.colorScheme.onSecondaryContainer
-                                : theme.colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+    if (instance.openRegistration) {
+      badges.add(InstanceBadge.openRegistration);
+    }
 
-              // Description
-              if (instance.description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  instance.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+    // Add other badges based on instance properties
+    if (instance.activeUsers > 50000) {
+      badges.add(InstanceBadge.largeCommunity);
+    } else if (instance.activeUsers > 10000) {
+      badges.add(InstanceBadge.growingCommunity);
+    }
 
-              // Server thumbnail - only show if available
-              if (instance.thumbnail != null && instance.thumbnail!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Image.network(
-                      instance.thumbnail!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        // If image fails to load, show nothing
-                        return const SizedBox.shrink();
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
+    if (instance.loadScore < 50) {
+      badges.add(InstanceBadge.lowLoad);
+    }
 
-              // Stats and info
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    Icons.people,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${instance.activeUsers} users',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.touch_app,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Tap to select',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (instance.platform == InstancePlatform.mastodon) {
+      badges.add(InstanceBadge.mastodon);
+    } else if (instance.platform == InstancePlatform.pixelfed) {
+      badges.add(InstanceBadge.pixelfed);
+    }
+
+    return badges;
   }
   
   @override
