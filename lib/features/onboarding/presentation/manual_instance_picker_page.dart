@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +9,8 @@ import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart'
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
+import 'package:pixelodon/features/common/widgets/sliver_fixed_header.dart';
+import 'dart:io';
 
 /// Full-page manual instance picker with filtering and search
 class ManualInstancePickerPage extends ConsumerStatefulWidget {
@@ -46,37 +48,41 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     final currentFilter = ref.watch(currentInstanceFilterProvider);
     final sortOrder = ref.watch(currentSortOrderProvider);
 
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          title: const Text('Choose Server'),
-          leading: PlatformIconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          trailingActions: [
-            PlatformIconButton(
-              icon: Icon(_showFilters ? Icons.filter_list : Icons.filter_list_outlined),
-              onPressed: () {
-                setState(() {
-                  _showFilters = !_showFilters;
-                });
-              },
-            ),
-          ],
-        ),
+    return AppPageScaffold.sliver(
+      largeTitle: 'Choose Server',
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).pop(),
       ),
-      body: Column(
-        children: [
-          // Search and filters
-          _buildSearchAndFilters(context, theme, currentFilter, sortOrder),
-          
-          // Content
-          Expanded(
-            child: _buildContent(context, instances, isLoading, error),
-          ),
+      actions: [
+        Platform.isIOS
+            ? CupertinoButton(
+                padding: EdgeInsets.zero,
+                minSize: 44.0,
+                child: Icon(_showFilters ? CupertinoIcons.line_horizontal_3_decrease : CupertinoIcons.line_horizontal_3_decrease_circle),
+                onPressed: () {
+                  setState(() {
+                    _showFilters = !_showFilters;
+                  });
+                },
+              )
+            : IconButton(
+                icon: Icon(_showFilters ? Icons.filter_list : Icons.filter_list_outlined),
+                onPressed: () {
+                  setState(() {
+                    _showFilters = !_showFilters;
+                  });
+                },
+              ),
+      ],
+      sliverBodyBuilder: () => CustomScrollView(
+        slivers: [
+          _buildSearchHeader(context, theme),
+          _buildChipsHeader(context, theme, currentFilter, sortOrder),
+          _buildContentSliver(context, instances, isLoading, error),
         ],
       ),
+
     );
   }
 
@@ -312,123 +318,135 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     );
   }
 
-  Widget _buildContent(
+  Widget _buildContentSliver(
     BuildContext context,
     List<InstanceCaps> instances,
     bool isLoading,
     String? error,
   ) {
     if (isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading servers...'),
-          ],
+      return SliverFillRemaining(
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading servers...'),
+            ],
+          ),
         ),
       );
     }
 
     if (error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load servers',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            PlatformElevatedButton(
-              onPressed: () {
-                ref.read(onboardingControllerProvider.notifier).clearErrors();
-                ref.read(onboardingControllerProvider.notifier).showManualPicker();
-              },
-              child: const Text('Try Again'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load servers',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              PlatformElevatedButton(
+                onPressed: () {
+                  ref.read(onboardingControllerProvider.notifier).clearErrors();
+                  ref.read(onboardingControllerProvider.notifier).showManualPicker();
+                },
+                child: const Text('Try Again'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (instances.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: 48,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No servers found',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try adjusting your filters or search terms',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 48,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 24),
-            PlatformElevatedButton(
-              onPressed: _clearFilters,
-              child: const Text('Clear Filters'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        // Results count
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
+              const SizedBox(height: 16),
               Text(
-                '${instances.length} server${instances.length == 1 ? '' : 's'} found',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                'No servers found',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try adjusting your filters or search terms',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
+              ),
+              const SizedBox(height: 24),
+              PlatformElevatedButton(
+                onPressed: _clearFilters,
+                child: const Text('Clear Filters'),
               ),
             ],
           ),
         ),
-        
-        // Instance list
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: instances.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final instance = instances[index];
-              return _buildInstanceCard(context, instance);
-            },
-          ),
+      );
+    }
+
+    final horizontalPadding = Platform.isIOS ? 20.0 : 16.0;
+
+    return SliverPadding(
+      padding: EdgeInsets.only(
+        left: horizontalPadding,
+        right: horizontalPadding,
+        bottom: MediaQuery.of(context).viewPadding.bottom + 8,
+      ),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index == 0) {
+              // Results count header
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '${instances.length} server${instances.length == 1 ? '' : 's'} found',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            }
+
+            final instanceIndex = index - 1;
+            if (instanceIndex >= instances.length) return null;
+
+            final instance = instances[instanceIndex];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: _buildInstanceCard(context, instance),
+            );
+          },
+          childCount: instances.length + 1, // +1 for the header
         ),
-      ],
+      ),
     );
   }
 
@@ -813,6 +831,96 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
             child: const Text('OK'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchHeader(BuildContext context, ThemeData theme) {
+    final horizontalPadding = Platform.isIOS ? 20.0 : 16.0;
+
+    return SliverFixedHeader(
+      baseHeight: 60,
+      child: Container(
+        height: 60,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search servers...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      _updateSearch('');
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          onChanged: _updateSearch,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipsHeader(
+    BuildContext context,
+    ThemeData theme,
+    InstanceFilter currentFilter,
+    InstanceSortOrder sortOrder,
+  ) {
+    final horizontalPadding = Platform.isIOS ? 20.0 : 16.0;
+
+    return SliverFixedHeader(
+      baseHeight: 48,
+      child: Container(
+        height: 48,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              // Sort chips
+              ...InstanceSortOrder.values.map((order) {
+                final isSelected = sortOrder == order;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(_getSortOrderLabel(order)),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        ref.read(onboardingControllerProvider.notifier)
+                            .updateSortOrder(order);
+                      }
+                    },
+                  ),
+                );
+              }),
+
+              // Filter toggle if filters are available
+              if (_showFilters) ...[
+                const SizedBox(width: 8),
+                const VerticalDivider(),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Filters'),
+                  selected: true,
+                  onSelected: (selected) {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                    });
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

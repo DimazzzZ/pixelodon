@@ -9,6 +9,7 @@ import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/providers/api_provider.dart' as api_providers;
 import 'package:pixelodon/services/timeline_service.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Provider for the public timeline
 final publicTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, TimelineState>((ref) {
@@ -500,8 +501,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   Widget build(BuildContext context) {
     final activeInstance = ref.watch(activeInstanceProvider);
     final isPixelfed = activeInstance?.isPixelfed ?? false;
-    
-    return Scaffold(
+
+    return AppPageScaffold.standard(
+      title: 'Explore',
       body: Column(
         children: [
           // Search bar
@@ -561,7 +563,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               },
             ),
           ),
-          
+
           // Tab bar
           TabBar(
             controller: _tabController,
@@ -571,7 +573,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               Tab(text: isPixelfed ? 'Local' : 'Community'),
             ],
           ),
-          
+
           // Tab content
           Expanded(
             child: TabBarView(
@@ -579,10 +581,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               children: [
                 // For You / Discover tab
                 _buildForYouTab(),
-                
+
                 // Trending tab
                 _buildTrendingTab(),
-                
+
                 // Local / Community tab
                 _buildLocalTab(),
               ],

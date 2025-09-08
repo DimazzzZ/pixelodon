@@ -152,14 +152,8 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          title: const Text('Authenticating'),
-          automaticallyImplyLeading: false,
-        ),
-      ),
-      usesSlivers: false, // Center with Column is not sliver-based
+    return AppPageScaffold.standard(
+      title: 'Authenticating',
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

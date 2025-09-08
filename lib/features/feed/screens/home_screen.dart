@@ -333,144 +333,157 @@ class HomeScreen extends ConsumerWidget {
     final timelineNotifier = ref.read(homeTimelineProvider.notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
     
-    return AppPageScaffold(
-      usesSlivers: false, // Column with TabBar/TabBarView is not sliver-based
-      body: activeInstance == null
-          ? const Center(
-              child: Text('No active instance selected'),
-            )
-          : DefaultTabController(
-              length: 3,
-              child: Column(
+    if (activeInstance == null) {
+      return AppPageScaffold.standard(
+        title: 'Pixelodon',
+        body: const Center(
+          child: Text('No active instance selected'),
+        ),
+      );
+    }
+
+    return AppPageScaffold.sliver(
+      largeTitle: 'Pixelodon',
+      headerBelowSliver: _buildTabBar(context),
+      sliverBodyBuilder: () => CustomScrollView(
+        slivers: [
+          _buildTabBarView(context, timelineState, timelineNotifier),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: TabBar(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontSize: 13),
+          tabs: const [
+            Tab(
+              key: Key('following_tab'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Theme(
-                    data: Theme.of(context).copyWith(
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: TabBar(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      unselectedLabelStyle: const TextStyle(fontSize: 13),
-                      tabs: const [
-                        Tab(
-                          key: Key('following_tab'),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.home_outlined, size: 18),
-                              SizedBox(width: 6),
-                              Text('Following'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          key: Key('local_tab'),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.apartment_outlined, size: 18),
-                              SizedBox(width: 6),
-                              Text('Local'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          key: Key('federated_tab'),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.public, size: 18),
-                              SizedBox(width: 6),
-                              Text('Federated'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        // Following
-                        FeedList(
-                          key: const Key('feed_list_following'),
-                          statuses: timelineState.statuses,
-                          isLoading: timelineState.isLoading,
-                          hasError: timelineState.hasError,
-                          errorMessage: timelineState.errorMessage,
-                          hasMore: timelineState.hasMore,
-                          onLoadMore: timelineNotifier.loadMore,
-                          onRefresh: timelineNotifier.refreshTimeline,
-                          onPostLiked: (status, liked) {
-                            timelineNotifier.updateStatus(status);
-                          },
-                          onPostReblogged: (status, reblogged) {
-                            timelineNotifier.updateStatus(status);
-                          },
-                          onPostBookmarked: (status, bookmarked) {
-                            timelineNotifier.updateStatus(status);
-                          },
-                        ),
-                        // Local (public local)
-                        Builder(
-                          builder: (context) {
-                            final localState = ref.watch(localTimelineProvider);
-                            final localNotifier = ref.read(localTimelineProvider.notifier);
-                            return FeedList(
-                              key: const Key('feed_list_local'),
-                              statuses: localState.statuses,
-                              isLoading: localState.isLoading,
-                              hasError: localState.hasError,
-                              errorMessage: localState.errorMessage,
-                              hasMore: localState.hasMore,
-                              onLoadMore: localNotifier.loadMore,
-                              onRefresh: localNotifier.refreshTimeline,
-                              onPostLiked: (status, liked) {
-                                localNotifier.updateStatus(status);
-                              },
-                              onPostReblogged: (status, reblogged) {
-                                localNotifier.updateStatus(status);
-                              },
-                              onPostBookmarked: (status, bookmarked) {
-                                localNotifier.updateStatus(status);
-                              },
-                            );
-                          },
-                        ),
-                        // Federated (public federated)
-                        Builder(
-                          builder: (context) {
-                            final fedState = ref.watch(federatedTimelineProvider);
-                            final fedNotifier = ref.read(federatedTimelineProvider.notifier);
-                            return FeedList(
-                              key: const Key('feed_list_federated'),
-                              statuses: fedState.statuses,
-                              isLoading: fedState.isLoading,
-                              hasError: fedState.hasError,
-                              errorMessage: fedState.errorMessage,
-                              hasMore: fedState.hasMore,
-                              onLoadMore: fedNotifier.loadMore,
-                              onRefresh: fedNotifier.refreshTimeline,
-                              onPostLiked: (status, liked) {
-                                fedNotifier.updateStatus(status);
-                              },
-                              onPostReblogged: (status, reblogged) {
-                                fedNotifier.updateStatus(status);
-                              },
-                              onPostBookmarked: (status, bookmarked) {
-                                fedNotifier.updateStatus(status);
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                  Icon(Icons.home_outlined, size: 18),
+                  SizedBox(width: 6),
+                  Text('Following'),
                 ],
               ),
             ),
+            Tab(
+              key: Key('local_tab'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.apartment_outlined, size: 18),
+                  SizedBox(width: 6),
+                  Text('Local'),
+                ],
+              ),
+            ),
+            Tab(
+              key: Key('federated_tab'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.public, size: 18),
+                  SizedBox(width: 6),
+                  Text('Federated'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabBarView(BuildContext context, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+    return SliverFillRemaining(
+      child: TabBarView(
+        children: [
+          // Following
+          FeedList(
+            key: const Key('feed_list_following'),
+            statuses: timelineState.statuses,
+            isLoading: timelineState.isLoading,
+            hasError: timelineState.hasError,
+            errorMessage: timelineState.errorMessage,
+            hasMore: timelineState.hasMore,
+            onLoadMore: timelineNotifier.loadMore,
+            onRefresh: timelineNotifier.refreshTimeline,
+            onPostLiked: (status, liked) {
+              timelineNotifier.updateStatus(status);
+            },
+            onPostReblogged: (status, reblogged) {
+              timelineNotifier.updateStatus(status);
+            },
+            onPostBookmarked: (status, bookmarked) {
+              timelineNotifier.updateStatus(status);
+            },
+          ),
+          // Local (public local)
+          Consumer(
+            builder: (context, ref, child) {
+              final localState = ref.watch(localTimelineProvider);
+              final localNotifier = ref.read(localTimelineProvider.notifier);
+              return FeedList(
+                key: const Key('feed_list_local'),
+                statuses: localState.statuses,
+                isLoading: localState.isLoading,
+                hasError: localState.hasError,
+                errorMessage: localState.errorMessage,
+                hasMore: localState.hasMore,
+                onLoadMore: localNotifier.loadMore,
+                onRefresh: localNotifier.refreshTimeline,
+                onPostLiked: (status, liked) {
+                  localNotifier.updateStatus(status);
+                },
+                onPostReblogged: (status, reblogged) {
+                  localNotifier.updateStatus(status);
+                },
+                onPostBookmarked: (status, bookmarked) {
+                  localNotifier.updateStatus(status);
+                },
+              );
+            },
+          ),
+          // Federated (public federated)
+          Consumer(
+            builder: (context, ref, child) {
+              final fedState = ref.watch(federatedTimelineProvider);
+              final fedNotifier = ref.read(federatedTimelineProvider.notifier);
+              return FeedList(
+                key: const Key('feed_list_federated'),
+                statuses: fedState.statuses,
+                isLoading: fedState.isLoading,
+                hasError: fedState.hasError,
+                errorMessage: fedState.errorMessage,
+                hasMore: fedState.hasMore,
+                onLoadMore: fedNotifier.loadMore,
+                onRefresh: fedNotifier.refreshTimeline,
+                onPostLiked: (status, liked) {
+                  fedNotifier.updateStatus(status);
+                },
+                onPostReblogged: (status, reblogged) {
+                  fedNotifier.updateStatus(status);
+                },
+                onPostBookmarked: (status, bookmarked) {
+                  fedNotifier.updateStatus(status);
+                },
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

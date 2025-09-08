@@ -479,30 +479,33 @@ class _PostCardState extends ConsumerState<PostCard> {
     required VoidCallback onPressed,
     Key? key,
   }) {
-    return InkWell(
-      key: key,
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 20,
-              color: isActive ? activeColor : null,
-            ),
-            if (count != null && count > 0) ...[
-              const SizedBox(width: 4),
-              Text(
-                count.toString(),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isActive ? activeColor : null,
-                ),
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        key: key,
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              Icon(
+                isActive ? activeIcon : icon,
+                size: 20,
+                color: isActive ? activeColor : null,
               ),
+              if (count != null && count > 0) ...[
+                const SizedBox(width: 4),
+                Text(
+                  count.toString(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isActive ? activeColor : null,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

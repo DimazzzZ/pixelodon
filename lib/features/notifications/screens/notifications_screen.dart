@@ -8,6 +8,7 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/services/notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Provider for notifications
 final notificationsProvider = StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
@@ -264,29 +265,30 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final activeInstance = ref.watch(activeInstanceProvider);
     
     if (activeInstance == null) {
-      return const Center(
-        child: Text('No active instance selected'),
+      return AppPageScaffold.standard(
+        title: 'Notifications',
+        body: const Center(
+          child: Text('No active instance selected'),
+        ),
       );
     }
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              _showFilterDialog(context, notificationsState, notificationsNotifier);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.done_all),
-            onPressed: () {
-              notificationsNotifier.markAllAsRead();
-            },
-          ),
-        ],
-      ),
+
+    return AppPageScaffold.standard(
+      title: 'Notifications',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.filter_list),
+          onPressed: () {
+            _showFilterDialog(context, notificationsState, notificationsNotifier);
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.done_all),
+          onPressed: () {
+            notificationsNotifier.markAllAsRead();
+          },
+        ),
+      ],
       body: notificationsState.hasError
           ? Center(
               child: Column(

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixelodon/features/common/widgets/sliver_fixed_header.dart';
+import 'dart:io';
 
 
 import 'package:dio/dio.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Default instance for guest mode
 const String _defaultGuestInstance = 'mastodon.social';
@@ -194,97 +195,39 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          title: Text(_instanceDomain == _defaultGuestInstance
-              ? 'Guest Mode'
-              : 'Preview: $_instanceDomain'),
-          leading: PlatformIconButton(
-            icon: Icon(PlatformIcons(context).back),
-            onPressed: () => context.go('/onboarding'),
-          ),
-          trailingActions: [
-            PlatformIconButton(
-              icon: Icon(PlatformIcons(context).accountCircle),
-              onPressed: () => _showLoginOptions(context),
-            ),
-          ],
-        ),
+    return AppPageScaffold.sliver(
+      largeTitle: 'Guest Mode',
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.go('/onboarding'),
       ),
-      body: Column(
-        children: [
-          // Guest mode info banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.visibility,
-                  color: theme.colorScheme.onPrimaryContainer,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Browsing $_instanceDomain as guest • Sign in to interact',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Tab bar for different public timelines
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildTabButton(
-                    context: context,
-                    title: 'Global',
-                    isSelected: _selectedIndex == 0,
-                    onTap: () => setState(() => _selectedIndex = 0),
-                  ),
-                ),
-                Expanded(
-                  child: _buildTabButton(
-                    context: context,
-                    title: 'Local',
-                    isSelected: _selectedIndex == 1,
-                    onTap: () => setState(() => _selectedIndex = 1),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Content area
-          Expanded(
-            child: _buildContent(),
-          ),
+      actions: [
+        Platform.isIOS
+            ? CupertinoButton(
+                padding: EdgeInsets.zero,
+                minSize: 44.0,
+                child: const Icon(CupertinoIcons.person_circle),
+                onPressed: () => _showLoginOptions(context),
+              )
+            : IconButton(
+                icon: const Icon(Icons.account_circle),
+                onPressed: () => _showLoginOptions(context),
+              ),
+      ],
+      sliverBodyBuilder: () => CustomScrollView(
+        slivers: [
+          _buildSegmentedHeader(context, theme),
+          _buildInfoBannerSliver(context, theme),
+          _buildContentSliver(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      bottomAction: ElevatedButton.icon(
         onPressed: () => _showLoginOptions(context),
-        icon: Icon(PlatformIcons(context).accountCircle),
+        icon: const Icon(Icons.account_circle),
         label: const Text('Sign In'),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 48),
+        ),
       ),
     );
   }
@@ -319,35 +262,9 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
     );
   }
   
-  Widget _buildContent() {
-    if (_selectedIndex == 0) {
-      return _buildGlobalTimeline();
-    } else {
-      return _buildLocalTimeline();
-    }
-  }
 
-  Widget _buildGlobalTimeline() {
-    final timelineState = ref.watch(guestPublicTimelineProvider(_instanceDomain));
-    final timelineNotifier = ref.read(guestPublicTimelineProvider(_instanceDomain).notifier);
 
-    return _buildGuestFeedList(
-      timelineState: timelineState,
-      onLoadMore: timelineNotifier.loadMore,
-      onRefresh: timelineNotifier.refresh,
-    );
-  }
 
-  Widget _buildLocalTimeline() {
-    final timelineState = ref.watch(guestLocalTimelineProvider(_instanceDomain));
-    final timelineNotifier = ref.read(guestLocalTimelineProvider(_instanceDomain).notifier);
-
-    return _buildGuestFeedList(
-      timelineState: timelineState,
-      onLoadMore: timelineNotifier.loadMore,
-      onRefresh: timelineNotifier.refresh,
-    );
-  }
 
   Widget _buildGuestFeedList({
     required GuestTimelineState timelineState,
@@ -570,6 +487,226 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedHeader(BuildContext context, ThemeData theme) {
+    return SliverFixedHeader(
+      baseHeight: 56, // Increased from 48 to accommodate CupertinoSegmentedControl
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Platform.isIOS
+            ? CupertinoSegmentedControl<int>(
+                children: const {
+                  0: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Global'),
+                  ),
+                  1: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Local'),
+                  ),
+                },
+                onValueChanged: (value) {
+                  setState(() => _selectedIndex = value);
+                },
+                groupValue: _selectedIndex,
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildTabButton(
+                      context: context,
+                      title: 'Global',
+                      isSelected: _selectedIndex == 0,
+                      onTap: () => setState(() => _selectedIndex = 0),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildTabButton(
+                      context: context,
+                      title: 'Local',
+                      isSelected: _selectedIndex == 1,
+                      onTap: () => setState(() => _selectedIndex = 1),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBannerSliver(BuildContext context, ThemeData theme) {
+    return SliverToBoxAdapter(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.visibility,
+              color: theme.colorScheme.onPrimaryContainer,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Browsing $_instanceDomain as guest • Sign in to interact',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentSliver() {
+    if (_selectedIndex == 0) {
+      return _buildGlobalTimelineSliver();
+    } else {
+      return _buildLocalTimelineSliver();
+    }
+  }
+
+  Widget _buildGlobalTimelineSliver() {
+    final timelineState = ref.watch(guestPublicTimelineProvider(_instanceDomain));
+    final timelineNotifier = ref.read(guestPublicTimelineProvider(_instanceDomain).notifier);
+
+    return _buildGuestFeedSliver(
+      timelineState: timelineState,
+      onLoadMore: timelineNotifier.loadMore,
+      onRefresh: timelineNotifier.refresh,
+    );
+  }
+
+  Widget _buildLocalTimelineSliver() {
+    final timelineState = ref.watch(guestLocalTimelineProvider(_instanceDomain));
+    final timelineNotifier = ref.read(guestLocalTimelineProvider(_instanceDomain).notifier);
+
+    return _buildGuestFeedSliver(
+      timelineState: timelineState,
+      onLoadMore: timelineNotifier.loadMore,
+      onRefresh: timelineNotifier.refresh,
+    );
+  }
+
+  Widget _buildGuestFeedSliver({
+    required GuestTimelineState timelineState,
+    required VoidCallback onLoadMore,
+    required Future<void> Function() onRefresh,
+  }) {
+    if (timelineState.hasError) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                timelineState.errorMessage ?? 'Failed to load timeline',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: onRefresh,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (timelineState.statuses.isEmpty) {
+      if (timelineState.isLoading) {
+        return const SliverFillRemaining(
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      return const SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.inbox,
+                size: 48,
+                color: Colors.grey,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'No posts to display',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Pull to refresh or check back later',
+                style: TextStyle(
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index == timelineState.statuses.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text('Loading more...'),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final status = timelineState.statuses[index];
+
+          // Load more when approaching the end
+          if (index == timelineState.statuses.length - 3 &&
+              timelineState.hasMore &&
+              !timelineState.isLoading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              onLoadMore();
+            });
+          }
+
+          return _buildGuestPostCard(status);
+        },
+        childCount: timelineState.statuses.length +
+                   (timelineState.isLoading && timelineState.hasMore ? 1 : 0),
       ),
     );
   }

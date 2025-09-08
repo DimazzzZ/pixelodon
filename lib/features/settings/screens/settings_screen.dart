@@ -20,13 +20,8 @@ class SettingsScreen extends ConsumerWidget {
     final activeInstance = ref.watch(activeInstanceProvider);
     final instances = ref.watch(instancesProvider);
 
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          title: const Text('Settings'),
-        ),
-      ),
-      usesSlivers: false, // ListView is not a sliver-based widget
+    return AppPageScaffold.standard(
+      title: 'Settings',
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

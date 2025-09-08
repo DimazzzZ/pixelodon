@@ -136,9 +136,29 @@ class AppTheme {
         backgroundColor: surfaceColor,
         foregroundColor: textColor,
         elevation: 0,
+        scrolledUnderElevation: 1, // Material 3 elevation on scroll
+        surfaceTintColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
         systemOverlayStyle: isDark
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
+        titleTextStyle: TextStyle(
+          color: textColor,
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          fontFamily: fontFamily,
+        ),
+        toolbarTextStyle: TextStyle(
+          color: textColor,
+          fontFamily: fontFamily,
+        ),
+        iconTheme: IconThemeData(
+          color: textColor,
+          size: 24,
+        ),
+        actionsIconTheme: IconThemeData(
+          color: textColor,
+          size: 24,
+        ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surfaceColor,
@@ -216,6 +236,46 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
         ),
         behavior: SnackBarBehavior.floating,
+      ),
+      // Additional theme tokens for platform-native styling
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surfaceColor,
+        indicatorColor: primaryColor.withOpacity(0.12),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: primaryColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              fontFamily: fontFamily,
+            );
+          }
+          return TextStyle(
+            color: secondaryTextColor,
+            fontSize: 12,
+            fontFamily: fontFamily,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: primaryColor, size: 24);
+          }
+          return IconThemeData(color: secondaryTextColor, size: 24);
+        }),
+      ),
+      tabBarTheme: TabBarTheme(
+        labelColor: primaryColor,
+        unselectedLabelColor: secondaryTextColor,
+        indicatorColor: primaryColor,
+        labelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          fontFamily: fontFamily,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 13,
+          fontFamily: fontFamily,
+        ),
       ),
     );
   }

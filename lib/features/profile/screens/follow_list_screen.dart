@@ -192,27 +192,12 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppPageScaffold(
-      appBar: PlatformAppBarWrapper(
-        platformAppBar: PlatformAppBar(
-          title: Text(_title()),
-          leading: PlatformIconButton(
-            onPressed: () => context.go('/profile/${widget.accountId}'),
-            icon: PlatformWidget(
-              material: (_, __) => const Icon(Icons.arrow_back),
-              cupertino: (_, __) => const Icon(CupertinoIcons.back),
-            ),
-          ),
-          material: (_, __) => MaterialAppBarData(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-          ),
-          cupertino: (_, __) => CupertinoNavigationBarData(
-            backgroundColor: CupertinoTheme.of(context).scaffoldBackgroundColor,
-          ),
-        ),
+    return AppPageScaffold.standard(
+      title: _title(),
+      leading: IconButton(
+        onPressed: () => context.go('/profile/${widget.accountId}'),
+        icon: const Icon(Icons.arrow_back),
       ),
-      usesSlivers: false,
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: _buildBody(context),

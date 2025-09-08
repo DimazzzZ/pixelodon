@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Fullscreen image viewer supporting multiple images and swipe/zoom.
 class ImageViewerScreen extends StatelessWidget {
@@ -19,39 +20,36 @@ class ImageViewerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = PageController(initialPage: initialIndex);
 
-    return Scaffold(
+    return AppPageScaffold.standard(
+      title: '${initialIndex + 1}/${imageUrls.length}',
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          '${initialIndex + 1}/${imageUrls.length}',
-          style: const TextStyle(color: Colors.white),
+      extendBodyBehindAppBar: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).maybePop(),
+      ],
+      body: Padding(
+        padding: EdgeInsets.only(top: MediaQuery.of(context).viewPadding.top),
+        child: PhotoViewGallery.builder(
+          pageController: controller,
+          itemCount: imageUrls.length,
+          backgroundDecoration: const BoxDecoration(color: Colors.black),
+          builder: (context, index) {
+            final url = imageUrls[index];
+            return PhotoViewGalleryPageOptions(
+              imageProvider: NetworkImage(url),
+              heroAttributes: heroTagPrefix != null
+                  ? PhotoViewHeroAttributes(tag: '${heroTagPrefix}_$index')
+                  : null,
+              minScale: PhotoViewComputedScale.contained,
+              maxScale: PhotoViewComputedScale.covered * 3.0,
+            );
+          },
+          loadingBuilder: (context, event) => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
           ),
-        ],
-      ),
-      body: PhotoViewGallery.builder(
-        pageController: controller,
-        itemCount: imageUrls.length,
-        backgroundDecoration: const BoxDecoration(color: Colors.black),
-        builder: (context, index) {
-          final url = imageUrls[index];
-          return PhotoViewGalleryPageOptions(
-            imageProvider: NetworkImage(url),
-            heroAttributes: heroTagPrefix != null
-                ? PhotoViewHeroAttributes(tag: '${heroTagPrefix}_$index')
-                : null,
-            minScale: PhotoViewComputedScale.contained,
-            maxScale: PhotoViewComputedScale.covered * 3.0,
-          );
-        },
-        loadingBuilder: (context, event) => const Center(
-          child: CircularProgressIndicator(color: Colors.white),
         ),
       ),
     );

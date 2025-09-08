@@ -180,26 +180,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final state = ref.watch(profileControllerProvider(userId));
     final controller = ref.read(profileControllerProvider(userId).notifier);
+    final profile = state.profile.valueOrNull;
 
-    return AppPageScaffold(
-      usesSlivers: true, // CustomScrollView with slivers
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await controller.refresh();
-        },
-        child: CustomScrollView(
-          controller: _scrollController,
-          key: PageStorageKey('profile_scroll_$userId'),
-          clipBehavior: Clip.none,
-          slivers: [
-            // SliverAppBar with permanent background
-            SliverAppBar(
-              expandedHeight: _expandedHeight,
-              pinned: true,
-              floating: false,
-              clipBehavior: Clip.none,
-              title: _buildCollapsedTitle(context, state),
-              flexibleSpace: Stack(
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final formattedHandle = profile != null ? AccountUtils.formatHandle(
+      acct: profile.acct,
+      username: profile.username,
+      fallbackDomain: activeInstance?.domain,
+    ) : 'Profile';
+
+    return AppPageScaffold.sliver(
+      largeTitle: profile?.displayName ?? formattedHandle,
+      headerBelowSliver: SliverProfileTabBar(
+        selectedIndex: state.selectedTabIndex,
+        onTabChanged: (index) => controller.switchTab(index),
+        isLoading: state.isCurrentTabLoading,
+        isOwnProfile: state.isOwnProfile,
+      ),
+      sliverBodyBuilder: () => CustomScrollView(
+        controller: _scrollController,
+        key: PageStorageKey('profile_scroll_$userId'),
+        clipBehavior: Clip.none,
+        slivers: [
+          // Custom header with background image
+          SliverToBoxAdapter(
+            child: Container(
+              height: _expandedHeight - kToolbarHeight,
+              child: Stack(
                 fit: StackFit.expand,
                 children: [
                   _buildHeaderImage(context, state),
@@ -215,36 +222,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 ],
               ),
             ),
+          ),
 
-            // Profile Content (avatar, username, bio)
-            SliverProfileContent(
-              profile: state.profile.valueOrNull,
-              isLoading: state.profile.isLoading,
-              onFollowToggle: () => controller.toggleFollow(),
-              onEditProfile: () => _handleEditProfile(),
-            ),
+          // Profile Content (avatar, username, bio)
+          SliverProfileContent(
+            profile: state.profile.valueOrNull,
+            isLoading: state.profile.isLoading,
+            onFollowToggle: () => controller.toggleFollow(),
+            onEditProfile: () => _handleEditProfile(),
+          ),
 
-            // Profile Stats Row
-            SliverProfileStatsRow(
-              profile: state.profile.valueOrNull,
-              isLoading: state.profile.isLoading,
-              onPostsTap: () => _handleStatsTap('posts'),
-              onFollowersTap: () => _handleStatsTap('followers'),
-              onFollowingTap: () => _handleStatsTap('following'),
-            ),
+          // Profile Stats Row
+          SliverProfileStatsRow(
+            profile: state.profile.valueOrNull,
+            isLoading: state.profile.isLoading,
+            onPostsTap: () => _handleStatsTap('posts'),
+            onFollowersTap: () => _handleStatsTap('followers'),
+            onFollowingTap: () => _handleStatsTap('following'),
+          ),
 
-            // Pinned Tab Bar
-            SliverProfileTabBar(
-              selectedIndex: state.selectedTabIndex,
-              onTabChanged: (index) => controller.switchTab(index),
-              isLoading: state.isCurrentTabLoading,
-              isOwnProfile: state.isOwnProfile,
-            ),
-
-            // Tab Content
-            ..._buildTabContent(state, controller),
-          ],
-        ),
+          // Tab Content
+          ..._buildTabContent(state, controller),
+        ],
       ),
     );
   }

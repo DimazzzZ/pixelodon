@@ -417,30 +417,27 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       _contentWarningController.text = composeState.contentWarning ?? '';
     }
     
-    return AppPageScaffold(
-      usesSlivers: false, // Column content is not sliver-based
-      appBar: AppBar(
-        title: Text(composeState.isEditing ? 'Edit Post' : composeState.isReplying ? 'Reply' : 'New Post'),
-        actions: [
-          TextButton(
-            onPressed: composeState.canSubmit && !composeState.isSubmitting
-                ? () async {
-                    final success = await composeNotifier.submitPost();
-                    if (success && context.mounted) {
-                      context.pop();
-                    }
+    return AppPageScaffold.standard(
+      title: composeState.isEditing ? 'Edit Post' : composeState.isReplying ? 'Reply' : 'New Post',
+      actions: [
+        TextButton(
+          onPressed: composeState.canSubmit && !composeState.isSubmitting
+              ? () async {
+                  final success = await composeNotifier.submitPost();
+                  if (success && context.mounted) {
+                    context.pop();
                   }
-                : null,
-            child: composeState.isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('POST'),
-          ),
-        ],
-      ),
+                }
+              : null,
+          child: composeState.isSubmitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('POST'),
+        ),
+      ],
       body: activeAccount == null
           ? const Center(
               child: Text('No active account selected'),
