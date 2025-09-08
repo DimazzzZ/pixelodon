@@ -673,47 +673,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authRepository = ref.watch(authRepositoryProvider);
     final isLoggedIn = authRepository.instances.isNotEmpty;
 
-    return AppPageScaffold.standard(
-      title: 'Login',
+    return AppPageScaffold.sliver(
+      largeTitle: 'Login',
       // Show back button only if user is not logged in (to go back to onboarding)
       leading: !isLoggedIn ? IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.go('/onboarding'),
       ) : null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 48), // Increased from 24 to 48 for better clearance
-            
-            // Logo and app name
-            Center(
+      sliverBodyBuilder: () => CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(16.0),
+            sliver: SliverToBoxAdapter(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    width: 64,
-                    height: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Pixelodon',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'A Fediverse client for Mastodon and Pixelfed',
-                    style: theme.textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 48),
+                  const SizedBox(height: 24),
             
             // Instance form
             Form(
@@ -910,8 +885,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 );
               },
             ),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
