@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 
 /// Provider for the home timeline
 final homeTimelineProvider = StateNotifierProvider<TimelineNotifier, TimelineState>((ref) {
@@ -323,6 +326,9 @@ final federatedTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, 
   );
 });
 
+/// Provider for the selected tab index in the home screen
+final homeTabIndexProvider = StateProvider<int>((ref) => 0);
+
 class HomeScreen extends ConsumerWidget {
   /// Constructor
   const HomeScreen({super.key});
@@ -332,43 +338,129 @@ class HomeScreen extends ConsumerWidget {
     final timelineState = ref.watch(homeTimelineProvider);
     final timelineNotifier = ref.read(homeTimelineProvider.notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
-    
+
     if (activeInstance == null) {
       return AppPageScaffold.standard(
         title: 'Pixelodon',
-        body: const Center(
-          child: Text('No active instance selected'),
+        body: Container(
+          color: AppTheme.pageBg(context),
+          child: const Center(
+            child: Text('No active instance selected'),
+          ),
         ),
       );
     }
 
-    return DefaultTabController(
-      length: 3,
-      child: AppPageScaffold.sliver(
-        largeTitle: 'Pixelodon',
-        sliverBodyBuilder: () => CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: _buildTabBar(context),
-            ),
-            _buildTabBarView(context, timelineState, timelineNotifier),
-          ],
-        ),
+    return AppPageScaffold.sliver(
+      largeTitle: 'Pixelodon',
+      sliverBodyBuilder: () => CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildTabSelector(context, ref),
+          ),
+          _buildSelectedTabContent(context, ref, timelineState, timelineNotifier),
+        ],
       ),
     );
   }
 
-  Widget _buildTabBar(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  Widget _buildTabSelector(BuildContext context, WidgetRef ref) {
+    return Container(
+      color: AppTheme.pageBg(context),
+      padding: EdgeInsets.only(
+        left: Platform.isIOS ? 20 : 16,
+        right: Platform.isIOS ? 20 : 16,
+        top: 8,
+        bottom: 0,
       ),
-      child: TabBar(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg(context),
+          borderRadius: BorderRadius.circular(Platform.isIOS ? 10 : 12),
+          border: Platform.isIOS ? Border.all(
+            color: AppTheme.separator(context),
+            width: 0.5,
+          ) : null,
+        ),
+        child: Platform.isIOS ? _buildIOSSegmentedControl(context, ref) : _buildAndroidTabBar(context, ref),
+      ),
+    );
+  }
+
+  Widget _buildIOSSegmentedControl(BuildContext context, WidgetRef ref) {
+    final selectedTabIndex = ref.watch(homeTabIndexProvider);
+
+    return CupertinoSlidingSegmentedControl<int>(
+      groupValue: selectedTabIndex,
+      onValueChanged: (int? value) {
+        if (value != null) {
+          ref.read(homeTabIndexProvider.notifier).state = value;
+        }
+      },
+      children: const {
+        0: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.home, size: 16),
+              SizedBox(width: 6),
+              Text('Following', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        1: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.building_2_fill, size: 16),
+              SizedBox(width: 6),
+              Text('Local', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        2: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.globe, size: 16),
+              SizedBox(width: 6),
+              Text('Federated', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      },
+    );
+  }
+
+  Widget _buildAndroidTabBar(BuildContext context, WidgetRef ref) {
+    final selectedTabIndex = ref.watch(homeTabIndexProvider);
+
+    return DefaultTabController(
+      length: 3,
+      initialIndex: selectedTabIndex,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          tabBarTheme: Theme.of(context).tabBarTheme.copyWith(
+            indicator: BoxDecoration(
+              color: AppTheme.tertiaryBg(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            labelColor: Theme.of(context).colorScheme.onSurface,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+        child: TabBar(
+          onTap: (index) {
+            ref.read(homeTabIndexProvider.notifier).state = index;
+          },
+          padding: const EdgeInsets.all(4),
           labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-          indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 13),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
           tabs: const [
             Tab(
               key: Key('following_tab'),
@@ -377,7 +469,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.home_outlined, size: 18),
                   SizedBox(width: 6),
-                  Text('Following'),
+                  Text('Following', style: TextStyle(fontSize: 14)),
                 ],
               ),
             ),
@@ -388,7 +480,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.apartment_outlined, size: 18),
                   SizedBox(width: 6),
-                  Text('Local'),
+                  Text('Local', style: TextStyle(fontSize: 14)),
                 ],
               ),
             ),
@@ -399,21 +491,26 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.public, size: 18),
                   SizedBox(width: 6),
-                  Text('Federated'),
+                  Text('Federated', style: TextStyle(fontSize: 14)),
                 ],
               ),
             ),
           ],
         ),
-      );
+      ),
+    );
   }
 
-  Widget _buildTabBarView(BuildContext context, TimelineState timelineState, TimelineNotifier timelineNotifier) {
-    return SliverFillRemaining(
-      child: TabBarView(
-        children: [
-          // Following
-          FeedList(
+  Widget _buildSelectedTabContent(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+    final selectedTabIndex = ref.watch(homeTabIndexProvider);
+    Widget content;
+
+    switch (selectedTabIndex) {
+      case 0:
+        // Following
+        content = Transform.translate(
+          offset: const Offset(0, -8), // Move content up by 8 pixels
+          child: FeedList(
             key: const Key('feed_list_following'),
             statuses: timelineState.statuses,
             isLoading: timelineState.isLoading,
@@ -431,9 +528,15 @@ class HomeScreen extends ConsumerWidget {
             onPostBookmarked: (status, bookmarked) {
               timelineNotifier.updateStatus(status);
             },
+            wrapWithRefreshIndicator: false,
           ),
-          // Local (public local)
-          Consumer(
+        );
+        break;
+      case 1:
+        // Local (public local)
+        content = Transform.translate(
+          offset: const Offset(0, -8), // Move content up by 8 pixels
+          child: Consumer(
             builder: (context, ref, child) {
               final localState = ref.watch(localTimelineProvider);
               final localNotifier = ref.read(localTimelineProvider.notifier);
@@ -455,11 +558,18 @@ class HomeScreen extends ConsumerWidget {
                 onPostBookmarked: (status, bookmarked) {
                   localNotifier.updateStatus(status);
                 },
+                wrapWithRefreshIndicator: false,
               );
             },
           ),
-          // Federated (public federated)
-          Consumer(
+        );
+        break;
+      case 2:
+      default:
+        // Federated (public federated)
+        content = Transform.translate(
+          offset: const Offset(0, -8), // Move content up by 8 pixels
+          child: Consumer(
             builder: (context, ref, child) {
               final fedState = ref.watch(federatedTimelineProvider);
               final fedNotifier = ref.read(federatedTimelineProvider.notifier);
@@ -481,10 +591,20 @@ class HomeScreen extends ConsumerWidget {
                 onPostBookmarked: (status, bookmarked) {
                   fedNotifier.updateStatus(status);
                 },
+                wrapWithRefreshIndicator: false,
               );
             },
           ),
-        ],
+        );
+        break;
+    }
+
+    return SliverFillRemaining(
+      hasScrollBody: true,
+      fillOverscroll: false,
+      child: ColoredBox(
+        color: AppTheme.pageBg(context),
+        child: content,
       ),
     );
   }
