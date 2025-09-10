@@ -308,7 +308,7 @@ class _PostCardState extends ConsumerState<PostCard> {
   /// Build post header with user info and timestamp
   Widget _buildPostHeader(BuildContext context, ThemeData theme, bool isIOS, Status status, String domain) {
     final account = status.account;
-    final avatarSize = isIOS ? 36.0 : 40.0;
+    final avatarSize = isIOS ? 48.0 : 52.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +399,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Name and handle row
+              // Name and timestamp row
               Row(
                 children: [
                   // Display name
@@ -415,11 +415,12 @@ class _PostCardState extends ConsumerState<PostCard> {
                         account?.displayName ?? 'Unknown User',
                         style: isIOS
                             ? TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: CupertinoColors.label.resolveFrom(context),
                               )
                             : theme.textTheme.titleSmall?.copyWith(
+                                fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: theme.colorScheme.onSurface,
                               ),
@@ -429,64 +430,53 @@ class _PostCardState extends ConsumerState<PostCard> {
                     ),
                   ),
 
-                  const SizedBox(width: 4),
-
-                  // Handle
-                  Flexible(
-                    child: GestureDetector(
-                      onTap: () {
-                        final id = status.account?.id ?? '';
-                        if (id.isNotEmpty) {
-                          context.push('/profile/$id');
-                        }
-                      },
-                      child: Text(
-                        AccountUtils.formatHandle(
-                          acct: account?.acct ?? '',
-                          username: account?.username,
-                          accountDomain: account?.domain,
-                          fallbackDomain: domain,
-                        ),
-                        style: isIOS
-                            ? TextStyle(
-                                fontSize: 15,
-                                color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                              )
-                            : theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
 
                   // Timestamp
-                  Text(
-                    '·',
-                    style: TextStyle(
-                      color: isIOS
-                          ? CupertinoColors.secondaryLabel.resolveFrom(context)
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
-
                   Text(
                     timeago.format(status.createdAt ?? DateTime.now()),
                     style: isIOS
                         ? TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             color: CupertinoColors.secondaryLabel.resolveFrom(context),
                           )
                         : theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 14,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 2),
+
+              // Handle row
+              GestureDetector(
+                onTap: () {
+                  final id = status.account?.id ?? '';
+                  if (id.isNotEmpty) {
+                    context.push('/profile/$id');
+                  }
+                },
+                child: Text(
+                  AccountUtils.formatHandle(
+                    acct: account?.acct ?? '',
+                    username: account?.username,
+                    accountDomain: account?.domain,
+                    fallbackDomain: domain,
+                  ),
+                  style: isIOS
+                      ? TextStyle(
+                          fontSize: 14,
+                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        )
+                      : theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

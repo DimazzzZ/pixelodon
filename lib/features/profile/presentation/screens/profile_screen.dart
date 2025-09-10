@@ -191,6 +191,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return AppPageScaffold.sliver(
       largeTitle: profile?.displayName ?? formattedHandle,
+      actions: state.isOwnProfile ? [
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () => context.push('/settings'),
+          tooltip: 'Settings',
+        ),
+      ] : null,
       headerBelowSliver: SliverProfileTabBar(
         selectedIndex: state.selectedTabIndex,
         onTabChanged: (index) => controller.switchTab(index),
