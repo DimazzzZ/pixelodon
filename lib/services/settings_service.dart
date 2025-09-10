@@ -279,11 +279,11 @@ class SettingsService {
   String getHomeViewModeDisplayName(String viewMode) {
     switch (viewMode) {
       case 'list':
-        return 'Classic Posts';
+        return 'Posts List';
       case 'images':
-        return 'Images Only';
+        return 'Images List';
       case 'grid':
-        return 'Image Grid';
+        return 'Images Grid';
       default:
         return 'Classic Posts';
     }

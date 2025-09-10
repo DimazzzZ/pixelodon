@@ -12,6 +12,7 @@ import 'package:pixelodon/features/media/screens/image_viewer_screen.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/utils/link_tap_handler.dart';
 import 'package:pixelodon/utils/account_utils.dart';
+import 'package:pixelodon/features/status/screens/user_list_screen.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 /// Widget for displaying a post in a feed
@@ -481,9 +482,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           type: MaterialType.transparency,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              // TODO: Show post options
-            },
+            onTap: () => _showMoreOptions(context, isIOS),
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Icon(
@@ -822,5 +821,120 @@ class _PostCardState extends ConsumerState<PostCard> {
         );
       }
     }
+  }
+
+  /// Show more options for the post
+  void _showMoreOptions(BuildContext context, bool isIOS) {
+    if (isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          title: const Text('Post Options'),
+          actions: [
+            if (widget.status.reblogsCount > 0)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _navigateToUserList(context, UserListType.boosts);
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(CupertinoIcons.repeat, size: 20),
+                    const SizedBox(width: 8),
+                    Text('View Boosts (${_formatCount(widget.status.reblogsCount)})'),
+                  ],
+                ),
+              ),
+            if (widget.status.favouritesCount > 0)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _navigateToUserList(context, UserListType.likes);
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(CupertinoIcons.heart, size: 20),
+                    const SizedBox(width: 8),
+                    Text('View Likes (${_formatCount(widget.status.favouritesCount)})'),
+                  ],
+                ),
+              ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleShare(context);
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.share, size: 20),
+                  SizedBox(width: 8),
+                  Text('Share Post'),
+                ],
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.status.reblogsCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.repeat),
+                  title: Text('View Boosts (${_formatCount(widget.status.reblogsCount)})'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToUserList(context, UserListType.boosts);
+                  },
+                ),
+              if (widget.status.favouritesCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.favorite),
+                  title: Text('View Likes (${_formatCount(widget.status.favouritesCount)})'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToUserList(context, UserListType.likes);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('Share Post'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _handleShare(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Navigate to user list screen
+  void _navigateToUserList(BuildContext context, UserListType type) {
+    final title = type == UserListType.boosts ? 'Boosted by' : 'Liked by';
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => UserListScreen(
+          statusId: widget.status.id,
+          type: type,
+          title: title,
+        ),
+      ),
+    );
   }
 }

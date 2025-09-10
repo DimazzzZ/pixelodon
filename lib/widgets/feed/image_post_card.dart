@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pixelodon/models/status.dart';
+import 'package:pixelodon/features/status/screens/user_list_screen.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'dart:io';
 
@@ -422,6 +423,15 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
                     onTap: () => _handleShare(context),
                     isIOS: isIOS,
                   ),
+
+                  // More button
+                  _buildActionButton(
+                    context,
+                    icon: isIOS ? CupertinoIcons.ellipsis : Icons.more_vert,
+                    isActive: false,
+                    onTap: () => _showMoreOptions(context, isIOS),
+                    isIOS: isIOS,
+                  ),
                 ],
               ),
             ),
@@ -565,6 +575,132 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
           ),
         );
       }
+    }
+  }
+
+  /// Show more options for the post
+  void _showMoreOptions(BuildContext context, bool isIOS) {
+    if (isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          title: const Text('Post Options'),
+          actions: [
+            if (widget.status.reblogsCount > 0)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _navigateToUserList(context, UserListType.boosts);
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(CupertinoIcons.repeat, size: 20),
+                    const SizedBox(width: 8),
+                    Text('View Boosts (${_formatCount(widget.status.reblogsCount)})'),
+                  ],
+                ),
+              ),
+            if (widget.status.favouritesCount > 0)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _navigateToUserList(context, UserListType.likes);
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(CupertinoIcons.heart, size: 20),
+                    const SizedBox(width: 8),
+                    Text('View Likes (${_formatCount(widget.status.favouritesCount)})'),
+                  ],
+                ),
+              ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleShare(context);
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.share, size: 20),
+                  SizedBox(width: 8),
+                  Text('Share Post'),
+                ],
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.status.reblogsCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.repeat),
+                  title: Text('View Boosts (${_formatCount(widget.status.reblogsCount)})'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToUserList(context, UserListType.boosts);
+                  },
+                ),
+              if (widget.status.favouritesCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.favorite),
+                  title: Text('View Likes (${_formatCount(widget.status.favouritesCount)})'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToUserList(context, UserListType.likes);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('Share Post'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _handleShare(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Navigate to user list screen
+  void _navigateToUserList(BuildContext context, UserListType type) {
+    final title = type == UserListType.boosts ? 'Boosted by' : 'Liked by';
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => UserListScreen(
+          statusId: widget.status.id,
+          type: type,
+          title: title,
+        ),
+      ),
+    );
+  }
+
+  /// Format count for display
+  String _formatCount(int count) {
+    if (count < 1000) {
+      return count.toString();
+    } else if (count < 1000000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    } else {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
     }
   }
 }

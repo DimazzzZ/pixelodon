@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/models/status.dart';
+import 'package:pixelodon/models/account.dart';
 
 /// Service for handling timeline-related API calls
 class TimelineService {
@@ -392,8 +393,56 @@ class TimelineService {
       final response = await _apiService.post(
         'https://$domain/api/v1/statuses/$id/unfavourite',
       );
-      
+
       return Status.fromJson(response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get accounts that reblogged/boosted a status
+  Future<List<Account>> getStatusRebloggedBy(
+    String domain,
+    String id, {
+    int? limit,
+    String? maxId,
+  }) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/statuses/$id/reblogged_by',
+        queryParameters: {
+          if (limit != null) 'limit': limit,
+          if (maxId != null) 'max_id': maxId,
+        },
+      );
+
+      return (response.data as List)
+          .map((json) => Account.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get accounts that favourited/liked a status
+  Future<List<Account>> getStatusFavouritedBy(
+    String domain,
+    String id, {
+    int? limit,
+    String? maxId,
+  }) async {
+    try {
+      final response = await _apiService.get(
+        'https://$domain/api/v1/statuses/$id/favourited_by',
+        queryParameters: {
+          if (limit != null) 'limit': limit,
+          if (maxId != null) 'max_id': maxId,
+        },
+      );
+
+      return (response.data as List)
+          .map((json) => Account.fromJson(json))
+          .toList();
     } catch (e) {
       throw _handleError(e);
     }
