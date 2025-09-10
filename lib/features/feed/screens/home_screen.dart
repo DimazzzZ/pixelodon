@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:pixelodon/models/status.dart';
+import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
@@ -353,14 +354,40 @@ class HomeScreen extends ConsumerWidget {
 
     // Use standard platform-specific scaffold with proper TabBar integration
     if (Platform.isIOS) {
-      return _buildIOSScaffold(context, ref, timelineState, timelineNotifier);
+      return _buildIOSScaffold(context, ref, timelineState, timelineNotifier, activeInstance);
     } else {
-      return _buildMaterialScaffold(context, ref, timelineState, timelineNotifier);
+      return _buildMaterialScaffold(context, ref, timelineState, timelineNotifier, activeInstance);
     }
   }
 
+  /// Build title widget with appropriate icon for the instance type
+  Widget _buildTitleWithIcon(Instance instance, {bool isIOS = false}) {
+    final icon = instance.isPixelfed
+        ? (isIOS ? CupertinoIcons.camera : Icons.camera_alt)
+        : (isIOS ? CupertinoIcons.chat_bubble_text : Icons.forum);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: isIOS ? 20 : 24,
+          color: isIOS ? CupertinoColors.label : null,
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            instance.domain,
+            overflow: TextOverflow.ellipsis,
+            style: isIOS ? null : null,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Build iOS-style scaffold with CupertinoSliverNavigationBar and segmented control
-  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
 
     return CupertinoPageScaffold(
@@ -369,11 +396,9 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           children: [
             // Navigation bar with large title
-            Container(
-              child: CupertinoNavigationBar(
-                middle: const Text('Pixelodon'),
-                backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
-              ),
+            CupertinoNavigationBar(
+              middle: _buildTitleWithIcon(activeInstance, isIOS: true),
+              backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
             ),
             // Segmented control
             _buildIOSSegmentedControl(context, ref),
@@ -395,7 +420,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build Material 3 scaffold with SliverAppBar and TabBar
-  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
 
     return DefaultTabController(
@@ -408,7 +433,7 @@ class HomeScreen extends ConsumerWidget {
               SliverOverlapAbsorber(
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 sliver: SliverAppBar.large(
-                  title: const Text('Pixelodon'),
+                  title: _buildTitleWithIcon(activeInstance),
                   pinned: true,
                   bottom: TabBar(
                     onTap: (index) {
