@@ -187,6 +187,7 @@ class _FeedListState extends ConsumerState<FeedList> {
     final listView = ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == widget.statuses.length) {
