@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pixelodon/models/instance.dart';
 
 /// Service for managing app settings persistence
 class SettingsService {
@@ -227,11 +228,21 @@ class SettingsService {
     }
   }
 
-  /// Get the current home view mode
-  Future<String> getHomeViewMode() async {
+  /// Get the current home view mode with instance-based defaults
+  Future<String> getHomeViewMode([Instance? activeInstance]) async {
     try {
       final viewMode = await _storage.read(key: _homeViewModeKey);
-      return viewMode ?? 'list'; // Default to list view
+      if (viewMode != null) {
+        return viewMode; // User has explicitly set a preference
+      }
+
+      // Set default based on instance type
+      if (activeInstance != null) {
+        final defaultMode = activeInstance.isPixelfed ? 'images' : 'list';
+        return defaultMode;
+      }
+
+      return 'list'; // Fallback default
     } catch (e) {
       return 'list';
     }

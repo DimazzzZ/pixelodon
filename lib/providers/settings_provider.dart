@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/services/settings_service.dart';
+import 'package:pixelodon/models/instance.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
 /// Provider for the SettingsService
 final settingsServiceProvider = Provider<SettingsService>((ref) {
@@ -34,7 +36,8 @@ final onboardingCompletedProvider = StateNotifierProvider<OnboardingCompletedNot
 /// Provider for home view mode
 final homeViewModeProvider = StateNotifierProvider<HomeViewModeNotifier, String>((ref) {
   final settingsService = ref.watch(settingsServiceProvider);
-  return HomeViewModeNotifier(settingsService);
+  final activeInstance = ref.watch(activeInstanceProvider);
+  return HomeViewModeNotifier(settingsService, activeInstance);
 });
 
 /// Provider for home content filter
@@ -155,13 +158,14 @@ class OnboardingCompletedNotifier extends StateNotifier<bool> {
 /// State notifier for home view mode management
 class HomeViewModeNotifier extends StateNotifier<String> {
   final SettingsService _settingsService;
+  final Instance? _activeInstance;
 
-  HomeViewModeNotifier(this._settingsService) : super('list') {
+  HomeViewModeNotifier(this._settingsService, this._activeInstance) : super('list') {
     _loadHomeViewMode();
   }
 
   Future<void> _loadHomeViewMode() async {
-    final viewMode = await _settingsService.getHomeViewMode();
+    final viewMode = await _settingsService.getHomeViewMode(_activeInstance);
     state = viewMode;
   }
 
