@@ -12,6 +12,8 @@ class SettingsService {
   static const _notificationSettingsKey = 'notification_settings';
   static const _onboardingCompletedKey = 'onboarding_completed';
   static const _onboardingPreferencesKey = 'onboarding_preferences';
+  static const _homeViewModeKey = 'home_view_mode';
+  static const _homeContentFilterKey = 'home_content_filter';
 
   /// Get the current theme mode
   Future<ThemeMode> getThemeMode() async {
@@ -222,6 +224,80 @@ class SettingsService {
         return 'Dark';
       case ThemeMode.system:
         return 'System';
+    }
+  }
+
+  /// Get the current home view mode
+  Future<String> getHomeViewMode() async {
+    try {
+      final viewMode = await _storage.read(key: _homeViewModeKey);
+      return viewMode ?? 'list'; // Default to list view
+    } catch (e) {
+      return 'list';
+    }
+  }
+
+  /// Set the home view mode
+  Future<void> setHomeViewMode(String viewMode) async {
+    try {
+      await _storage.write(key: _homeViewModeKey, value: viewMode);
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  /// Get the current home content filter
+  Future<String> getHomeContentFilter() async {
+    try {
+      final filter = await _storage.read(key: _homeContentFilterKey);
+      return filter ?? 'all'; // Default to all content
+    } catch (e) {
+      return 'all';
+    }
+  }
+
+  /// Set the home content filter
+  Future<void> setHomeContentFilter(String filter) async {
+    try {
+      await _storage.write(key: _homeContentFilterKey, value: filter);
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  /// Get available home view modes
+  List<String> getAvailableHomeViewModes() {
+    return ['list', 'images', 'grid'];
+  }
+
+  /// Get available home content filters
+  List<String> getAvailableHomeContentFilters() {
+    return ['all', 'images'];
+  }
+
+  /// Get display name for home view mode
+  String getHomeViewModeDisplayName(String viewMode) {
+    switch (viewMode) {
+      case 'list':
+        return 'Classic Posts';
+      case 'images':
+        return 'Images Only';
+      case 'grid':
+        return 'Image Grid';
+      default:
+        return 'Classic Posts';
+    }
+  }
+
+  /// Get display name for home content filter
+  String getHomeContentFilterDisplayName(String filter) {
+    switch (filter) {
+      case 'all':
+        return 'All Posts';
+      case 'images':
+        return 'Images Only';
+      default:
+        return 'All Posts';
     }
   }
 }

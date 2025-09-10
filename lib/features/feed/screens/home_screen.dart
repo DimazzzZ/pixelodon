@@ -7,9 +7,12 @@ import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
+import 'package:pixelodon/widgets/feed/images_list_view.dart';
+import 'package:pixelodon/widgets/feed/image_grid_view.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
+import 'package:pixelodon/providers/settings_provider.dart';
 
 /// Provider for the home timeline
 final homeTimelineProvider = StateNotifierProvider<TimelineNotifier, TimelineState>((ref) {
@@ -339,6 +342,8 @@ class HomeScreen extends ConsumerWidget {
     final timelineState = ref.watch(homeTimelineProvider);
     final timelineNotifier = ref.read(homeTimelineProvider.notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
+    final homeViewMode = ref.watch(homeViewModeProvider);
+    final homeContentFilter = ref.watch(homeContentFilterProvider);
 
     if (activeInstance == null) {
       return AppPageScaffold.standard(
@@ -354,9 +359,9 @@ class HomeScreen extends ConsumerWidget {
 
     // Use standard platform-specific scaffold with proper TabBar integration
     if (Platform.isIOS) {
-      return _buildIOSScaffold(context, ref, timelineState, timelineNotifier, activeInstance);
+      return _buildIOSScaffold(context, ref, timelineState, timelineNotifier, activeInstance, homeViewMode, homeContentFilter);
     } else {
-      return _buildMaterialScaffold(context, ref, timelineState, timelineNotifier, activeInstance);
+      return _buildMaterialScaffold(context, ref, timelineState, timelineNotifier, activeInstance, homeViewMode, homeContentFilter);
     }
   }
 
@@ -387,7 +392,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build iOS-style scaffold with CupertinoSliverNavigationBar and segmented control
-  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance) {
+  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance, String homeViewMode, String homeContentFilter) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
 
     return CupertinoPageScaffold(
@@ -399,6 +404,7 @@ class HomeScreen extends ConsumerWidget {
             CupertinoNavigationBar(
               middle: _buildTitleWithIcon(activeInstance, isIOS: true),
               backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+              trailing: _buildViewModeButton(context, ref, isIOS: true),
             ),
             // Segmented control
             _buildIOSSegmentedControl(context, ref),
@@ -407,7 +413,7 @@ class HomeScreen extends ConsumerWidget {
               child: IndexedStack(
                 index: selectedTabIndex,
                 children: [
-                  _buildIOSFollowingTab(context, ref, timelineState, timelineNotifier),
+                  _buildIOSFollowingTab(context, ref, timelineState, timelineNotifier, homeViewMode, homeContentFilter, activeInstance.domain),
                   _buildIOSLocalTab(context, ref),
                   _buildIOSFederatedTab(context, ref),
                 ],
@@ -420,7 +426,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build Material 3 scaffold with SliverAppBar and TabBar
-  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance) {
+  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, Instance activeInstance, String homeViewMode, String homeContentFilter) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
 
     return DefaultTabController(
@@ -435,6 +441,9 @@ class HomeScreen extends ConsumerWidget {
                 sliver: SliverAppBar.large(
                   title: _buildTitleWithIcon(activeInstance),
                   pinned: true,
+                  actions: [
+                    _buildViewModeButton(context, ref, isIOS: false),
+                  ],
                   bottom: TabBar(
                     onTap: (index) {
                       ref.read(homeTabIndexProvider.notifier).state = index;
@@ -451,7 +460,7 @@ class HomeScreen extends ConsumerWidget {
           },
           body: TabBarView(
             children: [
-              _buildFollowingTab(context, ref, timelineState, timelineNotifier),
+              _buildFollowingTab(context, ref, timelineState, timelineNotifier, homeViewMode, homeContentFilter, activeInstance.domain),
               _buildLocalTab(context, ref),
               _buildFederatedTab(context, ref),
             ],
@@ -459,6 +468,107 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Build view mode button for switching between different view modes
+  Widget _buildViewModeButton(BuildContext context, WidgetRef ref, {required bool isIOS}) {
+    final homeViewMode = ref.watch(homeViewModeProvider);
+
+    if (isIOS) {
+      return CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: () => _showViewModeSelector(context, ref, isIOS: true),
+        child: Icon(
+          _getViewModeIcon(homeViewMode),
+          color: CupertinoColors.label.resolveFrom(context),
+        ),
+      );
+    } else {
+      return IconButton(
+        onPressed: () => _showViewModeSelector(context, ref, isIOS: false),
+        icon: Icon(_getViewModeIcon(homeViewMode)),
+      );
+    }
+  }
+
+  IconData _getViewModeIcon(String viewMode) {
+    switch (viewMode) {
+      case 'list':
+        return Icons.view_list;
+      case 'images':
+        return Icons.photo_library;
+      case 'grid':
+        return Icons.grid_view;
+      default:
+        return Icons.view_list;
+    }
+  }
+
+  void _showViewModeSelector(BuildContext context, WidgetRef ref, {required bool isIOS}) {
+    final settingsService = ref.read(settingsServiceProvider);
+    final availableViewModes = settingsService.getAvailableHomeViewModes();
+    final currentViewMode = ref.read(homeViewModeProvider);
+
+    if (isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          title: const Text('View Mode'),
+          actions: availableViewModes.map((mode) {
+            return CupertinoActionSheetAction(
+              onPressed: () {
+                ref.read(homeViewModeProvider.notifier).setHomeViewMode(mode);
+                Navigator.of(context).pop();
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(_getViewModeIcon(mode)),
+                  const SizedBox(width: 8),
+                  Text(settingsService.getHomeViewModeDisplayName(mode)),
+                  if (mode == currentViewMode) ...[
+                    const SizedBox(width: 8),
+                    const Icon(CupertinoIcons.check_mark, size: 16),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'View Mode',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ...availableViewModes.map((mode) {
+                return ListTile(
+                  leading: Icon(_getViewModeIcon(mode)),
+                  title: Text(settingsService.getHomeViewModeDisplayName(mode)),
+                  trailing: mode == currentViewMode ? const Icon(Icons.check) : null,
+                  onTap: () {
+                    ref.read(homeViewModeProvider.notifier).setHomeViewMode(mode);
+                    Navigator.of(context).pop();
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildIOSSegmentedControl(BuildContext context, WidgetRef ref) {
@@ -493,27 +603,62 @@ class HomeScreen extends ConsumerWidget {
 
 
   /// Build iOS Following tab content
-  Widget _buildIOSFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
-    return FeedList(
-      key: const Key('feed_list_following'),
-      statuses: timelineState.statuses,
-      isLoading: timelineState.isLoading,
-      hasError: timelineState.hasError,
-      errorMessage: timelineState.errorMessage,
-      hasMore: timelineState.hasMore,
-      onLoadMore: timelineNotifier.loadMore,
-      onRefresh: timelineNotifier.refreshTimeline,
-      onPostLiked: (status, liked) {
-        timelineNotifier.updateStatus(status);
-      },
-      onPostReblogged: (status, reblogged) {
-        timelineNotifier.updateStatus(status);
-      },
-      onPostBookmarked: (status, bookmarked) {
-        timelineNotifier.updateStatus(status);
-      },
-      wrapWithRefreshIndicator: true,
-    );
+  Widget _buildIOSFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, String homeViewMode, String homeContentFilter, String domain) {
+    switch (homeViewMode) {
+      case 'images':
+        return ImagesListView(
+          key: const Key('images_list_following'),
+          statuses: timelineState.statuses,
+          isLoading: timelineState.isLoading,
+          hasError: timelineState.hasError,
+          errorMessage: timelineState.errorMessage,
+          hasMore: timelineState.hasMore,
+          onLoadMore: timelineNotifier.loadMore,
+          onRefresh: timelineNotifier.refreshTimeline,
+          onPostLiked: (status, liked) {
+            timelineNotifier.updateStatus(status);
+          },
+          onPostReblogged: (status, reblogged) {
+            timelineNotifier.updateStatus(status);
+          },
+          onPostBookmarked: (status, bookmarked) {
+            timelineNotifier.updateStatus(status);
+          },
+        );
+      case 'grid':
+        return ImageGridView(
+          key: const Key('image_grid_following'),
+          statuses: timelineState.statuses,
+          isLoading: timelineState.isLoading,
+          hasError: timelineState.hasError,
+          errorMessage: timelineState.errorMessage,
+          hasMore: timelineState.hasMore,
+          onLoadMore: timelineNotifier.loadMore,
+          onRefresh: timelineNotifier.refreshTimeline,
+        );
+      case 'list':
+      default:
+        return FeedList(
+          key: const Key('feed_list_following'),
+          statuses: timelineState.statuses,
+          isLoading: timelineState.isLoading,
+          hasError: timelineState.hasError,
+          errorMessage: timelineState.errorMessage,
+          hasMore: timelineState.hasMore,
+          onLoadMore: timelineNotifier.loadMore,
+          onRefresh: timelineNotifier.refreshTimeline,
+          onPostLiked: (status, liked) {
+            timelineNotifier.updateStatus(status);
+          },
+          onPostReblogged: (status, reblogged) {
+            timelineNotifier.updateStatus(status);
+          },
+          onPostBookmarked: (status, bookmarked) {
+            timelineNotifier.updateStatus(status);
+          },
+          wrapWithRefreshIndicator: true,
+        );
+    }
   }
 
   /// Build iOS Local tab content
@@ -577,35 +722,77 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build Following tab content
-  Widget _buildFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+  Widget _buildFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier, String homeViewMode, String homeContentFilter, String domain) {
     return Builder(
       builder: (context) {
+        Widget content;
+
+        switch (homeViewMode) {
+          case 'images':
+            content = ImagesListView(
+              key: const Key('images_list_following'),
+              statuses: timelineState.statuses,
+              isLoading: timelineState.isLoading,
+              hasError: timelineState.hasError,
+              errorMessage: timelineState.errorMessage,
+              hasMore: timelineState.hasMore,
+              onLoadMore: timelineNotifier.loadMore,
+              onRefresh: timelineNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                timelineNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                timelineNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                timelineNotifier.updateStatus(status);
+              },
+            );
+            break;
+          case 'grid':
+            content = ImageGridView(
+              key: const Key('image_grid_following'),
+              statuses: timelineState.statuses,
+              isLoading: timelineState.isLoading,
+              hasError: timelineState.hasError,
+              errorMessage: timelineState.errorMessage,
+              hasMore: timelineState.hasMore,
+              onLoadMore: timelineNotifier.loadMore,
+              onRefresh: timelineNotifier.refreshTimeline,
+            );
+            break;
+          case 'list':
+          default:
+            content = FeedList(
+              key: const Key('feed_list_following'),
+              statuses: timelineState.statuses,
+              isLoading: timelineState.isLoading,
+              hasError: timelineState.hasError,
+              errorMessage: timelineState.errorMessage,
+              hasMore: timelineState.hasMore,
+              onLoadMore: timelineNotifier.loadMore,
+              onRefresh: timelineNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                timelineNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                timelineNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                timelineNotifier.updateStatus(status);
+              },
+              wrapWithRefreshIndicator: false,
+            );
+            break;
+        }
+
         return CustomScrollView(
           slivers: [
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
             SliverToBoxAdapter(
-              child: FeedList(
-                key: const Key('feed_list_following'),
-                statuses: timelineState.statuses,
-                isLoading: timelineState.isLoading,
-                hasError: timelineState.hasError,
-                errorMessage: timelineState.errorMessage,
-                hasMore: timelineState.hasMore,
-                onLoadMore: timelineNotifier.loadMore,
-                onRefresh: timelineNotifier.refreshTimeline,
-                onPostLiked: (status, liked) {
-                  timelineNotifier.updateStatus(status);
-                },
-                onPostReblogged: (status, reblogged) {
-                  timelineNotifier.updateStatus(status);
-                },
-                onPostBookmarked: (status, bookmarked) {
-                  timelineNotifier.updateStatus(status);
-                },
-                wrapWithRefreshIndicator: false,
-              ),
+              child: content,
             ),
           ],
         );

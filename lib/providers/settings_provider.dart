@@ -31,6 +31,18 @@ final onboardingCompletedProvider = StateNotifierProvider<OnboardingCompletedNot
   return OnboardingCompletedNotifier(settingsService);
 });
 
+/// Provider for home view mode
+final homeViewModeProvider = StateNotifierProvider<HomeViewModeNotifier, String>((ref) {
+  final settingsService = ref.watch(settingsServiceProvider);
+  return HomeViewModeNotifier(settingsService);
+});
+
+/// Provider for home content filter
+final homeContentFilterProvider = StateNotifierProvider<HomeContentFilterNotifier, String>((ref) {
+  final settingsService = ref.watch(settingsServiceProvider);
+  return HomeContentFilterNotifier(settingsService);
+});
+
 /// State notifier for theme mode management
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   final SettingsService _settingsService;
@@ -137,5 +149,51 @@ class OnboardingCompletedNotifier extends StateNotifier<bool> {
   Future<void> setOnboardingCompleted(bool completed) async {
     await _settingsService.setOnboardingCompleted(completed);
     state = completed;
+  }
+}
+
+/// State notifier for home view mode management
+class HomeViewModeNotifier extends StateNotifier<String> {
+  final SettingsService _settingsService;
+
+  HomeViewModeNotifier(this._settingsService) : super('list') {
+    _loadHomeViewMode();
+  }
+
+  Future<void> _loadHomeViewMode() async {
+    final viewMode = await _settingsService.getHomeViewMode();
+    state = viewMode;
+  }
+
+  Future<void> setHomeViewMode(String viewMode) async {
+    await _settingsService.setHomeViewMode(viewMode);
+    state = viewMode;
+  }
+
+  String get viewModeDisplayName {
+    return _settingsService.getHomeViewModeDisplayName(state);
+  }
+}
+
+/// State notifier for home content filter management
+class HomeContentFilterNotifier extends StateNotifier<String> {
+  final SettingsService _settingsService;
+
+  HomeContentFilterNotifier(this._settingsService) : super('all') {
+    _loadHomeContentFilter();
+  }
+
+  Future<void> _loadHomeContentFilter() async {
+    final filter = await _settingsService.getHomeContentFilter();
+    state = filter;
+  }
+
+  Future<void> setHomeContentFilter(String filter) async {
+    await _settingsService.setHomeContentFilter(filter);
+    state = filter;
+  }
+
+  String get filterDisplayName {
+    return _settingsService.getHomeContentFilterDisplayName(state);
   }
 }
