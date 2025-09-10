@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../widgets/common/app_page_scaffold.dart';
+import 'dart:io';
+import '../../../../providers/auth_provider.dart';
 import '../../domain/profile_usecases.dart';
 import '../../state/profile_controller.dart';
 import '../../state/profile_state.dart';
@@ -15,7 +17,6 @@ import '../widgets/boosts_list_sliver.dart';
 import '../widgets/likes_grid_sliver.dart';
 import '../widgets/shimmer_placeholders.dart';
 import '../../../../utils/account_utils.dart';
-import '../../../../providers/auth_provider.dart';
 
 /// Main profile screen with image-first design
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -31,15 +32,10 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> 
-    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
+    with AutomaticKeepAliveClientMixin {
   late final String userId;
   late final ScrollController _scrollController;
-  late final AnimationController _titleAnimationController;
-  late final Animation<double> _titleFadeAnimation;
-  
-  bool _isCollapsed = false;
   static const double _expandedHeight = 180.0;
-  static const double _toolbarHeight = kToolbarHeight;
 
   @override
   bool get wantKeepAlive => true;
@@ -51,45 +47,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     
     // Initialize scroll controller
     _scrollController = ScrollController();
-    _scrollController.addListener(_onScrollChanged);
-    
-    // Initialize title animation controller
-    _titleAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _titleFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _titleAnimationController,
-      curve: Curves.easeInOut,
-    ));
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
-    _titleAnimationController.dispose();
     super.dispose();
-  }
-
-  void _onScrollChanged() {
-    final collapseThreshold = _expandedHeight - _toolbarHeight;
-    final shouldCollapse = _scrollController.offset >= collapseThreshold;
-    
-    if (shouldCollapse != _isCollapsed) {
-      setState(() {
-        _isCollapsed = shouldCollapse;
-      });
-      
-      if (_isCollapsed) {
-        _titleAnimationController.forward();
-      } else {
-        _titleAnimationController.reverse();
-      }
-    }
   }
 
   Widget _buildHeaderImage(BuildContext context, ProfileState state) {
@@ -135,45 +98,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return profile.coverUrl.isNotEmpty;
   }
 
-  Widget? _buildCollapsedTitle(BuildContext context, ProfileState state) {
-    final profile = state.profile.valueOrNull;
-    if (profile == null) return null;
 
-    final activeInstance = ref.watch(activeInstanceProvider);
-    final formattedHandle = AccountUtils.formatHandle(
-      acct: profile.acct,
-      username: profile.username,
-      fallbackDomain: activeInstance?.domain,
-    );
-
-    return FadeTransition(
-      opacity: _titleFadeAnimation,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.person_outline,
-            size: 20,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              formattedHandle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              textAlign: TextAlign.left,
-              semanticsLabel: 'Profile: ${profile.username} at ${activeInstance?.domain ?? 'unknown instance'}',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,70 +114,379 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       fallbackDomain: activeInstance?.domain,
     ) : 'Profile';
 
-    return AppPageScaffold.sliver(
-      largeTitle: profile?.displayName ?? formattedHandle,
-      actions: state.isOwnProfile ? [
+    // Use platform-specific scaffold similar to Home and Notifications screens
+    if (Platform.isIOS) {
+      return _buildIOSScaffold(context, state, controller, profile, formattedHandle);
+    } else {
+      return _buildMaterialScaffold(context, state, controller, profile, formattedHandle);
+    }
+  }
+
+  /// Build iOS-style scaffold with CupertinoSliverNavigationBar
+  Widget _buildIOSScaffold(BuildContext context, ProfileState state, ProfileController controller, UserProfile? profile, String formattedHandle) {
+    return CupertinoPageScaffold(
+      child: Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: _scrollController,
+          key: PageStorageKey('profile_scroll_$userId'),
+          clipBehavior: Clip.none,
+          slivers: [
+            // iOS navigation bar with large title
+            CupertinoSliverNavigationBar(
+              largeTitle: Text(profile?.displayName ?? formattedHandle),
+              backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+              trailing: _buildIOSActions(context, state),
+              stretch: false,
+            ),
+
+            // Custom header with background image
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: _expandedHeight - kToolbarHeight,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildHeaderImage(context, state),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black26],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Profile Content (avatar, username, bio)
+            SliverProfileContent(
+              profile: state.profile.valueOrNull,
+              isLoading: state.profile.isLoading,
+              onFollowToggle: () => controller.toggleFollow(),
+              onEditProfile: () => _handleEditProfile(),
+            ),
+
+            // Profile Stats Row
+            SliverProfileStatsRow(
+              profile: state.profile.valueOrNull,
+              isLoading: state.profile.isLoading,
+              onPostsTap: () => _handleStatsTap('posts'),
+              onFollowersTap: () => _handleStatsTap('followers'),
+              onFollowingTap: () => _handleStatsTap('following'),
+            ),
+
+            // iOS-style tab bar
+            _buildIOSTabBar(context, state, controller),
+
+            // Tab Content
+            ..._buildTabContent(state, controller),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build Material 3 scaffold with SliverAppBar
+  Widget _buildMaterialScaffold(BuildContext context, ProfileState state, ProfileController controller, UserProfile? profile, String formattedHandle) {
+    return Scaffold(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverAppBar.large(
+                title: Text(profile?.displayName ?? formattedHandle),
+                pinned: true,
+                actions: _buildMaterialActions(context, state),
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(56.0),
+                  child: SliverProfileTabBar(
+                    selectedIndex: state.selectedTabIndex,
+                    onTabChanged: (index) => controller.switchTab(index),
+                    isLoading: state.isCurrentTabLoading,
+                    isOwnProfile: state.isOwnProfile,
+                  ),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: Builder(
+          builder: (context) {
+            return CustomScrollView(
+              controller: _scrollController,
+              key: PageStorageKey('profile_scroll_$userId'),
+              clipBehavior: Clip.none,
+              slivers: [
+                SliverOverlapInjector(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+
+                // Custom header with background image
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: _expandedHeight - kToolbarHeight,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildHeaderImage(context, state),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black26],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Profile Content (avatar, username, bio)
+                SliverProfileContent(
+                  profile: state.profile.valueOrNull,
+                  isLoading: state.profile.isLoading,
+                  onFollowToggle: () => controller.toggleFollow(),
+                  onEditProfile: () => _handleEditProfile(),
+                ),
+
+                // Profile Stats Row
+                SliverProfileStatsRow(
+                  profile: state.profile.valueOrNull,
+                  isLoading: state.profile.isLoading,
+                  onPostsTap: () => _handleStatsTap('posts'),
+                  onFollowersTap: () => _handleStatsTap('followers'),
+                  onFollowingTap: () => _handleStatsTap('following'),
+                ),
+
+                // Tab Content
+                ..._buildTabContent(state, controller),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Build iOS-style action buttons
+  Widget? _buildIOSActions(BuildContext context, ProfileState state) {
+    if (!state.isOwnProfile) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CupertinoButton(
+            padding: const EdgeInsets.all(0),
+            minSize: 0,
+            onPressed: () => _handleShare(context),
+            child: Icon(
+              CupertinoIcons.share,
+              color: CupertinoColors.activeBlue.resolveFrom(context),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 8),
+          CupertinoButton(
+            padding: const EdgeInsets.all(0),
+            minSize: 0,
+            onPressed: () => _handleMoreOptions(context),
+            child: Icon(
+              CupertinoIcons.ellipsis,
+              color: CupertinoColors.activeBlue.resolveFrom(context),
+              size: 22,
+            ),
+          ),
+        ],
+      );
+    } else {
+      return CupertinoButton(
+        padding: const EdgeInsets.all(0),
+        minSize: 0,
+        onPressed: () => context.push('/settings'),
+        child: Icon(
+          CupertinoIcons.settings,
+          color: CupertinoColors.activeBlue.resolveFrom(context),
+          size: 22,
+        ),
+      );
+    }
+  }
+
+  /// Build Material-style action buttons
+  List<Widget> _buildMaterialActions(BuildContext context, ProfileState state) {
+    if (!state.isOwnProfile) {
+      return [
+        IconButton(
+          onPressed: () => _handleShare(context),
+          icon: const Icon(Icons.share),
+          tooltip: 'Share Profile',
+        ),
+        IconButton(
+          onPressed: () => _handleMoreOptions(context),
+          icon: const Icon(Icons.more_vert),
+          tooltip: 'More Options',
+        ),
+      ];
+    } else {
+      return [
         IconButton(
           icon: const Icon(Icons.settings),
           onPressed: () => context.push('/settings'),
           tooltip: 'Settings',
         ),
-      ] : null,
-      headerBelowSliver: SliverProfileTabBar(
+      ];
+    }
+  }
+
+  /// Build iOS-style tab bar
+  Widget _buildIOSTabBar(BuildContext context, ProfileState state, ProfileController controller) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _IOSTabBarDelegate(
         selectedIndex: state.selectedTabIndex,
         onTabChanged: (index) => controller.switchTab(index),
         isLoading: state.isCurrentTabLoading,
         isOwnProfile: state.isOwnProfile,
       ),
-      sliverBodyBuilder: () => CustomScrollView(
-        controller: _scrollController,
-        key: PageStorageKey('profile_scroll_$userId'),
-        clipBehavior: Clip.none,
-        slivers: [
-          // Custom header with background image
-          SliverToBoxAdapter(
-            child: Container(
-              height: _expandedHeight - kToolbarHeight,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildHeaderImage(context, state),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black26],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Profile Content (avatar, username, bio)
-          SliverProfileContent(
-            profile: state.profile.valueOrNull,
-            isLoading: state.profile.isLoading,
-            onFollowToggle: () => controller.toggleFollow(),
-            onEditProfile: () => _handleEditProfile(),
-          ),
-
-          // Profile Stats Row
-          SliverProfileStatsRow(
-            profile: state.profile.valueOrNull,
-            isLoading: state.profile.isLoading,
-            onPostsTap: () => _handleStatsTap('posts'),
-            onFollowersTap: () => _handleStatsTap('followers'),
-            onFollowingTap: () => _handleStatsTap('following'),
-          ),
-
-          // Tab Content
-          ..._buildTabContent(state, controller),
-        ],
-      ),
     );
+  }
+
+  /// Handle share action
+  void _handleShare(BuildContext context) {
+    // TODO: Implement profile sharing
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Share Profile'),
+          content: const Text('Profile sharing will be available soon.'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile sharing will be available soon.')),
+      );
+    }
+  }
+
+  /// Handle more options action
+  void _handleMoreOptions(BuildContext context) {
+    if (Platform.isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          title: const Text('Profile Options'),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleBlock(context);
+              },
+              isDestructiveAction: true,
+              child: const Text('Block User'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleReport(context);
+              },
+              child: const Text('Report User'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.block, color: Colors.red),
+              title: const Text('Block User'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _handleBlock(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.report),
+              title: const Text('Report User'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _handleReport(context);
+              },
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Handle block user action
+  void _handleBlock(BuildContext context) {
+    // TODO: Implement user blocking
+    final message = Platform.isIOS ? 'User blocking will be available soon.' : 'User blocking will be available soon.';
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Block User'),
+          content: Text(message),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  /// Handle report user action
+  void _handleReport(BuildContext context) {
+    // TODO: Implement user reporting
+    final message = Platform.isIOS ? 'User reporting will be available soon.' : 'User reporting will be available soon.';
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Report User'),
+          content: Text(message),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   /// Build the content for the selected tab
@@ -629,8 +863,74 @@ class ProfileScreenConfig {
   /// Check if profile should auto-refresh based on last update
   static bool shouldAutoRefresh(DateTime? lastUpdate) {
     if (lastUpdate == null) return true;
-    
+
     const refreshInterval = Duration(minutes: 5);
     return DateTime.now().difference(lastUpdate) > refreshInterval;
+  }
+}
+
+/// iOS-style tab bar delegate for profile tabs
+class _IOSTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final int selectedIndex;
+  final Function(int) onTabChanged;
+  final bool isLoading;
+  final bool isOwnProfile;
+
+  _IOSTabBarDelegate({
+    required this.selectedIndex,
+    required this.onTabChanged,
+    required this.isLoading,
+    required this.isOwnProfile,
+  });
+
+  @override
+  double get minExtent => 56.0;
+
+  @override
+  double get maxExtent => 56.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: CupertinoColors.systemBackground.resolveFrom(context),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: CupertinoSlidingSegmentedControl<int>(
+            groupValue: selectedIndex,
+            onValueChanged: (int? value) {
+              if (value != null) {
+                onTabChanged(value);
+              }
+            },
+            children: {
+              ProfileTabs.media: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('Media'),
+              ),
+              ProfileTabs.comments: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('Comments'),
+              ),
+              ProfileTabs.boosts: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('Boosts'),
+              ),
+              if (isOwnProfile)
+                ProfileTabs.likes: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text('Likes'),
+                ),
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    return oldDelegate != this;
   }
 }
