@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/profile_models.dart';
 import 'shimmer_placeholders.dart';
+import 'dart:io';
 
 /// Media grid sliver for displaying user's media posts in 3-column grid
 class MediaGridSliver extends StatelessWidget {
@@ -173,6 +175,42 @@ class _MediaGridItem extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                // Alt text indicator
+                if (item.alt != null && item.alt!.isNotEmpty)
+                  Positioned(
+                    bottom: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _showAltTextDialog(context, item.alt!),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.description,
+                              color: Colors.white,
+                              size: 10,
+                            ),
+                            SizedBox(width: 2),
+                            Text(
+                              'ALT',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 // Hover/tap overlay
                 Positioned.fill(
                   child: Material(
@@ -202,6 +240,50 @@ class _MediaGridItem extends StatelessWidget {
         return Icons.photo_library;
       default:
         return Icons.image;
+    }
+  }
+
+  /// Show alt text dialog with platform-specific styling
+  void _showAltTextDialog(BuildContext context, String altText) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Image Description'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Image Description'),
+          content: SingleChildScrollView(
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }

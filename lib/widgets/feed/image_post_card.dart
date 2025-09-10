@@ -316,6 +316,42 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
                             ),
                           ),
                         ),
+
+                      // Alt text indicator
+                      if (imageMedia.description != null && imageMedia.description!.isNotEmpty)
+                        Positioned(
+                          bottom: 12,
+                          right: 12,
+                          child: GestureDetector(
+                            onTap: () => _showAltTextDialog(context, imageMedia.description!),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.description,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'ALT',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -429,5 +465,49 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
         ),
       ),
     );
+  }
+
+  /// Show alt text dialog with platform-specific styling
+  void _showAltTextDialog(BuildContext context, String altText) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Image Description'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Image Description'),
+          content: SingleChildScrollView(
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

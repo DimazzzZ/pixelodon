@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:pixelodon/models/status.dart';
+import 'dart:io';
 
 /// Widget for displaying media attachments in a post
 class MediaGallery extends StatefulWidget {
@@ -225,30 +227,33 @@ class _MediaGalleryState extends State<MediaGallery> {
           Positioned(
             bottom: 8,
             right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.description,
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'ALT',
-                    style: TextStyle(
+            child: GestureDetector(
+              onTap: () => _showAltTextDialog(context, attachment.description!),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.description,
                       color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      size: 14,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 4),
+                    Text(
+                      'ALT',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -377,7 +382,51 @@ class _MediaGalleryState extends State<MediaGallery> {
     final duration = Duration(seconds: seconds.round());
     final minutes = duration.inMinutes;
     final remainingSeconds = duration.inSeconds - minutes * 60;
-    
+
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  /// Show alt text dialog with platform-specific styling
+  void _showAltTextDialog(BuildContext context, String altText) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Image Description'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Image Description'),
+          content: SingleChildScrollView(
+            child: Text(
+              altText,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

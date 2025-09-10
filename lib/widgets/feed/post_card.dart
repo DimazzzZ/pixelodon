@@ -599,16 +599,15 @@ class _PostCardState extends ConsumerState<PostCard> {
         attachments: status.mediaAttachments,
         sensitive: status.sensitive,
         onTap: (index) {
-          final images = status.mediaAttachments
+          final imageAttachments = status.mediaAttachments
               .where((a) => a.type == AttachmentType.image || a.type == AttachmentType.gifv)
-              .map((a) => a.url)
               .toList();
-          if (images.isNotEmpty) {
-            final initial = index.clamp(0, images.length - 1);
+          if (imageAttachments.isNotEmpty) {
+            final initial = index.clamp(0, imageAttachments.length - 1);
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => ImageViewerScreen(
-                  imageUrls: images,
+                builder: (_) => ImageViewerScreen.fromAttachments(
+                  mediaAttachments: imageAttachments,
                   initialIndex: initial,
                   heroTagPrefix: 'post_${status.id}',
                 ),
