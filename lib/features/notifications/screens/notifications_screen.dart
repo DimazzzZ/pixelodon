@@ -10,7 +10,7 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/services/notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
-import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
+import 'package:pixelodon/core/theme/app_theme.dart';
 
 /// Provider for notifications
 final notificationsProvider = StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
@@ -265,88 +265,263 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final notificationsState = ref.watch(notificationsProvider);
     final notificationsNotifier = ref.read(notificationsProvider.notifier);
     final activeInstance = ref.watch(activeInstanceProvider);
-    
+
     if (activeInstance == null) {
-      return AppPageScaffold.standard(
-        title: 'Notifications',
-        body: const Center(
-          child: Text('No active instance selected'),
+      return _buildNoInstanceScaffold(context);
+    }
+
+    // Use platform-specific scaffold similar to Home screen
+    if (Platform.isIOS) {
+      return _buildIOSScaffold(context, notificationsState, notificationsNotifier);
+    } else {
+      return _buildMaterialScaffold(context, notificationsState, notificationsNotifier);
+    }
+  }
+
+  /// Build scaffold when no instance is selected
+  Widget _buildNoInstanceScaffold(BuildContext context) {
+    if (Platform.isIOS) {
+      return CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Notifications'),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Container(
+            color: AppTheme.pageBg(context),
+            child: const Center(
+              child: Text('No active instance selected'),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Notifications'),
+        ),
+        body: Container(
+          color: AppTheme.pageBg(context),
+          child: const Center(
+            child: Text('No active instance selected'),
+          ),
         ),
       );
     }
+  }
 
-    return AppPageScaffold.standard(
-      title: 'Notifications',
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.filter_list),
-          onPressed: () {
-            _showFilterDialog(context, notificationsState, notificationsNotifier);
-          },
+  /// Build iOS-style scaffold with CupertinoNavigationBar
+  Widget _buildIOSScaffold(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier) {
+    return CupertinoPageScaffold(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            // Navigation bar with title and actions
+            CupertinoNavigationBar(
+              middle: const Text('Notifications'),
+              backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+              trailing: _buildIOSActions(context, notificationsState, notificationsNotifier),
+            ),
+            // Content
+            Expanded(
+              child: _buildNotificationsList(context, notificationsState, notificationsNotifier, isIOS: true),
+            ),
+          ],
         ),
-        IconButton(
-          icon: const Icon(Icons.done_all),
-          onPressed: () {
-            notificationsNotifier.markAllAsRead();
-          },
-        ),
-      ],
-      body: notificationsState.hasError
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    notificationsState.errorMessage ?? 'An error occurred',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: notificationsNotifier.loadNotifications,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            )
-          : notificationsState.notifications.isEmpty
-              ? notificationsState.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  : const Center(
-                      child: Text('No notifications'),
-                    )
-              : RefreshIndicator(
-                  onRefresh: notificationsNotifier.refreshNotifications,
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == notificationsState.notifications.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      
-                      final notification = notificationsState.notifications[index];
-                      
-                      return _buildNotificationItem(context, notification);
-                    },
-                  ),
-                ),
+      ),
     );
   }
-  
+
+  /// Build Material 3 scaffold with SliverAppBar
+  Widget _buildMaterialScaffold(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier) {
+    return Scaffold(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverAppBar.medium(
+                title: const Text('Notifications'),
+                pinned: true,
+                actions: _buildMaterialActions(context, notificationsState, notificationsNotifier),
+              ),
+            ),
+          ];
+        },
+        body: Builder(
+          builder: (context) {
+            return CustomScrollView(
+              slivers: [
+                SliverOverlapInjector(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildNotificationsList(context, notificationsState, notificationsNotifier, isIOS: false),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Build iOS-style action buttons
+  Widget _buildIOSActions(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CupertinoButton(
+          padding: const EdgeInsets.all(0),
+          minSize: 0,
+          onPressed: () => _showFilterSelector(context, notificationsState, notificationsNotifier, isIOS: true),
+          child: Icon(
+            CupertinoIcons.line_horizontal_3_decrease,
+            color: CupertinoColors.activeBlue.resolveFrom(context),
+            size: 22,
+          ),
+        ),
+        const SizedBox(width: 8),
+        CupertinoButton(
+          padding: const EdgeInsets.all(0),
+          minSize: 0,
+          onPressed: () => _showMarkAsReadConfirmation(context, notificationsNotifier, isIOS: true),
+          child: Icon(
+            CupertinoIcons.checkmark_alt,
+            color: CupertinoColors.activeBlue.resolveFrom(context),
+            size: 22,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build Material-style action buttons
+  List<Widget> _buildMaterialActions(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier) {
+    return [
+      IconButton(
+        onPressed: () => _showFilterSelector(context, notificationsState, notificationsNotifier, isIOS: false),
+        icon: const Icon(Icons.filter_list),
+        tooltip: 'Filter notifications',
+      ),
+      IconButton(
+        onPressed: () => _showMarkAsReadConfirmation(context, notificationsNotifier, isIOS: false),
+        icon: const Icon(Icons.done_all),
+        tooltip: 'Mark all as read',
+      ),
+    ];
+  }
+
+  /// Build notifications list content
+  Widget _buildNotificationsList(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier, {required bool isIOS}) {
+    if (notificationsState.hasError) {
+      return _buildErrorState(context, notificationsState, notificationsNotifier, isIOS: isIOS);
+    }
+
+    if (notificationsState.notifications.isEmpty) {
+      if (notificationsState.isLoading) {
+        return _buildLoadingState(context, isIOS: isIOS);
+      } else {
+        return _buildEmptyState(context, isIOS: isIOS);
+      }
+    }
+
+    if (isIOS) {
+      return CupertinoScrollbar(
+        child: RefreshIndicator(
+          onRefresh: notificationsNotifier.refreshNotifications,
+          child: ListView.builder(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == notificationsState.notifications.length) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CupertinoActivityIndicator(),
+                  ),
+                );
+              }
+
+              final notification = notificationsState.notifications[index];
+              return _buildNotificationItem(context, notification);
+            },
+          ),
+        ),
+      );
+    } else {
+      return RefreshIndicator(
+        onRefresh: notificationsNotifier.refreshNotifications,
+        child: ListView.builder(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == notificationsState.notifications.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final notification = notificationsState.notifications[index];
+            return _buildNotificationItem(context, notification);
+          },
+        ),
+      );
+    }
+  }
+
+  /// Build error state
+  Widget _buildErrorState(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier, {required bool isIOS}) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isIOS ? CupertinoIcons.exclamationmark_triangle : Icons.error_outline,
+            size: 48,
+            color: isIOS ? CupertinoColors.systemRed : Colors.red,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            notificationsState.errorMessage ?? 'An error occurred',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          if (isIOS)
+            CupertinoButton.filled(
+              onPressed: notificationsNotifier.loadNotifications,
+              child: const Text('Retry'),
+            )
+          else
+            ElevatedButton(
+              onPressed: notificationsNotifier.loadNotifications,
+              child: const Text('Retry'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Build loading state
+  Widget _buildLoadingState(BuildContext context, {required bool isIOS}) {
+    return Center(
+      child: isIOS ? const CupertinoActivityIndicator() : const CircularProgressIndicator(),
+    );
+  }
+
+  /// Build empty state
+  Widget _buildEmptyState(BuildContext context, {required bool isIOS}) {
+    return const Center(
+      child: Text('No notifications'),
+    );
+  }
+
   /// Build a notification item
   Widget _buildNotificationItem(BuildContext context, model.Notification notification) {
     final theme = Theme.of(context);
@@ -771,137 +946,348 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
   
-  /// Show filter dialog
-  void _showFilterDialog(
-    BuildContext context,
-    NotificationsState state,
-    NotificationsNotifier notifier,
-  ) {
+  /// Show mark as read confirmation
+  void _showMarkAsReadConfirmation(BuildContext context, NotificationsNotifier notifier, {required bool isIOS}) {
+    if (isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Mark All as Read'),
+          content: const Text('Are you sure you want to mark all notifications as read?'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: false,
+              onPressed: () {
+                Navigator.of(context).pop();
+                notifier.markAllAsRead();
+              },
+              child: const Text('Mark as Read'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Mark All as Read'),
+          content: const Text('Are you sure you want to mark all notifications as read?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                notifier.markAllAsRead();
+              },
+              child: const Text('Mark as Read'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Show filter selector
+  void _showFilterSelector(BuildContext context, NotificationsState state, NotificationsNotifier notifier, {required bool isIOS}) {
     final excludeTypes = List<model.NotificationType>.from(state.excludeTypes);
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Filter Notifications'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFilterCheckbox(
-                      context,
-                      'Follows',
-                      model.NotificationType.follow,
-                      excludeTypes,
-                      (value) {
-                        setState(() {
-                          if (value!) {
-                            excludeTypes.add(model.NotificationType.follow);
-                          } else {
-                            excludeTypes.remove(model.NotificationType.follow);
-                          }
-                        });
-                      },
-                    ),
-                    _buildFilterCheckbox(
-                      context,
-                      'Mentions',
-                      model.NotificationType.mention,
-                      excludeTypes,
-                      (value) {
-                        setState(() {
-                          if (value!) {
-                            excludeTypes.add(model.NotificationType.mention);
-                          } else {
-                            excludeTypes.remove(model.NotificationType.mention);
-                          }
-                        });
-                      },
-                    ),
-                    _buildFilterCheckbox(
-                      context,
-                      'Boosts',
-                      model.NotificationType.reblog,
-                      excludeTypes,
-                      (value) {
-                        setState(() {
-                          if (value!) {
-                            excludeTypes.add(model.NotificationType.reblog);
-                          } else {
-                            excludeTypes.remove(model.NotificationType.reblog);
-                          }
-                        });
-                      },
-                    ),
-                    _buildFilterCheckbox(
-                      context,
-                      'Favorites',
-                      model.NotificationType.favourite,
-                      excludeTypes,
-                      (value) {
-                        setState(() {
-                          if (value!) {
-                            excludeTypes.add(model.NotificationType.favourite);
-                          } else {
-                            excludeTypes.remove(model.NotificationType.favourite);
-                          }
-                        });
-                      },
-                    ),
-                    _buildFilterCheckbox(
-                      context,
-                      'Polls',
-                      model.NotificationType.poll,
-                      excludeTypes,
-                      (value) {
-                        setState(() {
-                          if (value!) {
-                            excludeTypes.add(model.NotificationType.poll);
-                          } else {
-                            excludeTypes.remove(model.NotificationType.poll);
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
+
+    if (isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => _buildIOSFilterSheet(context, excludeTypes, notifier),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => _buildMaterialFilterSheet(context, excludeTypes, notifier),
+      );
+    }
+  }
+
+  /// Build iOS-style filter sheet
+  Widget _buildIOSFilterSheet(BuildContext context, List<model.NotificationType> excludeTypes, NotificationsNotifier notifier) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CupertinoActionSheet(
+          title: const Text('Filter Notifications'),
+          message: const Text('Hide notification types'),
+          actions: [
+            _buildIOSFilterOption(
+              context,
+              'Follows',
+              model.NotificationType.follow,
+              excludeTypes,
+              (value) {
+                setState(() {
+                  if (value) {
+                    excludeTypes.add(model.NotificationType.follow);
+                  } else {
+                    excludeTypes.remove(model.NotificationType.follow);
+                  }
+                });
+              },
+            ),
+            _buildIOSFilterOption(
+              context,
+              'Mentions',
+              model.NotificationType.mention,
+              excludeTypes,
+              (value) {
+                setState(() {
+                  if (value) {
+                    excludeTypes.add(model.NotificationType.mention);
+                  } else {
+                    excludeTypes.remove(model.NotificationType.mention);
+                  }
+                });
+              },
+            ),
+            _buildIOSFilterOption(
+              context,
+              'Boosts',
+              model.NotificationType.reblog,
+              excludeTypes,
+              (value) {
+                setState(() {
+                  if (value) {
+                    excludeTypes.add(model.NotificationType.reblog);
+                  } else {
+                    excludeTypes.remove(model.NotificationType.reblog);
+                  }
+                });
+              },
+            ),
+            _buildIOSFilterOption(
+              context,
+              'Favorites',
+              model.NotificationType.favourite,
+              excludeTypes,
+              (value) {
+                setState(() {
+                  if (value) {
+                    excludeTypes.add(model.NotificationType.favourite);
+                  } else {
+                    excludeTypes.remove(model.NotificationType.favourite);
+                  }
+                });
+              },
+            ),
+            _buildIOSFilterOption(
+              context,
+              'Polls',
+              model.NotificationType.poll,
+              excludeTypes,
+              (value) {
+                setState(() {
+                  if (value) {
+                    excludeTypes.add(model.NotificationType.poll);
+                  } else {
+                    excludeTypes.remove(model.NotificationType.poll);
+                  }
+                });
+              },
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                notifier.setFilters(excludeTypes: excludeTypes);
+              },
+              child: const Text('Apply Filters'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build Material-style filter sheet
+  Widget _buildMaterialFilterSheet(BuildContext context, List<model.NotificationType> excludeTypes, NotificationsNotifier notifier) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.3,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    notifier.setFilters(excludeTypes: excludeTypes);
-                  },
-                  child: const Text('Apply'),
-                ),
-              ],
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Filter Notifications',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            notifier.setFilters(excludeTypes: excludeTypes);
+                          },
+                          child: const Text('Apply'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Filter options
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        _buildMaterialFilterOption(
+                          context,
+                          'Follows',
+                          model.NotificationType.follow,
+                          excludeTypes,
+                          (value) {
+                            setState(() {
+                              if (value) {
+                                excludeTypes.add(model.NotificationType.follow);
+                              } else {
+                                excludeTypes.remove(model.NotificationType.follow);
+                              }
+                            });
+                          },
+                        ),
+                        _buildMaterialFilterOption(
+                          context,
+                          'Mentions',
+                          model.NotificationType.mention,
+                          excludeTypes,
+                          (value) {
+                            setState(() {
+                              if (value) {
+                                excludeTypes.add(model.NotificationType.mention);
+                              } else {
+                                excludeTypes.remove(model.NotificationType.mention);
+                              }
+                            });
+                          },
+                        ),
+                        _buildMaterialFilterOption(
+                          context,
+                          'Boosts',
+                          model.NotificationType.reblog,
+                          excludeTypes,
+                          (value) {
+                            setState(() {
+                              if (value) {
+                                excludeTypes.add(model.NotificationType.reblog);
+                              } else {
+                                excludeTypes.remove(model.NotificationType.reblog);
+                              }
+                            });
+                          },
+                        ),
+                        _buildMaterialFilterOption(
+                          context,
+                          'Favorites',
+                          model.NotificationType.favourite,
+                          excludeTypes,
+                          (value) {
+                            setState(() {
+                              if (value) {
+                                excludeTypes.add(model.NotificationType.favourite);
+                              } else {
+                                excludeTypes.remove(model.NotificationType.favourite);
+                              }
+                            });
+                          },
+                        ),
+                        _buildMaterialFilterOption(
+                          context,
+                          'Polls',
+                          model.NotificationType.poll,
+                          excludeTypes,
+                          (value) {
+                            setState(() {
+                              if (value) {
+                                excludeTypes.add(model.NotificationType.poll);
+                              } else {
+                                excludeTypes.remove(model.NotificationType.poll);
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
       },
     );
   }
-  
-  /// Build a filter checkbox
-  Widget _buildFilterCheckbox(
+
+  /// Build iOS filter option
+  Widget _buildIOSFilterOption(
     BuildContext context,
     String label,
     model.NotificationType type,
     List<model.NotificationType> excludeTypes,
-    Function(bool?) onChanged,
+    Function(bool) onChanged,
   ) {
+    final isExcluded = excludeTypes.contains(type);
+    return CupertinoActionSheetAction(
+      onPressed: () => onChanged(!isExcluded),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          if (isExcluded)
+            const Icon(CupertinoIcons.checkmark, size: 16),
+        ],
+      ),
+    );
+  }
+
+  /// Build Material filter option
+  Widget _buildMaterialFilterOption(
+    BuildContext context,
+    String label,
+    model.NotificationType type,
+    List<model.NotificationType> excludeTypes,
+    Function(bool) onChanged,
+  ) {
+    final isExcluded = excludeTypes.contains(type);
     return CheckboxListTile(
       title: Text(label),
-      value: excludeTypes.contains(type),
-      onChanged: onChanged,
+      subtitle: Text('Hide $label notifications'),
+      value: isExcluded,
+      onChanged: (value) => onChanged(value ?? false),
       dense: true,
     );
   }
