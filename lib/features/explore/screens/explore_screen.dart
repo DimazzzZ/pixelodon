@@ -457,12 +457,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    // Determine tab count based on instance type
-    final activeInstance = ref.read(activeInstanceProvider);
-    final isPixelfed = activeInstance?.isPixelfed ?? false;
-    final tabCount = isPixelfed ? 3 : 4; // Pixelfed: 3 tabs, Mastodon: 4 tabs
-
-    _tabController = TabController(length: tabCount, vsync: this);
+    // Initialize with default tab count (will be updated in build)
+    _tabController = TabController(length: 3, vsync: this);
 
     // Listen to tab changes to set filters appropriately
     _tabController.addListener(() {
@@ -472,15 +468,44 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
 
       final newIndex = _tabController.index;
       if (newIndex != _currentTabIndex) {
-        _currentTabIndex = newIndex;
+        setState(() {
+          _currentTabIndex = newIndex;
+        });
         _setFiltersForTab(newIndex);
       }
     });
+  }
 
-    // Set initial filters for the first tab
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setFiltersForTab(0);
-    });
+  void _updateTabController(bool isPixelfed) {
+    final newTabCount = isPixelfed ? 3 : 4;
+    if (_tabController.length != newTabCount) {
+      final oldIndex = _tabController.index;
+      _tabController.dispose();
+      _tabController = TabController(length: newTabCount, vsync: this);
+
+      // Restore the tab index if it's still valid
+      if (oldIndex < newTabCount) {
+        _tabController.index = oldIndex;
+        _currentTabIndex = oldIndex;
+      } else {
+        _currentTabIndex = 0;
+      }
+
+      // Re-add the listener
+      _tabController.addListener(() {
+        if (_tabController.indexIsChanging) {
+          return;
+        }
+
+        final newIndex = _tabController.index;
+        if (newIndex != _currentTabIndex) {
+          setState(() {
+            _currentTabIndex = newIndex;
+          });
+          _setFiltersForTab(newIndex);
+        }
+      });
+    }
   }
   
   /// Set filters based on the tab index
@@ -524,6 +549,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     final activeInstance = ref.watch(activeInstanceProvider);
     final isPixelfed = activeInstance?.isPixelfed ?? false;
 
+    // Update tab controller if needed
+    _updateTabController(isPixelfed);
+
     // Use standard platform-specific scaffold with proper TabBar integration
     if (Platform.isIOS) {
       return _buildIOSScaffold(context, isPixelfed);
@@ -551,7 +579,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
             // Content based on selected tab
             Expanded(
               child: IndexedStack(
-                index: _tabController.index,
+                index: _currentTabIndex,
                 children: _buildIOSTabViews(context, isPixelfed),
               ),
             ),
@@ -563,11 +591,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
 
   /// Build Material 3 scaffold with SliverAppBar and TabBar
   Widget _buildMaterialScaffold(BuildContext context, bool isPixelfed) {
-    final tabCount = isPixelfed ? 3 : 4; // Pixelfed: 3 tabs, Mastodon: 4 tabs
-
-    return DefaultTabController(
-      length: tabCount,
-      child: Scaffold(
+    return Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
@@ -626,7 +650,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
             children: _buildMaterialTabViews(context, isPixelfed),
           ),
         ),
-      ),
     );
   }
 
@@ -808,10 +831,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: CupertinoSlidingSegmentedControl<int>(
-        groupValue: _tabController.index,
+        groupValue: _currentTabIndex,
         onValueChanged: (int? value) {
           if (value != null) {
+            setState(() {
+              _currentTabIndex = value;
+            });
             _tabController.animateTo(value);
+            _setFiltersForTab(value);
           }
         },
         children: children,
