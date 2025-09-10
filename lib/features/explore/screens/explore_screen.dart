@@ -450,7 +450,9 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   int _currentTabIndex = 0;
+  bool _isSearchExpanded = false;
   
   @override
   void initState() {
@@ -495,6 +497,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
   
@@ -524,7 +527,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
             ),
             // Search bar
-            _buildSearchBar(context),
+            _buildIOSSearchBar(context),
             // Segmented control for tabs
             _buildIOSSegmentedControl(context, isPixelfed),
             // Content based on selected tab
@@ -555,31 +558,77 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
               SliverOverlapAbsorber(
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 sliver: SliverAppBar.medium(
-                  title: const Text('Explore'),
+                  title: _isSearchExpanded
+                      ? _buildMaterialSearchField(context)
+                      : const Text('Explore'),
                   pinned: true,
-                  bottom: TabBar(
-                    controller: _tabController,
-                    tabs: [
-                      Tab(
-                        icon: const Icon(Icons.explore),
-                        text: isPixelfed ? 'Discover' : 'For You',
-                      ),
-                      const Tab(
-                        icon: Icon(Icons.trending_up),
-                        text: 'Trending',
-                      ),
-                      Tab(
-                        icon: const Icon(Icons.location_city),
-                        text: isPixelfed ? 'Local' : 'Community',
-                      ),
-                    ],
-                  ),
+                  actions: _isSearchExpanded
+                      ? [
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _isSearchExpanded = false;
+                                _searchController.clear();
+                              });
+                            },
+                          ),
+                        ]
+                      : [
+                          IconButton(
+                            icon: const Icon(Icons.search),
+                            onPressed: () {
+                              setState(() {
+                                _isSearchExpanded = true;
+                              });
+                            },
+                          ),
+                        ],
+                  bottom: _isSearchExpanded
+                      ? null
+                      : TabBar(
+                          controller: _tabController,
+                          tabs: [
+                            Tab(
+                              icon: const Icon(Icons.explore),
+                              text: isPixelfed ? 'Discover' : 'For You',
+                            ),
+                            const Tab(
+                              icon: Icon(Icons.trending_up),
+                              text: 'Trending',
+                            ),
+                            Tab(
+                              icon: const Icon(Icons.location_city),
+                              text: isPixelfed ? 'Local' : 'Community',
+                            ),
+                          ],
+                        ),
                 ),
               ),
-              // Search bar as a sliver
-              SliverToBoxAdapter(
-                child: _buildSearchBar(context),
-              ),
+              // Show tabs below search when expanded
+              if (_isSearchExpanded)
+                SliverToBoxAdapter(
+                  child: Material(
+                    elevation: 4,
+                    child: TabBar(
+                      controller: _tabController,
+                      tabs: [
+                        Tab(
+                          icon: const Icon(Icons.explore),
+                          text: isPixelfed ? 'Discover' : 'For You',
+                        ),
+                        const Tab(
+                          icon: Icon(Icons.trending_up),
+                          text: 'Trending',
+                        ),
+                        Tab(
+                          icon: const Icon(Icons.location_city),
+                          text: isPixelfed ? 'Local' : 'Community',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ];
           },
           body: TabBarView(
@@ -595,64 +644,77 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     );
   }
 
-  /// Build search bar widget
-  Widget _buildSearchBar(BuildContext context) {
+  /// Build iOS search bar widget (native CupertinoSearchTextField)
+  Widget _buildIOSSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: TextField(
+      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
+      child: CupertinoSearchTextField(
         controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Search...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () {
-              _searchController.clear();
-            },
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Platform.isIOS ? 10 : 30),
-          ),
-        ),
-        onSubmitted: (value) async {
-          final query = value.trim();
-          if (query.isEmpty) return;
-          // If hashtag, go to tag timeline
-          if (query.startsWith('#')) {
-            final tag = query.substring(1).trim();
-            if (tag.isNotEmpty) context.push('/tag/$tag');
-            return;
-          }
-          // Try account search (e.g., @user or user@domain). If found, open first result.
-          try {
-            final container = ProviderScope.containerOf(context);
-            final active = container.read(activeInstanceProvider);
-            final domain = active?.domain;
-            if (domain != null) {
-              final acctQuery = query.startsWith('@') ? query.substring(1) : query;
-              final accountService = container.read(accountServiceProvider);
-              final accounts = await accountService.searchAccounts(
-                domain,
-                query: acctQuery,
-                limit: 1,
-                resolve: true,
-              );
-              if (accounts.isNotEmpty) {
-                if (context.mounted) {
-                  context.push('/profile/${accounts.first.id}');
-                }
-                return;
-              }
-            }
-          } catch (_) {}
-          // Fallback: navigate to tag timeline attempting to use the query as tag
-          final fallbackTag = query.replaceAll('#', '').split(' ').first;
-          if (fallbackTag.isNotEmpty && context.mounted) {
-            context.push('/tag/$fallbackTag');
-          }
+        placeholder: 'Search hashtags, accounts...',
+        onSubmitted: _handleSearchSubmitted,
+        onChanged: (value) {
+          // Optional: implement real-time search suggestions
         },
       ),
     );
+  }
+
+  /// Build Material search field for Android
+  Widget _buildMaterialSearchField(BuildContext context) {
+    return TextField(
+      controller: _searchController,
+      autofocus: true,
+      decoration: const InputDecoration(
+        hintText: 'Search hashtags, accounts...',
+        border: InputBorder.none,
+        hintStyle: TextStyle(color: Colors.white70),
+      ),
+      style: const TextStyle(color: Colors.white),
+      onSubmitted: _handleSearchSubmitted,
+    );
+  }
+
+  /// Handle search submission for both platforms
+  Future<void> _handleSearchSubmitted(String value) async {
+    final query = value.trim();
+    if (query.isEmpty) return;
+
+    // If hashtag, go to tag timeline
+    if (query.startsWith('#')) {
+      final tag = query.substring(1).trim();
+      if (tag.isNotEmpty && mounted) {
+        context.push('/tag/$tag');
+      }
+      return;
+    }
+
+    // Try account search (e.g., @user or user@domain). If found, open first result.
+    try {
+      // Get references before async operations
+      final activeInstance = ref.read(activeInstanceProvider);
+      final accountService = ref.read(accountServiceProvider);
+      final domain = activeInstance?.domain;
+
+      if (domain != null) {
+        final acctQuery = query.startsWith('@') ? query.substring(1) : query;
+        final accounts = await accountService.searchAccounts(
+          domain,
+          query: acctQuery,
+          limit: 1,
+          resolve: true,
+        );
+        if (accounts.isNotEmpty && mounted) {
+          context.push('/profile/${accounts.first.id}');
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: navigate to tag timeline attempting to use the query as tag
+    final fallbackTag = query.replaceAll('#', '').split(' ').first;
+    if (fallbackTag.isNotEmpty && mounted) {
+      context.push('/tag/$fallbackTag');
+    }
   }
 
   /// Build iOS segmented control for tabs
