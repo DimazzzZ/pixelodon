@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
 
-import 'package:pixelodon/widgets/feed/post_card.dart';
+import 'package:pixelodon/widgets/feed/image_post_card.dart';
 
 /// Widget for displaying only posts with images in a list format
 class ImagesListView extends ConsumerWidget {
   final List<Status> statuses;
+  final String domain;
   final bool isLoading;
   final bool hasError;
   final String? errorMessage;
@@ -21,6 +22,7 @@ class ImagesListView extends ConsumerWidget {
   const ImagesListView({
     super.key,
     required this.statuses,
+    required this.domain,
     this.isLoading = false,
     this.hasError = false,
     this.errorMessage,
@@ -112,11 +114,11 @@ class ImagesListView extends ConsumerWidget {
             final status = imageStatuses[index];
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
-              child: PostCard(
+              child: ImagePostCard(
                 key: Key('image_post_card_${status.id}'),
                 status: status,
-                domain: '', // Will be filled by the parent
-                onLiked: onPostLiked != null 
+                domain: domain,
+                onLiked: onPostLiked != null
                     ? (liked) => onPostLiked!(status, liked)
                     : null,
                 onReblogged: onPostReblogged != null
@@ -125,7 +127,6 @@ class ImagesListView extends ConsumerWidget {
                 onBookmarked: onPostBookmarked != null
                     ? (bookmarked) => onPostBookmarked!(status, bookmarked)
                     : null,
-
               ),
             );
           },

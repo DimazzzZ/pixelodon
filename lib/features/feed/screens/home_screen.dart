@@ -414,8 +414,8 @@ class HomeScreen extends ConsumerWidget {
                 index: selectedTabIndex,
                 children: [
                   _buildIOSFollowingTab(context, ref, timelineState, timelineNotifier, homeViewMode, homeContentFilter, activeInstance.domain),
-                  _buildIOSLocalTab(context, ref),
-                  _buildIOSFederatedTab(context, ref),
+                  _buildIOSLocalTab(context, ref, homeViewMode, homeContentFilter, activeInstance.domain),
+                  _buildIOSFederatedTab(context, ref, homeViewMode, homeContentFilter, activeInstance.domain),
                 ],
               ),
             ),
@@ -461,8 +461,8 @@ class HomeScreen extends ConsumerWidget {
           body: TabBarView(
             children: [
               _buildFollowingTab(context, ref, timelineState, timelineNotifier, homeViewMode, homeContentFilter, activeInstance.domain),
-              _buildLocalTab(context, ref),
-              _buildFederatedTab(context, ref),
+              _buildLocalTab(context, ref, homeViewMode, homeContentFilter, activeInstance.domain),
+              _buildFederatedTab(context, ref, homeViewMode, homeContentFilter, activeInstance.domain),
             ],
           ),
         ),
@@ -476,11 +476,13 @@ class HomeScreen extends ConsumerWidget {
 
     if (isIOS) {
       return CupertinoButton(
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.all(0),
+        minSize: 0,
         onPressed: () => _showViewModeSelector(context, ref, isIOS: true),
         child: Icon(
           _getViewModeIcon(homeViewMode),
-          color: CupertinoColors.label.resolveFrom(context),
+          color: CupertinoColors.activeBlue.resolveFrom(context),
+          size: 22,
         ),
       );
     } else {
@@ -609,6 +611,7 @@ class HomeScreen extends ConsumerWidget {
         return ImagesListView(
           key: const Key('images_list_following'),
           statuses: timelineState.statuses,
+          domain: domain,
           isLoading: timelineState.isLoading,
           hasError: timelineState.hasError,
           errorMessage: timelineState.errorMessage,
@@ -662,61 +665,135 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build iOS Local tab content
-  Widget _buildIOSLocalTab(BuildContext context, WidgetRef ref) {
+  Widget _buildIOSLocalTab(BuildContext context, WidgetRef ref, String homeViewMode, String homeContentFilter, String domain) {
     return Consumer(
       builder: (context, ref, child) {
         final localState = ref.watch(localTimelineProvider);
         final localNotifier = ref.read(localTimelineProvider.notifier);
-        return FeedList(
-          key: const Key('feed_list_local'),
-          statuses: localState.statuses,
-          isLoading: localState.isLoading,
-          hasError: localState.hasError,
-          errorMessage: localState.errorMessage,
-          hasMore: localState.hasMore,
-          onLoadMore: localNotifier.loadMore,
-          onRefresh: localNotifier.refreshTimeline,
-          onPostLiked: (status, liked) {
-            localNotifier.updateStatus(status);
-          },
-          onPostReblogged: (status, reblogged) {
-            localNotifier.updateStatus(status);
-          },
-          onPostBookmarked: (status, bookmarked) {
-            localNotifier.updateStatus(status);
-          },
-          wrapWithRefreshIndicator: true,
-        );
+
+        switch (homeViewMode) {
+          case 'images':
+            return ImagesListView(
+              key: const Key('images_list_local'),
+              statuses: localState.statuses,
+              domain: domain,
+              isLoading: localState.isLoading,
+              hasError: localState.hasError,
+              errorMessage: localState.errorMessage,
+              hasMore: localState.hasMore,
+              onLoadMore: localNotifier.loadMore,
+              onRefresh: localNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                localNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                localNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                localNotifier.updateStatus(status);
+              },
+            );
+          case 'grid':
+            return ImageGridView(
+              key: const Key('image_grid_local'),
+              statuses: localState.statuses,
+              isLoading: localState.isLoading,
+              hasError: localState.hasError,
+              errorMessage: localState.errorMessage,
+              hasMore: localState.hasMore,
+              onLoadMore: localNotifier.loadMore,
+              onRefresh: localNotifier.refreshTimeline,
+            );
+          case 'list':
+          default:
+            return FeedList(
+              key: const Key('feed_list_local'),
+              statuses: localState.statuses,
+              isLoading: localState.isLoading,
+              hasError: localState.hasError,
+              errorMessage: localState.errorMessage,
+              hasMore: localState.hasMore,
+              onLoadMore: localNotifier.loadMore,
+              onRefresh: localNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                localNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                localNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                localNotifier.updateStatus(status);
+              },
+              wrapWithRefreshIndicator: true,
+            );
+        }
       },
     );
   }
 
   /// Build iOS Federated tab content
-  Widget _buildIOSFederatedTab(BuildContext context, WidgetRef ref) {
+  Widget _buildIOSFederatedTab(BuildContext context, WidgetRef ref, String homeViewMode, String homeContentFilter, String domain) {
     return Consumer(
       builder: (context, ref, child) {
         final federatedState = ref.watch(federatedTimelineProvider);
         final federatedNotifier = ref.read(federatedTimelineProvider.notifier);
-        return FeedList(
-          key: const Key('feed_list_federated'),
-          statuses: federatedState.statuses,
-          isLoading: federatedState.isLoading,
-          hasError: federatedState.hasError,
-          errorMessage: federatedState.errorMessage,
-          hasMore: federatedState.hasMore,
-          onLoadMore: federatedNotifier.loadMore,
-          onRefresh: federatedNotifier.refreshTimeline,
-          onPostLiked: (status, liked) {
-            federatedNotifier.updateStatus(status);
-          },
-          onPostReblogged: (status, reblogged) {
-            federatedNotifier.updateStatus(status);
-          },
-          onPostBookmarked: (status, bookmarked) {
-            federatedNotifier.updateStatus(status);
-          },
-          wrapWithRefreshIndicator: true,
-        );
+
+        switch (homeViewMode) {
+          case 'images':
+            return ImagesListView(
+              key: const Key('images_list_federated'),
+              statuses: federatedState.statuses,
+              domain: domain,
+              isLoading: federatedState.isLoading,
+              hasError: federatedState.hasError,
+              errorMessage: federatedState.errorMessage,
+              hasMore: federatedState.hasMore,
+              onLoadMore: federatedNotifier.loadMore,
+              onRefresh: federatedNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                federatedNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                federatedNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                federatedNotifier.updateStatus(status);
+              },
+            );
+          case 'grid':
+            return ImageGridView(
+              key: const Key('image_grid_federated'),
+              statuses: federatedState.statuses,
+              isLoading: federatedState.isLoading,
+              hasError: federatedState.hasError,
+              errorMessage: federatedState.errorMessage,
+              hasMore: federatedState.hasMore,
+              onLoadMore: federatedNotifier.loadMore,
+              onRefresh: federatedNotifier.refreshTimeline,
+            );
+          case 'list':
+          default:
+            return FeedList(
+              key: const Key('feed_list_federated'),
+              statuses: federatedState.statuses,
+              isLoading: federatedState.isLoading,
+              hasError: federatedState.hasError,
+              errorMessage: federatedState.errorMessage,
+              hasMore: federatedState.hasMore,
+              onLoadMore: federatedNotifier.loadMore,
+              onRefresh: federatedNotifier.refreshTimeline,
+              onPostLiked: (status, liked) {
+                federatedNotifier.updateStatus(status);
+              },
+              onPostReblogged: (status, reblogged) {
+                federatedNotifier.updateStatus(status);
+              },
+              onPostBookmarked: (status, bookmarked) {
+                federatedNotifier.updateStatus(status);
+              },
+              wrapWithRefreshIndicator: true,
+            );
+        }
       },
     );
   }
@@ -732,6 +809,7 @@ class HomeScreen extends ConsumerWidget {
             content = ImagesListView(
               key: const Key('images_list_following'),
               statuses: timelineState.statuses,
+              domain: domain,
               isLoading: timelineState.isLoading,
               hasError: timelineState.hasError,
               errorMessage: timelineState.errorMessage,
@@ -801,39 +879,83 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build Local tab content
-  Widget _buildLocalTab(BuildContext context, WidgetRef ref) {
+  Widget _buildLocalTab(BuildContext context, WidgetRef ref, String homeViewMode, String homeContentFilter, String domain) {
     return Builder(
       builder: (context) {
         return Consumer(
           builder: (context, ref, child) {
             final localState = ref.watch(localTimelineProvider);
             final localNotifier = ref.read(localTimelineProvider.notifier);
+
+            Widget content;
+
+            switch (homeViewMode) {
+              case 'images':
+                content = ImagesListView(
+                  key: const Key('images_list_local'),
+                  statuses: localState.statuses,
+                  domain: domain,
+                  isLoading: localState.isLoading,
+                  hasError: localState.hasError,
+                  errorMessage: localState.errorMessage,
+                  hasMore: localState.hasMore,
+                  onLoadMore: localNotifier.loadMore,
+                  onRefresh: localNotifier.refreshTimeline,
+                  onPostLiked: (status, liked) {
+                    localNotifier.updateStatus(status);
+                  },
+                  onPostReblogged: (status, reblogged) {
+                    localNotifier.updateStatus(status);
+                  },
+                  onPostBookmarked: (status, bookmarked) {
+                    localNotifier.updateStatus(status);
+                  },
+                );
+                break;
+              case 'grid':
+                content = ImageGridView(
+                  key: const Key('image_grid_local'),
+                  statuses: localState.statuses,
+                  isLoading: localState.isLoading,
+                  hasError: localState.hasError,
+                  errorMessage: localState.errorMessage,
+                  hasMore: localState.hasMore,
+                  onLoadMore: localNotifier.loadMore,
+                  onRefresh: localNotifier.refreshTimeline,
+                );
+                break;
+              case 'list':
+              default:
+                content = FeedList(
+                  key: const Key('feed_list_local'),
+                  statuses: localState.statuses,
+                  isLoading: localState.isLoading,
+                  hasError: localState.hasError,
+                  errorMessage: localState.errorMessage,
+                  hasMore: localState.hasMore,
+                  onLoadMore: localNotifier.loadMore,
+                  onRefresh: localNotifier.refreshTimeline,
+                  onPostLiked: (status, liked) {
+                    localNotifier.updateStatus(status);
+                  },
+                  onPostReblogged: (status, reblogged) {
+                    localNotifier.updateStatus(status);
+                  },
+                  onPostBookmarked: (status, bookmarked) {
+                    localNotifier.updateStatus(status);
+                  },
+                  wrapWithRefreshIndicator: false,
+                );
+                break;
+            }
+
             return CustomScrollView(
               slivers: [
                 SliverOverlapInjector(
                   handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
                 SliverToBoxAdapter(
-                  child: FeedList(
-                    key: const Key('feed_list_local'),
-                    statuses: localState.statuses,
-                    isLoading: localState.isLoading,
-                    hasError: localState.hasError,
-                    errorMessage: localState.errorMessage,
-                    hasMore: localState.hasMore,
-                    onLoadMore: localNotifier.loadMore,
-                    onRefresh: localNotifier.refreshTimeline,
-                    onPostLiked: (status, liked) {
-                      localNotifier.updateStatus(status);
-                    },
-                    onPostReblogged: (status, reblogged) {
-                      localNotifier.updateStatus(status);
-                    },
-                    onPostBookmarked: (status, bookmarked) {
-                      localNotifier.updateStatus(status);
-                    },
-                    wrapWithRefreshIndicator: false,
-                  ),
+                  child: content,
                 ),
               ],
             );
@@ -844,39 +966,83 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Build Federated tab content
-  Widget _buildFederatedTab(BuildContext context, WidgetRef ref) {
+  Widget _buildFederatedTab(BuildContext context, WidgetRef ref, String homeViewMode, String homeContentFilter, String domain) {
     return Builder(
       builder: (context) {
         return Consumer(
           builder: (context, ref, child) {
             final federatedState = ref.watch(federatedTimelineProvider);
             final federatedNotifier = ref.read(federatedTimelineProvider.notifier);
+
+            Widget content;
+
+            switch (homeViewMode) {
+              case 'images':
+                content = ImagesListView(
+                  key: const Key('images_list_federated'),
+                  statuses: federatedState.statuses,
+                  domain: domain,
+                  isLoading: federatedState.isLoading,
+                  hasError: federatedState.hasError,
+                  errorMessage: federatedState.errorMessage,
+                  hasMore: federatedState.hasMore,
+                  onLoadMore: federatedNotifier.loadMore,
+                  onRefresh: federatedNotifier.refreshTimeline,
+                  onPostLiked: (status, liked) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                  onPostReblogged: (status, reblogged) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                  onPostBookmarked: (status, bookmarked) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                );
+                break;
+              case 'grid':
+                content = ImageGridView(
+                  key: const Key('image_grid_federated'),
+                  statuses: federatedState.statuses,
+                  isLoading: federatedState.isLoading,
+                  hasError: federatedState.hasError,
+                  errorMessage: federatedState.errorMessage,
+                  hasMore: federatedState.hasMore,
+                  onLoadMore: federatedNotifier.loadMore,
+                  onRefresh: federatedNotifier.refreshTimeline,
+                );
+                break;
+              case 'list':
+              default:
+                content = FeedList(
+                  key: const Key('feed_list_federated'),
+                  statuses: federatedState.statuses,
+                  isLoading: federatedState.isLoading,
+                  hasError: federatedState.hasError,
+                  errorMessage: federatedState.errorMessage,
+                  hasMore: federatedState.hasMore,
+                  onLoadMore: federatedNotifier.loadMore,
+                  onRefresh: federatedNotifier.refreshTimeline,
+                  onPostLiked: (status, liked) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                  onPostReblogged: (status, reblogged) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                  onPostBookmarked: (status, bookmarked) {
+                    federatedNotifier.updateStatus(status);
+                  },
+                  wrapWithRefreshIndicator: false,
+                );
+                break;
+            }
+
             return CustomScrollView(
               slivers: [
                 SliverOverlapInjector(
                   handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
                 SliverToBoxAdapter(
-                  child: FeedList(
-                    key: const Key('feed_list_federated'),
-                    statuses: federatedState.statuses,
-                    isLoading: federatedState.isLoading,
-                    hasError: federatedState.hasError,
-                    errorMessage: federatedState.errorMessage,
-                    hasMore: federatedState.hasMore,
-                    onLoadMore: federatedNotifier.loadMore,
-                    onRefresh: federatedNotifier.refreshTimeline,
-                    onPostLiked: (status, liked) {
-                      federatedNotifier.updateStatus(status);
-                    },
-                    onPostReblogged: (status, reblogged) {
-                      federatedNotifier.updateStatus(status);
-                    },
-                    onPostBookmarked: (status, bookmarked) {
-                      federatedNotifier.updateStatus(status);
-                    },
-                    wrapWithRefreshIndicator: false,
-                  ),
+                  child: content,
                 ),
               ],
             );
