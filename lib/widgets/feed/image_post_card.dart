@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'dart:io';
@@ -413,6 +414,14 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
                     },
                     isIOS: isIOS,
                   ),
+                  _buildActionButton(
+                    context,
+                    icon: isIOS ? CupertinoIcons.share : Icons.share_outlined,
+                    activeIcon: isIOS ? CupertinoIcons.share : Icons.share,
+                    isActive: false,
+                    onTap: () => _handleShare(context),
+                    isIOS: isIOS,
+                  ),
                 ],
               ),
             ),
@@ -508,6 +517,54 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
           ],
         ),
       );
+    }
+  }
+
+  /// Handle sharing a post
+  void _handleShare(BuildContext context) async {
+    try {
+      // Create share content
+      final account = _status.account;
+      final username = account?.username ?? 'unknown';
+      final displayName = account?.displayName ?? username;
+      final domain = widget.domain;
+
+      // Build share text
+      String shareText = 'Check out this post by $displayName (@$username@$domain)';
+
+      // Add post content if it's not too long and doesn't contain sensitive content
+      if (!_status.sensitive && _status.content.isNotEmpty) {
+        // Strip HTML tags for sharing
+        final plainContent = _status.content
+            .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+            .replaceAll(RegExp(r'&[a-zA-Z0-9#]+;'), '') // Remove HTML entities
+            .trim();
+
+        if (plainContent.isNotEmpty && plainContent.length <= 200) {
+          shareText += '\n\n"$plainContent"';
+        }
+      }
+
+      // Add post URL if available
+      if (_status.url != null && _status.url!.isNotEmpty) {
+        shareText += '\n\n${_status.url}';
+      } else {
+        // Fallback to status ID URL
+        shareText += '\n\nhttps://$domain/@$username/${_status.id}';
+      }
+
+      // Share using the native OS share dialog
+      await Share.share(shareText);
+    } catch (e) {
+      // Handle sharing errors gracefully
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share post: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 }

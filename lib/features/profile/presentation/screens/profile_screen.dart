@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import '../../../../providers/auth_provider.dart';
 import '../../domain/profile_usecases.dart';
@@ -358,14 +359,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   /// Handle share action
-  void _handleShare(BuildContext context) {
-    // TODO: Implement profile sharing
+  void _handleShare(BuildContext context) async {
+    try {
+      final state = ref.read(profileControllerProvider(userId));
+      final profile = state.profile.valueOrNull;
+
+      if (profile == null) {
+        _showErrorMessage(context, 'Profile not loaded');
+        return;
+      }
+
+      final activeInstance = ref.read(activeInstanceProvider);
+      final domain = activeInstance?.domain ?? 'unknown';
+
+      // Build share content
+      final displayName = (profile.displayName?.isNotEmpty ?? false) ? profile.displayName! : profile.username;
+      final username = profile.username;
+
+      String shareText = 'Check out $displayName\'s profile on $domain';
+
+      // Add bio if available and not too long
+      if (profile.bio.isNotEmpty) {
+        final plainBio = profile.bio
+            .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+            .replaceAll(RegExp(r'&[a-zA-Z0-9#]+;'), '') // Remove HTML entities
+            .trim();
+
+        if (plainBio.isNotEmpty && plainBio.length <= 150) {
+          shareText += '\n\n"$plainBio"';
+        }
+      }
+
+      // Add profile URL
+      shareText += '\n\nhttps://$domain/@$username';
+
+      // Share using the native OS share dialog
+      await Share.share(shareText);
+    } catch (e) {
+      _showErrorMessage(context, 'Failed to share profile: ${e.toString()}');
+    }
+  }
+
+  /// Show error message with platform-specific styling
+  void _showErrorMessage(BuildContext context, String message) {
     if (Platform.isIOS) {
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
-          title: const Text('Share Profile'),
-          content: const Text('Profile sharing will be available soon.'),
+          title: const Text('Error'),
+          content: Text(message),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(context).pop(),
@@ -376,7 +418,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile sharing will be available soon.')),
+        SnackBar(content: Text(message)),
       );
     }
   }
@@ -744,7 +786,7 @@ class ProfileScreenWithAppBar extends ConsumerWidget {
         actions: [
           // Share button
           IconButton(
-            onPressed: () => _handleShare(context, args),
+            onPressed: () => _handleShare(context, args, ref),
             icon: const Icon(Icons.share),
             tooltip: 'Share Profile',
           ),
@@ -760,14 +802,55 @@ class ProfileScreenWithAppBar extends ConsumerWidget {
     );
   }
 
-  void _handleShare(BuildContext context, ProfileRouteArgs args) {
-    // TODO: Implement profile sharing
+  void _handleShare(BuildContext context, ProfileRouteArgs args, WidgetRef ref) async {
+    try {
+      final state = ref.read(profileControllerProvider(args.userId));
+      final profile = state.profile.valueOrNull;
+
+      if (profile == null) {
+        _showErrorMessage(context, 'Profile not loaded');
+        return;
+      }
+
+      final activeInstance = ref.read(activeInstanceProvider);
+      final domain = activeInstance?.domain ?? 'unknown';
+
+      // Build share content
+      final displayName = (profile.displayName?.isNotEmpty ?? false) ? profile.displayName! : profile.username;
+      final username = profile.username;
+
+      String shareText = 'Check out $displayName\'s profile on $domain';
+
+      // Add bio if available and not too long
+      if (profile.bio.isNotEmpty) {
+        final plainBio = profile.bio
+            .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+            .replaceAll(RegExp(r'&[a-zA-Z0-9#]+;'), '') // Remove HTML entities
+            .trim();
+
+        if (plainBio.isNotEmpty && plainBio.length <= 150) {
+          shareText += '\n\n"$plainBio"';
+        }
+      }
+
+      // Add profile URL
+      shareText += '\n\nhttps://$domain/@$username';
+
+      // Share using the native OS share dialog
+      await Share.share(shareText);
+    } catch (e) {
+      _showErrorMessage(context, 'Failed to share profile: ${e.toString()}');
+    }
+  }
+
+  /// Show error message
+  void _showErrorMessage(BuildContext context, String message) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger != null) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Share Profile - TODO: Implement sharing'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
         ),
       );
     }

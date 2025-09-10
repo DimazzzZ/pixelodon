@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/media_gallery.dart';
@@ -697,9 +698,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           activeIcon: isIOS ? CupertinoIcons.share : Icons.share,
           count: null,
           isActive: false,
-          onPressed: () {
-            // TODO: Share post
-          },
+          onPressed: () => _handleShare(context),
         ),
       ],
     );
@@ -775,5 +774,53 @@ class _PostCardState extends ConsumerState<PostCard> {
     }
     final m = count / 1000000;
     return m == m.roundToDouble() ? '${m.round()}M' : '${m.toStringAsFixed(1)}M';
+  }
+
+  /// Handle sharing a post
+  void _handleShare(BuildContext context) async {
+    try {
+      // Create share content
+      final account = widget.status.account;
+      final username = account?.username ?? 'unknown';
+      final displayName = account?.displayName ?? username;
+      final domain = widget.domain;
+
+      // Build share text
+      String shareText = 'Check out this post by $displayName (@$username@$domain)';
+
+      // Add post content if it's not too long and doesn't contain sensitive content
+      if (!widget.status.sensitive && widget.status.content.isNotEmpty) {
+        // Strip HTML tags for sharing
+        final plainContent = widget.status.content
+            .replaceAll(RegExp(r'<[^>]*>'), '') // Remove HTML tags
+            .replaceAll(RegExp(r'&[a-zA-Z0-9#]+;'), '') // Remove HTML entities
+            .trim();
+
+        if (plainContent.isNotEmpty && plainContent.length <= 200) {
+          shareText += '\n\n"$plainContent"';
+        }
+      }
+
+      // Add post URL if available
+      if (widget.status.url != null && widget.status.url!.isNotEmpty) {
+        shareText += '\n\n${widget.status.url}';
+      } else {
+        // Fallback to status ID URL
+        shareText += '\n\nhttps://$domain/@$username/${widget.status.id}';
+      }
+
+      // Share using the native OS share dialog
+      await Share.share(shareText);
+    } catch (e) {
+      // Handle sharing errors gracefully
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share post: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
