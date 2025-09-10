@@ -5,31 +5,71 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
-import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
 
-/// Settings screen with logout functionality
+/// Settings screen with platform-specific design following established patterns
 class SettingsScreen extends ConsumerWidget {
   /// Constructor
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeInstance = ref.watch(activeInstanceProvider);
-    final instances = ref.watch(instancesProvider);
+    if (Platform.isIOS) {
+      return _buildIOSScaffold(context, ref);
+    } else {
+      return _buildMaterialScaffold(context, ref);
+    }
+  }
 
-    return AppPageScaffold.standard(
-      title: 'Settings',
-      body: Platform.isIOS ? _buildIOSSettings(context, ref, instances, activeInstance) : _buildMaterialSettings(context, ref, instances, activeInstance),
+  /// Build iOS-style scaffold with CupertinoNavigationBar
+  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref) {
+    return CupertinoPageScaffold(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            // Navigation bar
+            CupertinoNavigationBar(
+              middle: const Text('Settings'),
+              backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+            ),
+            // Content
+            Expanded(
+              child: _buildIOSContent(context, ref),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  /// Build iOS-style settings with grouped lists
-  Widget _buildIOSSettings(BuildContext context, WidgetRef ref, List<Instance> instances, Instance? activeInstance) {
+  /// Build Material-style scaffold with NestedScrollView
+  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar.medium(
+            title: const Text('Settings'),
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+          ),
+        ],
+        body: _buildMaterialContent(context, ref),
+      ),
+    );
+  }
+
+  /// Build iOS-style content with grouped lists
+  Widget _buildIOSContent(BuildContext context, WidgetRef ref) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final instances = ref.watch(instancesProvider);
     return CupertinoScrollbar(
       child: ListView(
+        padding: const EdgeInsets.only(top: 20),
         children: [
           // Accounts Section
           if (instances.isNotEmpty) ...[
@@ -60,7 +100,17 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               _buildThemeListTile(context, ref),
               _buildNotificationListTile(context, ref),
+              _buildLanguageListTile(context, ref),
+            ],
+          ),
+
+          // About Section
+          _buildIOSSection(
+            title: 'About',
+            children: [
               _buildAboutListTile(context),
+              _buildPrivacyListTile(context),
+              _buildTermsListTile(context),
             ],
           ),
         ],
@@ -68,145 +118,151 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  /// Build Material-style settings
-  Widget _buildMaterialSettings(BuildContext context, WidgetRef ref, List<Instance> instances, Instance? activeInstance) {
+  /// Build Material-style content with proper sections
+  Widget _buildMaterialContent(BuildContext context, WidgetRef ref) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final instances = ref.watch(instancesProvider);
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // Accounts Section
-        const Text(
-          'Accounts',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // List of accounts
         if (instances.isNotEmpty) ...[
+          Text(
+            'Accounts',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
             ),
             child: Column(
               children: [
                 for (int i = 0; i < instances.length; i++) ...[
                   _buildAccountListTile(context, ref, instances[i], activeInstance),
-                  if (i < instances.length - 1) const Divider(height: 1),
+                  if (i < instances.length - 1)
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                 ],
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
 
         // Add Account Button
-        SizedBox(
+        Container(
           width: double.infinity,
-          child: PlatformTextButton(
-            onPressed: () => _addAccount(context),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PlatformWidget(
-                  material: (_, __) => const Icon(Icons.add),
-                  cupertino: (_, __) => const Icon(CupertinoIcons.add),
-                ),
-                const SizedBox(width: 8),
-                const Text('Add Account'),
-              ],
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+          ),
+          child: ListTile(
+            leading: Icon(
+              Icons.add,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            material: (_, __) => MaterialTextButtonData(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+            title: Text(
+              'Add Account',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
               ),
             ),
+            trailing: Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            onTap: () => _addAccount(context),
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
 
         // App Settings Section
-        const Text(
+        Text(
           'App Settings',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
           ),
           child: Column(
             children: [
               _buildThemeListTile(context, ref),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
               _buildNotificationListTile(context, ref),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // About Section
-        const Text(
-          'About',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
-          ),
-          child: Column(
-            children: [
-              _buildAboutListTile(context),
-              const Divider(height: 1),
-              _buildPrivacyListTile(context),
-              const Divider(height: 1),
-              _buildTermsListTile(context),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+              _buildLanguageListTile(context, ref),
             ],
           ),
         ),
 
         const SizedBox(height: 32),
 
+        // About Section
+        Text(
+          'About',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+          ),
+          child: Column(
+            children: [
+              _buildAboutListTile(context),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+              _buildPrivacyListTile(context),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+              _buildTermsListTile(context),
+            ],
+          ),
+        ),
+
         // Logout Button (only show if there are accounts)
         if (instances.isNotEmpty)
-          Center(
-            child: PlatformElevatedButton(
-              onPressed: activeInstance != null
-                  ? () => _showLogoutDialog(context, ref, activeInstance.domain)
-                  : null,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PlatformWidget(
-                    material: (_, __) => const Icon(Icons.logout),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.square_arrow_right),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('Log Out Current Account'),
-                ],
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.1),
+            ),
+            child: ListTile(
+              leading: Icon(
+                Icons.logout,
+                color: Theme.of(context).colorScheme.error,
               ),
-              material: (_, __) => MaterialElevatedButtonData(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
+              title: Text(
+                'Log Out Current Account',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
+              trailing: Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              onTap: activeInstance != null
+                  ? () => _showLogoutDialog(context, ref, activeInstance.domain)
+                  : null,
             ),
           ),
+
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -270,6 +326,23 @@ class SettingsScreen extends ConsumerWidget {
         cupertino: (_, __) => const CupertinoListTileChevron(),
       ),
       onTap: () => _showNotificationSettings(context, ref),
+    );
+  }
+
+  /// Build language list tile
+  Widget _buildLanguageListTile(BuildContext context, WidgetRef ref) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.language_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.globe),
+      ),
+      title: const Text('Language'),
+      subtitle: Text(ref.read(languageProvider.notifier).languageDisplayName),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showLanguageSelection(context, ref),
     );
   }
 
@@ -479,53 +552,98 @@ class SettingsScreen extends ConsumerWidget {
     context.go('/auth/login');
   }
   
-  /// Shows account actions using platform-appropriate action sheet
+  /// Shows account actions using platform-appropriate UI
   void _showAccountActions(BuildContext context, WidgetRef ref, Instance instance, bool isActive) {
-    showPlatformModalSheet(
-      context: context,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Account Actions',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
+    if (Platform.isIOS) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (context) => CupertinoActionSheet(
+          title: const Text('Account Actions'),
+          actions: [
             if (!isActive)
-              PlatformListTile(
-                leading: PlatformWidget(
-                  material: (_, __) => const Icon(Icons.swap_horiz),
-                  cupertino: (_, __) => const Icon(CupertinoIcons.arrow_2_squarepath),
-                ),
-                title: const Text('Switch to this account'),
-                onTap: () {
+              CupertinoActionSheetAction(
+                onPressed: () {
                   Navigator.of(context).pop();
                   _switchAccount(context, ref, instance.domain);
                 },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.arrow_2_squarepath, size: 20),
+                    SizedBox(width: 8),
+                    Text('Switch to this account'),
+                  ],
+                ),
               ),
-            PlatformListTile(
-              leading: PlatformWidget(
-                material: (_, __) => Icon(Icons.remove_circle_outline, color: Theme.of(context).colorScheme.error),
-                cupertino: (_, __) => Icon(CupertinoIcons.minus_circle, color: Theme.of(context).colorScheme.error),
-              ),
-              title: Text('Remove account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              onTap: () {
+            CupertinoActionSheetAction(
+              onPressed: () {
                 Navigator.of(context).pop();
                 _showRemoveAccountDialog(context, ref, instance);
               },
+              isDestructiveAction: true,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.minus_circle, size: 20),
+                  SizedBox(width: 8),
+                  Text('Remove account'),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
           ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Account Actions',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (!isActive)
+                ListTile(
+                  leading: const Icon(Icons.swap_horiz),
+                  title: const Text('Switch to this account'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _switchAccount(context, ref, instance.domain);
+                  },
+                ),
+              ListTile(
+                leading: Icon(
+                  Icons.remove_circle_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Remove account',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showRemoveAccountDialog(context, ref, instance);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
   
   /// Shows the remove account confirmation dialog
