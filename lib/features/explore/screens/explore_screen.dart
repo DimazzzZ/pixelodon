@@ -457,21 +457,26 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    
+    // Determine tab count based on instance type
+    final activeInstance = ref.read(activeInstanceProvider);
+    final isPixelfed = activeInstance?.isPixelfed ?? false;
+    final tabCount = isPixelfed ? 3 : 4; // Pixelfed: 3 tabs, Mastodon: 4 tabs
+
+    _tabController = TabController(length: tabCount, vsync: this);
+
     // Listen to tab changes to set filters appropriately
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         return; // Ignore intermediate states during animation
       }
-      
+
       final newIndex = _tabController.index;
       if (newIndex != _currentTabIndex) {
         _currentTabIndex = newIndex;
         _setFiltersForTab(newIndex);
       }
     });
-    
+
     // Set initial filters for the first tab
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setFiltersForTab(0);
@@ -480,16 +485,29 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   
   /// Set filters based on the tab index
   void _setFiltersForTab(int tabIndex) {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final isPixelfed = activeInstance?.isPixelfed ?? false;
     final timelineNotifier = ref.read(publicTimelineProvider.notifier);
-    
-    switch (tabIndex) {
-      case 0: // For You / Discover tab
-        timelineNotifier.setFilters(local: false, onlyMedia: true);
-        break;
-      case 2: // Local / Community tab
-        timelineNotifier.setFilters(local: true, onlyMedia: false);
-        break;
-      // Tab 1 is trending, which doesn't use timeline data
+
+    if (isPixelfed) {
+      // Pixelfed tabs: Posts, Hashtags, People
+      switch (tabIndex) {
+        case 0: // Posts tab
+          timelineNotifier.setFilters(local: false, onlyMedia: true);
+          break;
+        // Hashtags and People tabs don't use timeline data
+      }
+    } else {
+      // Mastodon tabs: Posts, News, Hashtags, People
+      switch (tabIndex) {
+        case 0: // Posts tab
+          timelineNotifier.setFilters(local: false, onlyMedia: false);
+          break;
+        case 1: // News tab
+          timelineNotifier.setFilters(local: false, onlyMedia: false);
+          break;
+        // Hashtags and People tabs don't use timeline data
+      }
     }
   }
   
@@ -534,11 +552,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
             Expanded(
               child: IndexedStack(
                 index: _tabController.index,
-                children: [
-                  _buildForYouTab(),
-                  _buildTrendingTab(),
-                  _buildLocalTab(),
-                ],
+                children: _buildIOSTabViews(context, isPixelfed),
               ),
             ),
           ],
@@ -549,8 +563,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
 
   /// Build Material 3 scaffold with SliverAppBar and TabBar
   Widget _buildMaterialScaffold(BuildContext context, bool isPixelfed) {
+    final tabCount = isPixelfed ? 3 : 4; // Pixelfed: 3 tabs, Mastodon: 4 tabs
+
     return DefaultTabController(
-      length: 3,
+      length: tabCount,
       child: Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -588,20 +604,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                       ? null
                       : TabBar(
                           controller: _tabController,
-                          tabs: [
-                            Tab(
-                              icon: const Icon(Icons.explore),
-                              text: isPixelfed ? 'Discover' : 'For You',
-                            ),
-                            const Tab(
-                              icon: Icon(Icons.trending_up),
-                              text: 'Trending',
-                            ),
-                            Tab(
-                              icon: const Icon(Icons.location_city),
-                              text: isPixelfed ? 'Local' : 'Community',
-                            ),
-                          ],
+                          tabs: _buildMaterialTabs(isPixelfed),
                         ),
                 ),
               ),
@@ -612,20 +615,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
                     elevation: 4,
                     child: TabBar(
                       controller: _tabController,
-                      tabs: [
-                        Tab(
-                          icon: const Icon(Icons.explore),
-                          text: isPixelfed ? 'Discover' : 'For You',
-                        ),
-                        const Tab(
-                          icon: Icon(Icons.trending_up),
-                          text: 'Trending',
-                        ),
-                        Tab(
-                          icon: const Icon(Icons.location_city),
-                          text: isPixelfed ? 'Local' : 'Community',
-                        ),
-                      ],
+                      tabs: _buildMaterialTabs(isPixelfed),
                     ),
                   ),
                 ),
@@ -633,11 +623,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
           },
           body: TabBarView(
             controller: _tabController,
-            children: [
-              _buildMaterialForYouTab(context),
-              _buildMaterialTrendingTab(context),
-              _buildMaterialLocalTab(context),
-            ],
+            children: _buildMaterialTabViews(context, isPixelfed),
           ),
         ),
       ),
@@ -717,8 +703,108 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     }
   }
 
+  /// Build Material tabs based on platform type
+  List<Tab> _buildMaterialTabs(bool isPixelfed) {
+    if (isPixelfed) {
+      // Pixelfed: Posts, Hashtags, People
+      return const [
+        Tab(icon: Icon(Icons.photo_library), text: 'Posts'),
+        Tab(icon: Icon(Icons.tag), text: 'Hashtags'),
+        Tab(icon: Icon(Icons.people), text: 'People'),
+      ];
+    } else {
+      // Mastodon: Posts, News, Hashtags, People
+      return const [
+        Tab(icon: Icon(Icons.article), text: 'Posts'),
+        Tab(icon: Icon(Icons.newspaper), text: 'News'),
+        Tab(icon: Icon(Icons.tag), text: 'Hashtags'),
+        Tab(icon: Icon(Icons.people), text: 'People'),
+      ];
+    }
+  }
+
+  /// Build Material tab views based on platform type
+  List<Widget> _buildMaterialTabViews(BuildContext context, bool isPixelfed) {
+    if (isPixelfed) {
+      // Pixelfed: Posts, Hashtags, People
+      return [
+        _buildMaterialPostsTab(context),
+        _buildMaterialHashtagsTab(context),
+        _buildMaterialPeopleTab(context),
+      ];
+    } else {
+      // Mastodon: Posts, News, Hashtags, People
+      return [
+        _buildMaterialPostsTab(context),
+        _buildMaterialNewsTab(context),
+        _buildMaterialHashtagsTab(context),
+        _buildMaterialPeopleTab(context),
+      ];
+    }
+  }
+
+  /// Build iOS tab views based on platform type
+  List<Widget> _buildIOSTabViews(BuildContext context, bool isPixelfed) {
+    if (isPixelfed) {
+      // Pixelfed: Posts, Hashtags, People
+      return [
+        _buildPostsTab(),
+        _buildHashtagsTab(),
+        _buildPeopleTab(),
+      ];
+    } else {
+      // Mastodon: Posts, News, Hashtags, People
+      return [
+        _buildPostsTab(),
+        _buildNewsTab(),
+        _buildHashtagsTab(),
+        _buildPeopleTab(),
+      ];
+    }
+  }
+
   /// Build iOS segmented control for tabs
   Widget _buildIOSSegmentedControl(BuildContext context, bool isPixelfed) {
+    Map<int, Widget> children;
+
+    if (isPixelfed) {
+      // Pixelfed: Posts, Hashtags, People
+      children = {
+        0: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('Posts'),
+        ),
+        1: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('Hashtags'),
+        ),
+        2: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('People'),
+        ),
+      };
+    } else {
+      // Mastodon: Posts, News, Hashtags, People
+      children = {
+        0: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('Posts'),
+        ),
+        1: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('News'),
+        ),
+        2: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('Hashtags'),
+        ),
+        3: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text('People'),
+        ),
+      };
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: CupertinoSlidingSegmentedControl<int>(
@@ -728,81 +814,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
             _tabController.animateTo(value);
           }
         },
-        children: {
-          0: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(isPixelfed ? 'Discover' : 'For You'),
-          ),
-          1: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('Trending'),
-          ),
-          2: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(isPixelfed ? 'Local' : 'Community'),
-          ),
-        },
+        children: children,
       ),
     );
   }
 
-  /// Build Material tab content with proper overlap handling
-  Widget _buildMaterialForYouTab(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverToBoxAdapter(
-              child: _buildForYouTab(),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  Widget _buildMaterialTrendingTab(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverToBoxAdapter(
-              child: _buildTrendingTab(),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  Widget _buildMaterialLocalTab(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverToBoxAdapter(
-              child: _buildLocalTab(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Build the For You / Discover tab
-  Widget _buildForYouTab() {
+  /// Build the Posts tab (iOS)
+  Widget _buildPostsTab() {
     final timelineState = ref.watch(publicTimelineProvider);
     final timelineNotifier = ref.read(publicTimelineProvider.notifier);
-    
+
     return FeedList(
       statuses: timelineState.statuses,
       isLoading: timelineState.isLoading,
@@ -822,122 +845,187 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
       },
     );
   }
-  
-  /// Build the Trending tab
-  Widget _buildTrendingTab() {
+
+
+
+  /// Build the News tab (iOS - Mastodon only)
+  Widget _buildNewsTab() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.newspaper, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'News',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'News content coming soon',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build the Hashtags tab (iOS)
+  Widget _buildHashtagsTab() {
     final trendingHashtags = ref.watch(trendingHashtagsProvider);
-    final trendingState = ref.watch(trendingTimelineProvider);
-    final trendingNotifier = ref.read(trendingTimelineProvider.notifier);
 
-    Widget hashtagsHeader = trendingHashtags.when(
+    return trendingHashtags.when(
       data: (hashtags) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        if (hashtags.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.tag, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No trending hashtags',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: hashtags.length,
+          itemBuilder: (context, index) {
+            final hashtag = hashtags[index];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.tag),
+                title: Text('#$hashtag'),
+                subtitle: Text('Trending hashtag'),
+                onTap: () {
+                  context.push('/tag/$hashtag');
+                },
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Trending Hashtags',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: hashtags.map((tag) {
-                return ActionChip(
-                  label: Text('#$tag'),
-                  onPressed: () {
-                    context.push('/tag/$tag');
-                  },
-                );
-              }).toList(),
+            Text('Error loading hashtags: $error'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build the People tab (iOS)
+  Widget _buildPeopleTab() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.people, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'People',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'People discovery coming soon',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build the Posts tab (Material)
+  Widget _buildMaterialPostsTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Trending Posts',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            SliverToBoxAdapter(
+              child: _buildPostsTab(),
             ),
-            const SizedBox(height: 8),
           ],
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            SizedBox(width: 8),
-            Text('Loading trending hashtags...'),
-          ],
-        ),
-      ),
-      error: (error, _) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('Failed to load trending hashtags: $error'),
-      ),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: hashtagsHeader,
-        ),
-        Expanded(
-          child: FeedList(
-            statuses: trendingState.statuses,
-            isLoading: trendingState.isLoading,
-            hasError: trendingState.hasError,
-            errorMessage: trendingState.errorMessage,
-            hasMore: trendingState.hasMore,
-            onLoadMore: trendingNotifier.loadMore,
-            onRefresh: trendingNotifier.refresh,
-            onPostLiked: (status, liked) {
-              trendingNotifier.updateStatus(status);
-            },
-            onPostReblogged: (status, reblogged) {
-              trendingNotifier.updateStatus(status);
-            },
-            onPostBookmarked: (status, bookmarked) {
-              trendingNotifier.updateStatus(status);
-            },
-          ),
-        ),
-      ],
     );
   }
-  
-  /// Build the Local / Community tab
-  Widget _buildLocalTab() {
-    final timelineState = ref.watch(publicTimelineProvider);
-    final timelineNotifier = ref.read(publicTimelineProvider.notifier);
-    
-    return FeedList(
-      statuses: timelineState.statuses,
-      isLoading: timelineState.isLoading,
-      hasError: timelineState.hasError,
-      errorMessage: timelineState.errorMessage,
-      hasMore: timelineState.hasMore,
-      onLoadMore: timelineNotifier.loadMore,
-      onRefresh: timelineNotifier.refreshTimeline,
-      onPostLiked: (status, liked) {
-        timelineNotifier.updateStatus(status);
+
+  /// Build the News tab (Material - Mastodon only)
+  Widget _buildMaterialNewsTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildNewsTab(),
+            ),
+          ],
+        );
       },
-      onPostReblogged: (status, reblogged) {
-        timelineNotifier.updateStatus(status);
+    );
+  }
+
+  /// Build the Hashtags tab (Material)
+  Widget _buildMaterialHashtagsTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildHashtagsTab(),
+            ),
+          ],
+        );
       },
-      onPostBookmarked: (status, bookmarked) {
-        timelineNotifier.updateStatus(status);
+    );
+  }
+
+  /// Build the People tab (Material)
+  Widget _buildMaterialPeopleTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildPeopleTab(),
+            ),
+          ],
+        );
       },
     );
   }
