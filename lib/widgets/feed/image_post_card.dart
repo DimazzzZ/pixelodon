@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'dart:io';
 
 /// Widget for displaying a post with focus on images in images-only mode
@@ -162,27 +163,48 @@ class _ImagePostCardState extends ConsumerState<ImagePostCard> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // User info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _status.account?.displayName ?? 'Unknown User',
-                          style: (isIOS 
-                              ? CupertinoTheme.of(context).textTheme.textStyle
-                              : theme.textTheme.titleSmall)?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            // Display name
+                            Flexible(
+                              child: Text(
+                                _status.account?.displayName ?? 'Unknown User',
+                                style: (isIOS
+                                    ? CupertinoTheme.of(context).textTheme.textStyle
+                                    : theme.textTheme.titleSmall)?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+
+                            // Spacer to push timestamp to the right
+                            const Spacer(),
+
+                            // Timestamp
+                            Text(
+                              timeago.format(_status.createdAt ?? DateTime.now()),
+                              style: (isIOS
+                                  ? CupertinoTheme.of(context).textTheme.textStyle
+                                  : theme.textTheme.bodySmall)?.copyWith(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '@${_status.account?.username ?? 'unknown'}@${widget.domain}',
-                          style: (isIOS 
+                          style: (isIOS
                               ? CupertinoTheme.of(context).textTheme.textStyle
                               : theme.textTheme.bodySmall)?.copyWith(
                             color: Colors.grey,

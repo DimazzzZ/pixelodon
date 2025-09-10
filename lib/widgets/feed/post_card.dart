@@ -399,53 +399,30 @@ class _PostCardState extends ConsumerState<PostCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Name and timestamp row
-              Row(
-                children: [
-                  // Display name
-                  Flexible(
-                    child: GestureDetector(
-                      onTap: () {
-                        final id = status.account?.id ?? '';
-                        if (id.isNotEmpty) {
-                          context.push('/profile/$id');
-                        }
-                      },
-                      child: Text(
-                        account?.displayName ?? 'Unknown User',
-                        style: isIOS
-                            ? TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.label.resolveFrom(context),
-                              )
-                            : theme.textTheme.titleSmall?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Timestamp
-                  Text(
-                    timeago.format(status.createdAt ?? DateTime.now()),
-                    style: isIOS
-                        ? TextStyle(
-                            fontSize: 14,
-                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                          )
-                        : theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 14,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                  ),
-                ],
+              // Display name
+              GestureDetector(
+                onTap: () {
+                  final id = status.account?.id ?? '';
+                  if (id.isNotEmpty) {
+                    context.push('/profile/$id');
+                  }
+                },
+                child: Text(
+                  account?.displayName ?? 'Unknown User',
+                  style: isIOS
+                      ? TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        )
+                      : theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
 
               const SizedBox(height: 2),
@@ -481,6 +458,22 @@ class _PostCardState extends ConsumerState<PostCard> {
             ],
           ),
         ),
+
+        // Timestamp
+        Text(
+          timeago.format(status.createdAt ?? DateTime.now()),
+          style: isIOS
+              ? TextStyle(
+                  fontSize: 14,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                )
+              : theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+        ),
+
+        const SizedBox(width: 8),
 
         // More button
         Material(
