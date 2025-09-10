@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart' hide Card;
@@ -52,7 +54,7 @@ class _PostCardState extends ConsumerState<PostCard> {
   bool _isReblogged = false;
   bool _isBookmarked = false;
   bool _isExpanded = false;
-  bool _isNavigatingToProfile = false;
+
   
   @override
   void initState() {
@@ -187,290 +189,545 @@ class _PostCardState extends ConsumerState<PostCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isReblog = widget.status.rebloggedStatus != null;
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
-        onTap: widget.showFullContent ? null : () {
-          // Navigate to status details when tapping the card (disabled in full content mode to avoid nested taps)
-          if (_status.id.isNotEmpty) {
-            context.push('/status/${_status.id}');
-          }
-        },
-        child: Material(
-          elevation: 1.0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
+    final isIOS = Platform.isIOS;
+
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isIOS ? 0 : 8,
+        vertical: isIOS ? 0 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: isIOS
+            ? CupertinoColors.systemBackground.resolveFrom(context)
+            : theme.colorScheme.surface,
+        borderRadius: isIOS ? null : BorderRadius.circular(8),
+        border: isIOS
+            ? Border(
+                bottom: BorderSide(
+                  color: CupertinoColors.separator.resolveFrom(context),
+                  width: 0.5,
+                ),
+              )
+            : null,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: isIOS ? null : BorderRadius.circular(8),
+          onTap: widget.showFullContent ? null : () {
+            if (_status.id.isNotEmpty) {
+              context.push('/status/${_status.id}');
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isIOS ? 12 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Reblog header
+                if (isReblog) ...[
+                  _buildReblogHeader(context, theme, isIOS, widget.status),
+                  SizedBox(height: isIOS ? 8 : 12),
+                ],
+
+                // Post header
+                _buildPostHeader(context, theme, isIOS, _status, widget.domain),
+
+                // Content
+                SizedBox(height: isIOS ? 8 : 12),
+
+                // Content warning
+                if (_status.spoilerText != null && _status.spoilerText!.isNotEmpty) ...[
+                  _buildContentWarning(context, theme, isIOS, _status, _isExpanded, () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  }),
+                  SizedBox(height: isIOS ? 8 : 12),
+                ],
+
+                // Post content
+                if (_isExpanded || (_status.spoilerText?.isEmpty ?? true)) ...[
+                  _buildPostContent(context, theme, isIOS, _status),
+                ],
+
+                // Media attachments
+                if (_status.mediaAttachments.isNotEmpty && (_isExpanded || (_status.spoilerText?.isEmpty ?? true))) ...[
+                  SizedBox(height: isIOS ? 8 : 12),
+                  _buildMediaGallery(context, theme, isIOS, _status),
+                ],
+
+                // Action buttons
+                SizedBox(height: isIOS ? 12 : 16),
+                _buildActionButtons(context, theme, isIOS, _status, _isLiked, _isReblogged, _isBookmarked, _toggleLike, _toggleReblog, _toggleBookmark),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Build reblog header with platform-specific styling
+  Widget _buildReblogHeader(BuildContext context, ThemeData theme, bool isIOS, Status status) {
+    final reblogAccount = status.account;
+    final reblogIcon = isIOS ? CupertinoIcons.repeat : Icons.repeat;
+    final textColor = isIOS
+        ? CupertinoColors.secondaryLabel.resolveFrom(context)
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Row(
+      children: [
+        Icon(
+          reblogIcon,
+          size: isIOS ? 14 : 16,
+          color: textColor,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            "${reblogAccount?.displayName ?? 'Someone'} boosted",
+            style: isIOS
+                ? TextStyle(
+                    fontSize: 13,
+                    color: textColor,
+                    fontWeight: FontWeight.w400,
+                  )
+                : theme.textTheme.bodySmall?.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build post header with user info and timestamp
+  Widget _buildPostHeader(BuildContext context, ThemeData theme, bool isIOS, Status status, String domain) {
+    final account = status.account;
+    final avatarSize = isIOS ? 36.0 : 40.0;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Avatar
+        GestureDetector(
+          onTap: () {
+            final id = status.account?.id ?? '';
+            if (id.isNotEmpty) {
+              context.push('/profile/$id');
+            }
+          },
+          child: Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isIOS
+                  ? CupertinoColors.systemGrey5.resolveFrom(context)
+                  : theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: ClipOval(
+              child: account?.avatar != null
+                  ? CachedNetworkImage(
+                      imageUrl: account!.avatar!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: isIOS
+                            ? CupertinoColors.systemGrey5.resolveFrom(context)
+                            : theme.colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: Text(
+                            (account.displayName.isNotEmpty ? account.displayName : 'U')[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: isIOS ? 14 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: isIOS
+                                  ? CupertinoColors.label.resolveFrom(context)
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: isIOS
+                            ? CupertinoColors.systemGrey5.resolveFrom(context)
+                            : theme.colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: Text(
+                            (account.displayName.isNotEmpty ? account.displayName : 'U')[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: isIOS ? 14 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: isIOS
+                                  ? CupertinoColors.label.resolveFrom(context)
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        () {
+                          final displayName = account?.displayName;
+                          if (displayName != null && displayName.isNotEmpty) {
+                            return displayName.substring(0, 1).toUpperCase();
+                          }
+                          return 'U';
+                        }(),
+                        style: TextStyle(
+                          fontSize: isIOS ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                          color: isIOS
+                              ? CupertinoColors.label.resolveFrom(context)
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // User info and content
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // Reblog header
-            if (isReblog) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.repeat,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "${widget.status.account?.displayName ?? 'Someone'} boosted",
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            
-            // Post header
-            ListTile(
-              leading: GestureDetector(
-                onTap: () => _onProfileTap(context),
-                child: CircleAvatar(
-                  backgroundImage: _status.account?.avatar != null
-                      ? CachedNetworkImageProvider(_status.account!.avatar!)
-                      : null,
-                  child: _status.account?.avatar == null
-                      ? Text((_status.account?.displayName ?? 'User').isNotEmpty 
-                          ? (_status.account?.displayName ?? 'User')[0] 
-                          : 'U')
-                      : null,
-                ),
-              ),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Name and handle row
+              Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => _onProfileTap(context),
-                    child: Text(
-                      _status.account?.displayName ?? 'Unknown User',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  GestureDetector(
-                    onTap: () => _onProfileTap(context),
-                    child: Text(
-                      AccountUtils.formatHandle(
-                        acct: _status.account?.acct ?? '',
-                        username: _status.account?.username,
-                        accountDomain: _status.account?.domain,
-                        fallbackDomain: widget.domain,
-                      ),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              subtitle: Text(
-                timeago.format(_status.createdAt ?? DateTime.now()),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.more_vert),
-                onPressed: () {
-                  // TODO: Show post options
-                },
-              ),
-            ),
-            
-            // Content warning
-            if (_status.spoilerText != null && _status.spoilerText!.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: theme.colorScheme.onErrorContainer,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _status.spoilerText!,
-                              style: TextStyle(
-                                color: theme.colorScheme.onErrorContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _isExpanded = !_isExpanded;
-                        });
+                  // Display name
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () {
+                        final id = status.account?.id ?? '';
+                        if (id.isNotEmpty) {
+                          context.push('/profile/$id');
+                        }
                       },
                       child: Text(
-                        _isExpanded ? 'Hide' : 'Show more',
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                        ),
+                        account?.displayName ?? 'Unknown User',
+                        style: isIOS
+                            ? TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: CupertinoColors.label.resolveFrom(context),
+                              )
+                            : theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (_isExpanded) ...[
-                      const SizedBox(height: 8),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-            
-            // Post content
-            if (_isExpanded || (_status.spoilerText?.isEmpty ?? true)) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SafeHtmlWidget(
-                  htmlContent: _status.content,
-                  onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url, mentions: _status.mentions),
-                ),
-              ),
-            ],
-            
-            // Media attachments
-            if (_status.mediaAttachments.isNotEmpty && (_isExpanded || (_status.spoilerText?.isEmpty ?? true))) ...[
-              const SizedBox(height: 8),
-              MediaGallery(
-                attachments: _status.mediaAttachments,
-                sensitive: _status.sensitive,
-                onTap: (index) {
-                  // Open media viewer for image attachments
-                  final images = _status.mediaAttachments
-                      .where((a) => a.type == AttachmentType.image || a.type == AttachmentType.gifv)
-                      .map((a) => a.url)
-                      .toList();
-                  if (images.isNotEmpty) {
-                    final initial = index.clamp(0, images.length - 1);
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ImageViewerScreen(
-                          imageUrls: images,
-                          initialIndex: initial,
-                          heroTagPrefix: 'post_${_status.id}',
+                  ),
+
+                  const SizedBox(width: 4),
+
+                  // Handle
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () {
+                        final id = status.account?.id ?? '';
+                        if (id.isNotEmpty) {
+                          context.push('/profile/$id');
+                        }
+                      },
+                      child: Text(
+                        AccountUtils.formatHandle(
+                          acct: account?.acct ?? '',
+                          username: account?.username,
+                          accountDomain: account?.domain,
+                          fallbackDomain: domain,
                         ),
+                        style: isIOS
+                            ? TextStyle(
+                                fontSize: 15,
+                                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                              )
+                            : theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    );
-                  }
-                },
-              ),
-            ],
-            
-            // Post stats
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatButton(
-                    icon: Icons.chat_bubble_outline,
-                    activeIcon: Icons.chat_bubble,
-                    count: _status.repliesCount,
-                    isActive: false,
-                    onPressed: () {
-                      context.push('/status/${_status.id}');
-                    },
+                    ),
                   ),
-                  _buildStatButton(
-                    icon: Icons.repeat,
-                    activeIcon: Icons.repeat,
-                    count: _status.reblogsCount,
-                    isActive: _isReblogged,
-                    activeColor: Colors.green,
-                    onPressed: _toggleReblog,
-                    key: Key('reblog_button_${_status.id}'),
+
+                  const SizedBox(width: 4),
+
+                  // Timestamp
+                  Text(
+                    '·',
+                    style: TextStyle(
+                      color: isIOS
+                          ? CupertinoColors.secondaryLabel.resolveFrom(context)
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                  _buildStatButton(
-                    icon: Icons.favorite_border,
-                    activeIcon: Icons.favorite,
-                    count: _status.favouritesCount,
-                    isActive: _isLiked,
-                    activeColor: Colors.red,
-                    onPressed: _toggleLike,
-                    key: Key('like_button_${_status.id}'),
-                  ),
-                  _buildStatButton(
-                    icon: Icons.bookmark_border,
-                    activeIcon: Icons.bookmark,
-                    count: null,
-                    isActive: _isBookmarked,
-                    activeColor: Colors.blue,
-                    onPressed: _toggleBookmark,
-                    key: Key('bookmark_button_${_status.id}'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.share_outlined),
-                    onPressed: () {
-                      // TODO: Share post
-                    },
+
+                  const SizedBox(width: 4),
+
+                  Text(
+                    timeago.format(status.createdAt ?? DateTime.now()),
+                    style: isIOS
+                        ? TextStyle(
+                            fontSize: 15,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                          )
+                        : theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+
+        // More button
+        Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              // TODO: Show post options
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                isIOS ? CupertinoIcons.ellipsis : Icons.more_vert,
+                size: isIOS ? 16 : 20,
+                color: isIOS
+                    ? CupertinoColors.secondaryLabel.resolveFrom(context)
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build content warning section
+  Widget _buildContentWarning(BuildContext context, ThemeData theme, bool isIOS, Status status, bool isExpanded, VoidCallback onToggle) {
+    return Container(
+      padding: EdgeInsets.all(isIOS ? 10 : 12),
+      decoration: BoxDecoration(
+        color: isIOS
+            ? CupertinoColors.systemYellow.resolveFrom(context).withOpacity(0.1)
+            : theme.colorScheme.errorContainer.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(isIOS ? 8 : 12),
+        border: isIOS
+            ? Border.all(
+                color: CupertinoColors.systemYellow.resolveFrom(context).withOpacity(0.3),
+                width: 1,
+              )
+            : null,
       ),
-    ),
-  );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isIOS ? CupertinoIcons.exclamationmark_triangle : Icons.warning_amber_rounded,
+                color: isIOS
+                    ? CupertinoColors.systemYellow.resolveFrom(context)
+                    : theme.colorScheme.error,
+                size: isIOS ? 16 : 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  status.spoilerText!,
+                  style: isIOS
+                      ? TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        )
+                      : theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(isIOS ? 6 : 8),
+              onTap: onToggle,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isIOS ? 12 : 16,
+                  vertical: isIOS ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isIOS
+                      ? CupertinoColors.systemBlue.resolveFrom(context).withOpacity(0.1)
+                      : theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(isIOS ? 6 : 8),
+                ),
+                child: Text(
+                  isExpanded ? 'Hide' : 'Show more',
+                  style: isIOS
+                      ? TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.systemBlue.resolveFrom(context),
+                        )
+                      : theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
-  
-  Future<void> _onProfileTap(BuildContext context) async {
-    if (_isNavigatingToProfile) return;
-    final id = _status.account?.id ?? '';
-    if (id.isEmpty) return;
-    if (mounted) {
-      setState(() {
-        _isNavigatingToProfile = true;
-      });
-    } else {
-      _isNavigatingToProfile = true;
-    }
-    try {
-      await context.push('/profile/$id');
-    } catch (_) {
-      // ignore errors
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isNavigatingToProfile = false;
-        });
-      } else {
-        _isNavigatingToProfile = false;
-      }
-    }
+
+  /// Build post content
+  Widget _buildPostContent(BuildContext context, ThemeData theme, bool isIOS, Status status) {
+    return SafeHtmlWidget(
+      htmlContent: status.content,
+      onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url, mentions: status.mentions),
+    );
   }
-  
-  /// Build a stat button with count
-  Widget _buildStatButton({
+
+  /// Build media gallery
+  Widget _buildMediaGallery(BuildContext context, ThemeData theme, bool isIOS, Status status) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(isIOS ? 8 : 12),
+      child: MediaGallery(
+        attachments: status.mediaAttachments,
+        sensitive: status.sensitive,
+        onTap: (index) {
+          final images = status.mediaAttachments
+              .where((a) => a.type == AttachmentType.image || a.type == AttachmentType.gifv)
+              .map((a) => a.url)
+              .toList();
+          if (images.isNotEmpty) {
+            final initial = index.clamp(0, images.length - 1);
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ImageViewerScreen(
+                  imageUrls: images,
+                  initialIndex: initial,
+                  heroTagPrefix: 'post_${status.id}',
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  /// Build action buttons with platform-specific styling
+  Widget _buildActionButtons(BuildContext context, ThemeData theme, bool isIOS, Status status, bool isLiked, bool isReblogged, bool isBookmarked, VoidCallback toggleLike, VoidCallback toggleReblog, VoidCallback toggleBookmark) {
+    final buttonSpacing = isIOS ? 24.0 : 32.0;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Reply button
+        _buildActionButton(
+          context: context,
+          theme: theme,
+          isIOS: isIOS,
+          icon: isIOS ? CupertinoIcons.chat_bubble : Icons.chat_bubble_outline,
+          activeIcon: isIOS ? CupertinoIcons.chat_bubble_fill : Icons.chat_bubble,
+          count: status.repliesCount,
+          isActive: false,
+          onPressed: () => context.push('/status/${status.id}'),
+        ),
+
+        SizedBox(width: buttonSpacing),
+
+        // Reblog button
+        _buildActionButton(
+          context: context,
+          theme: theme,
+          isIOS: isIOS,
+          icon: isIOS ? CupertinoIcons.repeat : Icons.repeat,
+          activeIcon: isIOS ? CupertinoIcons.repeat : Icons.repeat,
+          count: status.reblogsCount,
+          isActive: isReblogged,
+          activeColor: isIOS ? CupertinoColors.systemGreen : Colors.green,
+          onPressed: toggleReblog,
+          key: Key('reblog_button_${status.id}'),
+        ),
+
+        SizedBox(width: buttonSpacing),
+
+        // Like button
+        _buildActionButton(
+          context: context,
+          theme: theme,
+          isIOS: isIOS,
+          icon: isIOS ? CupertinoIcons.heart : Icons.favorite_border,
+          activeIcon: isIOS ? CupertinoIcons.heart_fill : Icons.favorite,
+          count: status.favouritesCount,
+          isActive: isLiked,
+          activeColor: isIOS ? CupertinoColors.systemRed : Colors.red,
+          onPressed: toggleLike,
+          key: Key('like_button_${status.id}'),
+        ),
+
+        const Spacer(),
+
+        // Bookmark button
+        _buildActionButton(
+          context: context,
+          theme: theme,
+          isIOS: isIOS,
+          icon: isIOS ? CupertinoIcons.bookmark : Icons.bookmark_border,
+          activeIcon: isIOS ? CupertinoIcons.bookmark_fill : Icons.bookmark,
+          count: null,
+          isActive: isBookmarked,
+          activeColor: isIOS ? CupertinoColors.systemBlue : Colors.blue,
+          onPressed: toggleBookmark,
+          key: Key('bookmark_button_${status.id}'),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Share button
+        _buildActionButton(
+          context: context,
+          theme: theme,
+          isIOS: isIOS,
+          icon: isIOS ? CupertinoIcons.share : Icons.share_outlined,
+          activeIcon: isIOS ? CupertinoIcons.share : Icons.share,
+          count: null,
+          isActive: false,
+          onPressed: () {
+            // TODO: Share post
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Build an action button with platform-specific styling
+  Widget _buildActionButton({
+    required BuildContext context,
+    required ThemeData theme,
+    required bool isIOS,
     required IconData icon,
     required IconData activeIcon,
     required int? count,
@@ -479,29 +736,45 @@ class _PostCardState extends ConsumerState<PostCard> {
     required VoidCallback onPressed,
     Key? key,
   }) {
+    final buttonColor = isActive
+        ? activeColor
+        : (isIOS
+            ? CupertinoColors.secondaryLabel.resolveFrom(context)
+            : theme.colorScheme.onSurfaceVariant);
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
         key: key,
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isIOS ? 16 : 20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isIOS ? 6 : 8,
+            vertical: isIOS ? 6 : 8,
+          ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 isActive ? activeIcon : icon,
-                size: 20,
-                color: isActive ? activeColor : null,
+                size: isIOS ? 18 : 20,
+                color: buttonColor,
               ),
               if (count != null && count > 0) ...[
                 const SizedBox(width: 4),
                 Text(
-                  count.toString(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isActive ? activeColor : null,
-                  ),
+                  _formatCount(count),
+                  style: isIOS
+                      ? TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: buttonColor,
+                        )
+                      : theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: buttonColor,
+                        ),
                 ),
               ],
             ],
@@ -509,5 +782,16 @@ class _PostCardState extends ConsumerState<PostCard> {
         ),
       ),
     );
+  }
+
+  /// Format count numbers (e.g., 1.2K, 3.4M)
+  String _formatCount(int count) {
+    if (count < 1000) return count.toString();
+    if (count < 1000000) {
+      final k = count / 1000;
+      return k == k.roundToDouble() ? '${k.round()}K' : '${k.toStringAsFixed(1)}K';
+    }
+    final m = count / 1000000;
+    return m == m.roundToDouble() ? '${m.round()}M' : '${m.toStringAsFixed(1)}M';
   }
 }
