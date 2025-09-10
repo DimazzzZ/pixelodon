@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:io';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
@@ -9,7 +11,6 @@ import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/providers/api_provider.dart' as api_providers;
 import 'package:pixelodon/services/timeline_service.dart';
-import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
 /// Provider for the public timeline
 final publicTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, TimelineState>((ref) {
@@ -502,99 +503,237 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
     final activeInstance = ref.watch(activeInstanceProvider);
     final isPixelfed = activeInstance?.isPixelfed ?? false;
 
-    return AppPageScaffold.standard(
-      title: 'Explore',
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+    // Use standard platform-specific scaffold with proper TabBar integration
+    if (Platform.isIOS) {
+      return _buildIOSScaffold(context, isPixelfed);
+    } else {
+      return _buildMaterialScaffold(context, isPixelfed);
+    }
+  }
+
+  /// Build iOS-style scaffold with CupertinoNavigationBar and segmented control
+  Widget _buildIOSScaffold(BuildContext context, bool isPixelfed) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Explore'),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            // Search bar
+            _buildSearchBar(context),
+            // Segmented control for tabs
+            _buildIOSSegmentedControl(context, isPixelfed),
+            // Content based on selected tab
+            Expanded(
+              child: IndexedStack(
+                index: _tabController.index,
+                children: [
+                  _buildForYouTab(),
+                  _buildTrendingTab(),
+                  _buildLocalTab(),
+                ],
               ),
-              onSubmitted: (value) async {
-                final query = value.trim();
-                if (query.isEmpty) return;
-                // If hashtag, go to tag timeline
-                if (query.startsWith('#')) {
-                  final tag = query.substring(1).trim();
-                  if (tag.isNotEmpty) context.push('/tag/$tag');
-                  return;
-                }
-                // Try account search (e.g., @user or user@domain). If found, open first result.
-                try {
-                  final container = ProviderScope.containerOf(context);
-                  final active = container.read(activeInstanceProvider);
-                  final domain = active?.domain;
-                  if (domain != null) {
-                    final acctQuery = query.startsWith('@') ? query.substring(1) : query;
-                    final accountService = container.read(accountServiceProvider);
-                    final accounts = await accountService.searchAccounts(
-                      domain,
-                      query: acctQuery,
-                      limit: 1,
-                      resolve: true,
-                    );
-                    if (accounts.isNotEmpty) {
-                      if (context.mounted) {
-                        context.push('/profile/${accounts.first.id}');
-                      }
-                      return;
-                    }
-                  }
-                } catch (_) {}
-                // Fallback: navigate to tag timeline attempting to use the query as tag
-                final fallbackTag = query.replaceAll('#', '').split(' ').first;
-                if (fallbackTag.isNotEmpty && context.mounted) {
-                  context.push('/tag/$fallbackTag');
-                }
-              },
             ),
-          ),
-
-          // Tab bar
-          TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(text: isPixelfed ? 'Discover' : 'For You'),
-              const Tab(text: 'Trending'),
-              Tab(text: isPixelfed ? 'Local' : 'Community'),
-            ],
-          ),
-
-          // Tab content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // For You / Discover tab
-                _buildForYouTab(),
-
-                // Trending tab
-                _buildTrendingTab(),
-
-                // Local / Community tab
-                _buildLocalTab(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-  
+
+  /// Build Material 3 scaffold with SliverAppBar and TabBar
+  Widget _buildMaterialScaffold(BuildContext context, bool isPixelfed) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverOverlapAbsorber(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                sliver: SliverAppBar.medium(
+                  title: const Text('Explore'),
+                  pinned: true,
+                  bottom: TabBar(
+                    controller: _tabController,
+                    tabs: [
+                      Tab(
+                        icon: const Icon(Icons.explore),
+                        text: isPixelfed ? 'Discover' : 'For You',
+                      ),
+                      const Tab(
+                        icon: Icon(Icons.trending_up),
+                        text: 'Trending',
+                      ),
+                      Tab(
+                        icon: const Icon(Icons.location_city),
+                        text: isPixelfed ? 'Local' : 'Community',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Search bar as a sliver
+              SliverToBoxAdapter(
+                child: _buildSearchBar(context),
+              ),
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMaterialForYouTab(context),
+              _buildMaterialTrendingTab(context),
+              _buildMaterialLocalTab(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build search bar widget
+  Widget _buildSearchBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              _searchController.clear();
+            },
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(Platform.isIOS ? 10 : 30),
+          ),
+        ),
+        onSubmitted: (value) async {
+          final query = value.trim();
+          if (query.isEmpty) return;
+          // If hashtag, go to tag timeline
+          if (query.startsWith('#')) {
+            final tag = query.substring(1).trim();
+            if (tag.isNotEmpty) context.push('/tag/$tag');
+            return;
+          }
+          // Try account search (e.g., @user or user@domain). If found, open first result.
+          try {
+            final container = ProviderScope.containerOf(context);
+            final active = container.read(activeInstanceProvider);
+            final domain = active?.domain;
+            if (domain != null) {
+              final acctQuery = query.startsWith('@') ? query.substring(1) : query;
+              final accountService = container.read(accountServiceProvider);
+              final accounts = await accountService.searchAccounts(
+                domain,
+                query: acctQuery,
+                limit: 1,
+                resolve: true,
+              );
+              if (accounts.isNotEmpty) {
+                if (context.mounted) {
+                  context.push('/profile/${accounts.first.id}');
+                }
+                return;
+              }
+            }
+          } catch (_) {}
+          // Fallback: navigate to tag timeline attempting to use the query as tag
+          final fallbackTag = query.replaceAll('#', '').split(' ').first;
+          if (fallbackTag.isNotEmpty && context.mounted) {
+            context.push('/tag/$fallbackTag');
+          }
+        },
+      ),
+    );
+  }
+
+  /// Build iOS segmented control for tabs
+  Widget _buildIOSSegmentedControl(BuildContext context, bool isPixelfed) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: CupertinoSlidingSegmentedControl<int>(
+        groupValue: _tabController.index,
+        onValueChanged: (int? value) {
+          if (value != null) {
+            _tabController.animateTo(value);
+          }
+        },
+        children: {
+          0: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(isPixelfed ? 'Discover' : 'For You'),
+          ),
+          1: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text('Trending'),
+          ),
+          2: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(isPixelfed ? 'Local' : 'Community'),
+          ),
+        },
+      ),
+    );
+  }
+
+  /// Build Material tab content with proper overlap handling
+  Widget _buildMaterialForYouTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildForYouTab(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMaterialTrendingTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildTrendingTab(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMaterialLocalTab(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: _buildLocalTab(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Build the For You / Discover tab
   Widget _buildForYouTab() {
     final timelineState = ref.watch(publicTimelineProvider);

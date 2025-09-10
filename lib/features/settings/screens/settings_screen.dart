@@ -3,12 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:io';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Settings screen with logout functionality
 class SettingsScreen extends ConsumerWidget {
@@ -22,215 +22,302 @@ class SettingsScreen extends ConsumerWidget {
 
     return AppPageScaffold.standard(
       title: 'Settings',
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Platform.isIOS ? _buildIOSSettings(context, ref, instances, activeInstance) : _buildMaterialSettings(context, ref, instances, activeInstance),
+    );
+  }
+
+  /// Build iOS-style settings with grouped lists
+  Widget _buildIOSSettings(BuildContext context, WidgetRef ref, List<Instance> instances, Instance? activeInstance) {
+    return CupertinoScrollbar(
+      child: ListView(
         children: [
           // Accounts Section
-          const Text(
-            'Accounts',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          if (instances.isNotEmpty) ...[
+            _buildIOSSection(
+              title: 'Accounts',
+              children: [
+                for (int i = 0; i < instances.length; i++)
+                  _buildAccountListTile(context, ref, instances[i], activeInstance),
+              ],
+            ),
+          ],
+
+          // Add Account Button
+          _buildIOSSection(
+            children: [
+              CupertinoListTile(
+                title: const Text('Add Account'),
+                leading: const Icon(CupertinoIcons.add),
+                trailing: const CupertinoListTileChevron(),
+                onTap: () => _addAccount(context),
+              ),
+            ],
+          ),
+
+          // App Settings Section
+          _buildIOSSection(
+            title: 'App Settings',
+            children: [
+              _buildThemeListTile(context, ref),
+              _buildNotificationListTile(context, ref),
+              _buildAboutListTile(context),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build Material-style settings
+  Widget _buildMaterialSettings(BuildContext context, WidgetRef ref, List<Instance> instances, Instance? activeInstance) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Accounts Section
+        const Text(
+          'Accounts',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // List of accounts
+        if (instances.isNotEmpty) ...[
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+            ),
+            child: Column(
+              children: [
+                for (int i = 0; i < instances.length; i++) ...[
+                  _buildAccountListTile(context, ref, instances[i], activeInstance),
+                  if (i < instances.length - 1) const Divider(height: 1),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 16),
-          
-          // List of accounts
-          if (instances.isNotEmpty) ...[
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
-              ),
-              child: Column(
-                children: [
-                  for (int i = 0; i < instances.length; i++) ...[
-                    _buildAccountListTile(context, ref, instances[i], activeInstance),
-                    if (i < instances.length - 1) const Divider(height: 1),
-                  ],
-                ],
+        ],
+
+        // Add Account Button
+        SizedBox(
+          width: double.infinity,
+          child: PlatformTextButton(
+            onPressed: () => _addAccount(context),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PlatformWidget(
+                  material: (_, __) => const Icon(Icons.add),
+                  cupertino: (_, __) => const Icon(CupertinoIcons.add),
+                ),
+                const SizedBox(width: 8),
+                const Text('Add Account'),
+              ],
+            ),
+            material: (_, __) => MaterialTextButtonData(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-          
-          // Add Account Button
-          SizedBox(
-            width: double.infinity,
-            child: PlatformTextButton(
-              onPressed: () => _addAccount(context),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // App Settings Section
+        const Text(
+          'App Settings',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              _buildThemeListTile(context, ref),
+              const Divider(height: 1),
+              _buildNotificationListTile(context, ref),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // About Section
+        const Text(
+          'About',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              _buildAboutListTile(context),
+              const Divider(height: 1),
+              _buildPrivacyListTile(context),
+              const Divider(height: 1),
+              _buildTermsListTile(context),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        // Logout Button (only show if there are accounts)
+        if (instances.isNotEmpty)
+          Center(
+            child: PlatformElevatedButton(
+              onPressed: activeInstance != null
+                  ? () => _showLogoutDialog(context, ref, activeInstance.domain)
+                  : null,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PlatformWidget(
-                    material: (_, __) => const Icon(Icons.add),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.add),
+                    material: (_, __) => const Icon(Icons.logout),
+                    cupertino: (_, __) => const Icon(CupertinoIcons.square_arrow_right),
                   ),
                   const SizedBox(width: 8),
-                  const Text('Add Account'),
+                  const Text('Log Out Current Account'),
                 ],
               ),
-              material: (_, __) => MaterialTextButtonData(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Theme.of(context).colorScheme.outline),
+              material: (_, __) => MaterialElevatedButtonData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
                 ),
               ),
             ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // App Settings Section
-          const Text(
-            'App Settings',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
-            ),
-            child: Column(
-              children: [
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.palette_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.paintbrush),
-                  ),
-                  title: const Text('Theme'),
-                  subtitle: Text(ref.read(themeModeProvider.notifier).themeModeDisplayName),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showThemeSelection(context, ref),
-                ),
-                const Divider(height: 1),
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.notifications_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.bell),
-                  ),
-                  title: const Text('Notifications'),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showNotificationSettings(context, ref),
-                ),
-                const Divider(height: 1),
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.language_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.globe),
-                  ),
-                  title: const Text('Language'),
-                  subtitle: const Text('Coming Soon'),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showLanguageSelection(context, ref),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // About Section
-          const Text(
-            'About',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
-            ),
-            child: Column(
-              children: [
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.info_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.info_circle),
-                  ),
-                  title: const Text('About Pixelodon'),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showAboutDialog(context),
-                ),
-                const Divider(height: 1),
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.privacy_tip_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.shield),
-                  ),
-                  title: const Text('Privacy Policy'),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showPrivacyPolicy(context),
-                ),
-                const Divider(height: 1),
-                PlatformListTile(
-                  leading: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.description_outlined),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.doc_text),
-                  ),
-                  title: const Text('Terms of Service'),
-                  trailing: PlatformWidget(
-                    material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
-                    cupertino: (_, __) => const Icon(CupertinoIcons.chevron_right, size: 16),
-                  ),
-                  onTap: () => _showTermsOfService(context),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Logout Button (only show if there are accounts)
-          if (instances.isNotEmpty)
-            Center(
-              child: PlatformElevatedButton(
-                onPressed: activeInstance != null
-                    ? () => _showLogoutDialog(context, ref, activeInstance.domain)
-                    : null,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    PlatformWidget(
-                      material: (_, __) => const Icon(Icons.logout),
-                      cupertino: (_, __) => const Icon(CupertinoIcons.square_arrow_right),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Log Out Current Account'),
-                  ],
-                ),
-                material: (_, __) => MaterialElevatedButtonData(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    foregroundColor: Theme.of(context).colorScheme.onError,
-                  ),
+      ],
+    );
+  }
+
+  /// Build iOS-style section with optional title
+  Widget _buildIOSSection({String? title, required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 8),
+              child: Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  color: CupertinoColors.secondaryLabel,
                 ),
               ),
             ),
+          ],
+          CupertinoListSection.insetGrouped(
+            margin: EdgeInsets.zero,
+            children: children,
+          ),
         ],
       ),
+    );
+  }
+
+  /// Build theme list tile
+  Widget _buildThemeListTile(BuildContext context, WidgetRef ref) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.palette_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.paintbrush),
+      ),
+      title: const Text('Theme'),
+      subtitle: Text(ref.read(themeModeProvider.notifier).themeModeDisplayName),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showThemeSelection(context, ref),
+    );
+  }
+
+  /// Build notification list tile
+  Widget _buildNotificationListTile(BuildContext context, WidgetRef ref) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.notifications_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.bell),
+      ),
+      title: const Text('Notifications'),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showNotificationSettings(context, ref),
+    );
+  }
+
+  /// Build about list tile
+  Widget _buildAboutListTile(BuildContext context) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.info_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.info_circle),
+      ),
+      title: const Text('About Pixelodon'),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showAboutDialog(context),
+    );
+  }
+
+  /// Build privacy list tile
+  Widget _buildPrivacyListTile(BuildContext context) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.privacy_tip_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.shield),
+      ),
+      title: const Text('Privacy Policy'),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showPrivacyPolicy(context),
+    );
+  }
+
+  /// Build terms list tile
+  Widget _buildTermsListTile(BuildContext context) {
+    return PlatformListTile(
+      leading: PlatformWidget(
+        material: (_, __) => const Icon(Icons.description_outlined),
+        cupertino: (_, __) => const Icon(CupertinoIcons.doc_text),
+      ),
+      title: const Text('Terms of Service'),
+      trailing: PlatformWidget(
+        material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
+        cupertino: (_, __) => const CupertinoListTileChevron(),
+      ),
+      onTap: () => _showTermsOfService(context),
     );
   }
   

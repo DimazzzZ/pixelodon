@@ -351,147 +351,40 @@ class HomeScreen extends ConsumerWidget {
       );
     }
 
-    return AppPageScaffold.sliver(
-      largeTitle: 'Pixelodon',
-      sliverBodyBuilder: () => CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: _buildTabSelector(context, ref),
-          ),
-          _buildSelectedTabContent(context, ref, timelineState, timelineNotifier),
-        ],
-      ),
-    );
+    // Use standard platform-specific scaffold with proper TabBar integration
+    if (Platform.isIOS) {
+      return _buildIOSScaffold(context, ref, timelineState, timelineNotifier);
+    } else {
+      return _buildMaterialScaffold(context, ref, timelineState, timelineNotifier);
+    }
   }
 
-  Widget _buildTabSelector(BuildContext context, WidgetRef ref) {
-    return Container(
-      color: AppTheme.pageBg(context),
-      padding: EdgeInsets.only(
-        left: Platform.isIOS ? 20 : 16,
-        right: Platform.isIOS ? 20 : 16,
-        top: 8,
-        bottom: 0,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.cardBg(context),
-          borderRadius: BorderRadius.circular(Platform.isIOS ? 10 : 12),
-          border: Platform.isIOS ? Border.all(
-            color: AppTheme.separator(context),
-            width: 0.5,
-          ) : null,
-        ),
-        child: Platform.isIOS ? _buildIOSSegmentedControl(context, ref) : _buildAndroidTabBar(context, ref),
-      ),
-    );
-  }
-
-  Widget _buildIOSSegmentedControl(BuildContext context, WidgetRef ref) {
+  /// Build iOS-style scaffold with CupertinoSliverNavigationBar and segmented control
+  Widget _buildIOSScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
 
-    return CupertinoSlidingSegmentedControl<int>(
-      groupValue: selectedTabIndex,
-      onValueChanged: (int? value) {
-        if (value != null) {
-          ref.read(homeTabIndexProvider.notifier).state = value;
-        }
-      },
-      children: const {
-        0: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.home, size: 16),
-              SizedBox(width: 6),
-              Text('Following', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-        1: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.building_2_fill, size: 16),
-              SizedBox(width: 6),
-              Text('Local', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-        2: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.globe, size: 16),
-              SizedBox(width: 6),
-              Text('Federated', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-      },
-    );
-  }
-
-  Widget _buildAndroidTabBar(BuildContext context, WidgetRef ref) {
-    final selectedTabIndex = ref.watch(homeTabIndexProvider);
-
-    return DefaultTabController(
-      length: 3,
-      initialIndex: selectedTabIndex,
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          tabBarTheme: Theme.of(context).tabBarTheme.copyWith(
-            indicator: BoxDecoration(
-              color: AppTheme.tertiaryBg(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            labelColor: Theme.of(context).colorScheme.onSurface,
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-          ),
-        ),
-        child: TabBar(
-          onTap: (index) {
-            ref.read(homeTabIndexProvider.notifier).state = index;
-          },
-          padding: const EdgeInsets.all(4),
-          labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          tabs: const [
-            Tab(
-              key: Key('following_tab'),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text('Following', style: TextStyle(fontSize: 14)),
-                ],
+    return CupertinoPageScaffold(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            // Navigation bar with large title
+            Container(
+              child: CupertinoNavigationBar(
+                middle: const Text('Pixelodon'),
+                backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
               ),
             ),
-            Tab(
-              key: Key('local_tab'),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            // Segmented control
+            _buildIOSSegmentedControl(context, ref),
+            // Content based on selected tab
+            Expanded(
+              child: IndexedStack(
+                index: selectedTabIndex,
                 children: [
-                  Icon(Icons.apartment_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text('Local', style: TextStyle(fontSize: 14)),
-                ],
-              ),
-            ),
-            Tab(
-              key: Key('federated_tab'),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.public, size: 18),
-                  SizedBox(width: 6),
-                  Text('Federated', style: TextStyle(fontSize: 14)),
+                  _buildIOSFollowingTab(context, ref, timelineState, timelineNotifier),
+                  _buildIOSLocalTab(context, ref),
+                  _buildIOSFederatedTab(context, ref),
                 ],
               ),
             ),
@@ -501,111 +394,284 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSelectedTabContent(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+  /// Build Material 3 scaffold with SliverAppBar and TabBar
+  Widget _buildMaterialScaffold(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
     final selectedTabIndex = ref.watch(homeTabIndexProvider);
-    Widget content;
 
-    switch (selectedTabIndex) {
-      case 0:
-        // Following
-        content = Transform.translate(
-          offset: const Offset(0, -8), // Move content up by 8 pixels
-          child: FeedList(
-            key: const Key('feed_list_following'),
-            statuses: timelineState.statuses,
-            isLoading: timelineState.isLoading,
-            hasError: timelineState.hasError,
-            errorMessage: timelineState.errorMessage,
-            hasMore: timelineState.hasMore,
-            onLoadMore: timelineNotifier.loadMore,
-            onRefresh: timelineNotifier.refreshTimeline,
-            onPostLiked: (status, liked) {
-              timelineNotifier.updateStatus(status);
-            },
-            onPostReblogged: (status, reblogged) {
-              timelineNotifier.updateStatus(status);
-            },
-            onPostBookmarked: (status, bookmarked) {
-              timelineNotifier.updateStatus(status);
-            },
-            wrapWithRefreshIndicator: false,
+    return DefaultTabController(
+      length: 3,
+      initialIndex: selectedTabIndex,
+      child: Scaffold(
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverOverlapAbsorber(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                sliver: SliverAppBar.large(
+                  title: const Text('Pixelodon'),
+                  pinned: true,
+                  bottom: TabBar(
+                    onTap: (index) {
+                      ref.read(homeTabIndexProvider.notifier).state = index;
+                    },
+                    tabs: const [
+                      Tab(icon: Icon(Icons.home), text: 'Following'),
+                      Tab(icon: Icon(Icons.location_city), text: 'Local'),
+                      Tab(icon: Icon(Icons.public), text: 'Federated'),
+                    ],
+                  ),
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
+            children: [
+              _buildFollowingTab(context, ref, timelineState, timelineNotifier),
+              _buildLocalTab(context, ref),
+              _buildFederatedTab(context, ref),
+            ],
           ),
-        );
-        break;
-      case 1:
-        // Local (public local)
-        content = Transform.translate(
-          offset: const Offset(0, -8), // Move content up by 8 pixels
-          child: Consumer(
-            builder: (context, ref, child) {
-              final localState = ref.watch(localTimelineProvider);
-              final localNotifier = ref.read(localTimelineProvider.notifier);
-              return FeedList(
-                key: const Key('feed_list_local'),
-                statuses: localState.statuses,
-                isLoading: localState.isLoading,
-                hasError: localState.hasError,
-                errorMessage: localState.errorMessage,
-                hasMore: localState.hasMore,
-                onLoadMore: localNotifier.loadMore,
-                onRefresh: localNotifier.refreshTimeline,
-                onPostLiked: (status, liked) {
-                  localNotifier.updateStatus(status);
-                },
-                onPostReblogged: (status, reblogged) {
-                  localNotifier.updateStatus(status);
-                },
-                onPostBookmarked: (status, bookmarked) {
-                  localNotifier.updateStatus(status);
-                },
-                wrapWithRefreshIndicator: false,
-              );
-            },
-          ),
-        );
-        break;
-      case 2:
-      default:
-        // Federated (public federated)
-        content = Transform.translate(
-          offset: const Offset(0, -8), // Move content up by 8 pixels
-          child: Consumer(
-            builder: (context, ref, child) {
-              final fedState = ref.watch(federatedTimelineProvider);
-              final fedNotifier = ref.read(federatedTimelineProvider.notifier);
-              return FeedList(
-                key: const Key('feed_list_federated'),
-                statuses: fedState.statuses,
-                isLoading: fedState.isLoading,
-                hasError: fedState.hasError,
-                errorMessage: fedState.errorMessage,
-                hasMore: fedState.hasMore,
-                onLoadMore: fedNotifier.loadMore,
-                onRefresh: fedNotifier.refreshTimeline,
-                onPostLiked: (status, liked) {
-                  fedNotifier.updateStatus(status);
-                },
-                onPostReblogged: (status, reblogged) {
-                  fedNotifier.updateStatus(status);
-                },
-                onPostBookmarked: (status, bookmarked) {
-                  fedNotifier.updateStatus(status);
-                },
-                wrapWithRefreshIndicator: false,
-              );
-            },
-          ),
-        );
-        break;
-    }
-
-    return SliverFillRemaining(
-      hasScrollBody: true,
-      fillOverscroll: false,
-      child: ColoredBox(
-        color: AppTheme.pageBg(context),
-        child: content,
+        ),
       ),
     );
   }
+
+  Widget _buildIOSSegmentedControl(BuildContext context, WidgetRef ref) {
+    final selectedTabIndex = ref.watch(homeTabIndexProvider);
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: CupertinoSlidingSegmentedControl<int>(
+        groupValue: selectedTabIndex,
+        onValueChanged: (int? value) {
+          if (value != null) {
+            ref.read(homeTabIndexProvider.notifier).state = value;
+          }
+        },
+        children: const {
+          0: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text('Following'),
+          ),
+          1: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text('Local'),
+          ),
+          2: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text('Federated'),
+          ),
+        },
+      ),
+    );
+  }
+
+
+  /// Build iOS Following tab content
+  Widget _buildIOSFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+    return FeedList(
+      key: const Key('feed_list_following'),
+      statuses: timelineState.statuses,
+      isLoading: timelineState.isLoading,
+      hasError: timelineState.hasError,
+      errorMessage: timelineState.errorMessage,
+      hasMore: timelineState.hasMore,
+      onLoadMore: timelineNotifier.loadMore,
+      onRefresh: timelineNotifier.refreshTimeline,
+      onPostLiked: (status, liked) {
+        timelineNotifier.updateStatus(status);
+      },
+      onPostReblogged: (status, reblogged) {
+        timelineNotifier.updateStatus(status);
+      },
+      onPostBookmarked: (status, bookmarked) {
+        timelineNotifier.updateStatus(status);
+      },
+      wrapWithRefreshIndicator: true,
+    );
+  }
+
+  /// Build iOS Local tab content
+  Widget _buildIOSLocalTab(BuildContext context, WidgetRef ref) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final localState = ref.watch(localTimelineProvider);
+        final localNotifier = ref.read(localTimelineProvider.notifier);
+        return FeedList(
+          key: const Key('feed_list_local'),
+          statuses: localState.statuses,
+          isLoading: localState.isLoading,
+          hasError: localState.hasError,
+          errorMessage: localState.errorMessage,
+          hasMore: localState.hasMore,
+          onLoadMore: localNotifier.loadMore,
+          onRefresh: localNotifier.refreshTimeline,
+          onPostLiked: (status, liked) {
+            localNotifier.updateStatus(status);
+          },
+          onPostReblogged: (status, reblogged) {
+            localNotifier.updateStatus(status);
+          },
+          onPostBookmarked: (status, bookmarked) {
+            localNotifier.updateStatus(status);
+          },
+          wrapWithRefreshIndicator: true,
+        );
+      },
+    );
+  }
+
+  /// Build iOS Federated tab content
+  Widget _buildIOSFederatedTab(BuildContext context, WidgetRef ref) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final federatedState = ref.watch(federatedTimelineProvider);
+        final federatedNotifier = ref.read(federatedTimelineProvider.notifier);
+        return FeedList(
+          key: const Key('feed_list_federated'),
+          statuses: federatedState.statuses,
+          isLoading: federatedState.isLoading,
+          hasError: federatedState.hasError,
+          errorMessage: federatedState.errorMessage,
+          hasMore: federatedState.hasMore,
+          onLoadMore: federatedNotifier.loadMore,
+          onRefresh: federatedNotifier.refreshTimeline,
+          onPostLiked: (status, liked) {
+            federatedNotifier.updateStatus(status);
+          },
+          onPostReblogged: (status, reblogged) {
+            federatedNotifier.updateStatus(status);
+          },
+          onPostBookmarked: (status, bookmarked) {
+            federatedNotifier.updateStatus(status);
+          },
+          wrapWithRefreshIndicator: true,
+        );
+      },
+    );
+  }
+
+  /// Build Following tab content
+  Widget _buildFollowingTab(BuildContext context, WidgetRef ref, TimelineState timelineState, TimelineNotifier timelineNotifier) {
+    return Builder(
+      builder: (context) {
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverToBoxAdapter(
+              child: FeedList(
+                key: const Key('feed_list_following'),
+                statuses: timelineState.statuses,
+                isLoading: timelineState.isLoading,
+                hasError: timelineState.hasError,
+                errorMessage: timelineState.errorMessage,
+                hasMore: timelineState.hasMore,
+                onLoadMore: timelineNotifier.loadMore,
+                onRefresh: timelineNotifier.refreshTimeline,
+                onPostLiked: (status, liked) {
+                  timelineNotifier.updateStatus(status);
+                },
+                onPostReblogged: (status, reblogged) {
+                  timelineNotifier.updateStatus(status);
+                },
+                onPostBookmarked: (status, bookmarked) {
+                  timelineNotifier.updateStatus(status);
+                },
+                wrapWithRefreshIndicator: false,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Build Local tab content
+  Widget _buildLocalTab(BuildContext context, WidgetRef ref) {
+    return Builder(
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final localState = ref.watch(localTimelineProvider);
+            final localNotifier = ref.read(localTimelineProvider.notifier);
+            return CustomScrollView(
+              slivers: [
+                SliverOverlapInjector(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(
+                  child: FeedList(
+                    key: const Key('feed_list_local'),
+                    statuses: localState.statuses,
+                    isLoading: localState.isLoading,
+                    hasError: localState.hasError,
+                    errorMessage: localState.errorMessage,
+                    hasMore: localState.hasMore,
+                    onLoadMore: localNotifier.loadMore,
+                    onRefresh: localNotifier.refreshTimeline,
+                    onPostLiked: (status, liked) {
+                      localNotifier.updateStatus(status);
+                    },
+                    onPostReblogged: (status, reblogged) {
+                      localNotifier.updateStatus(status);
+                    },
+                    onPostBookmarked: (status, bookmarked) {
+                      localNotifier.updateStatus(status);
+                    },
+                    wrapWithRefreshIndicator: false,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Build Federated tab content
+  Widget _buildFederatedTab(BuildContext context, WidgetRef ref) {
+    return Builder(
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final federatedState = ref.watch(federatedTimelineProvider);
+            final federatedNotifier = ref.read(federatedTimelineProvider.notifier);
+            return CustomScrollView(
+              slivers: [
+                SliverOverlapInjector(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(
+                  child: FeedList(
+                    key: const Key('feed_list_federated'),
+                    statuses: federatedState.statuses,
+                    isLoading: federatedState.isLoading,
+                    hasError: federatedState.hasError,
+                    errorMessage: federatedState.errorMessage,
+                    hasMore: federatedState.hasMore,
+                    onLoadMore: federatedNotifier.loadMore,
+                    onRefresh: federatedNotifier.refreshTimeline,
+                    onPostLiked: (status, liked) {
+                      federatedNotifier.updateStatus(status);
+                    },
+                    onPostReblogged: (status, reblogged) {
+                      federatedNotifier.updateStatus(status);
+                    },
+                    onPostBookmarked: (status, bookmarked) {
+                      federatedNotifier.updateStatus(status);
+                    },
+                    wrapWithRefreshIndicator: false,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
 }

@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:io';
 import 'package:pixelodon/models/notification.dart' as model;
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
@@ -348,10 +350,27 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   /// Build a notification item
   Widget _buildNotificationItem(BuildContext context, model.Notification notification) {
     final theme = Theme.of(context);
-    
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: InkWell(
+
+    if (Platform.isIOS) {
+      return _buildIOSNotificationItem(context, notification, theme);
+    } else {
+      return _buildMaterialNotificationItem(context, notification, theme);
+    }
+  }
+
+  /// Build iOS-style notification item
+  Widget _buildIOSNotificationItem(BuildContext context, model.Notification notification, ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        border: Border(
+          bottom: BorderSide(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: GestureDetector(
         onTap: () {
           if (notification.status != null) {
             // TODO: Navigate to status detail
@@ -360,7 +379,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -451,6 +470,157 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ],
               ),
               
+              // Status content
+              if (notification.status != null) ...[
+                const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text/content on the left
+                    Expanded(
+                      child: SafeHtmlWidget(
+                        htmlContent: notification.status!.content,
+                      ),
+                    ),
+                    // Thumbnail preview on the right (first media only)
+                    if (notification.status!.mediaAttachments.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 64,
+                          height: 64,
+                          child: CachedNetworkImage(
+                            imageUrl: notification.status!.mediaAttachments.first.previewUrl
+                                    ?? notification.status!.mediaAttachments.first.url,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[300],
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build Material-style notification item
+  Widget _buildMaterialNotificationItem(BuildContext context, model.Notification notification, ThemeData theme) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: InkWell(
+        onTap: () {
+          if (notification.status != null) {
+            // TODO: Navigate to status detail
+          } else if (notification.type == model.NotificationType.follow) {
+            context.push('/profile/${notification.account.id}');
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Notification header
+              Row(
+                children: [
+                  // Notification icon
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getNotificationColor(notification.type).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _getNotificationIcon(notification.type),
+                      color: _getNotificationColor(notification.type),
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Notification text
+                  Expanded(
+                    child: Text(
+                      _getNotificationText(notification),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: notification.read ? FontWeight.normal : FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  // Notification time
+                  Text(
+                    timeago.format(notification.createdAt),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Account info
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // Avatar
+                  GestureDetector(
+                    onTap: () => context.push('/profile/${notification.account.id}'),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundImage: notification.account.avatar != null
+                          ? CachedNetworkImageProvider(notification.account.avatar!)
+                          : null,
+                      child: notification.account.avatar == null
+                          ? Text(notification.account.displayName[0])
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Account name
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => context.push('/profile/${notification.account.id}'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            notification.account.displayName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '@${notification.account.username}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
               // Status content
               if (notification.status != null) ...[
                 const SizedBox(height: 8),
