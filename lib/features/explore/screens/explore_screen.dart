@@ -514,13 +514,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   /// Build iOS-style scaffold with CupertinoNavigationBar and segmented control
   Widget _buildIOSScaffold(BuildContext context, bool isPixelfed) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Explore'),
-      ),
       child: Material(
         type: MaterialType.transparency,
         child: Column(
           children: [
+            // Navigation bar with title
+            CupertinoNavigationBar(
+              middle: const Text('Explore'),
+              backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+            ),
             // Search bar
             _buildSearchBar(context),
             // Segmented control for tabs
@@ -656,7 +658,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with SingleTicker
   /// Build iOS segmented control for tabs
   Widget _buildIOSSegmentedControl(BuildContext context, bool isPixelfed) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: CupertinoSlidingSegmentedControl<int>(
         groupValue: _tabController.index,
         onValueChanged: (int? value) {
