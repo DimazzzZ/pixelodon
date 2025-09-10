@@ -618,15 +618,6 @@ class HomeScreen extends ConsumerWidget {
           hasMore: timelineState.hasMore,
           onLoadMore: timelineNotifier.loadMore,
           onRefresh: timelineNotifier.refreshTimeline,
-          onPostLiked: (status, liked) {
-            timelineNotifier.updateStatus(status);
-          },
-          onPostReblogged: (status, reblogged) {
-            timelineNotifier.updateStatus(status);
-          },
-          onPostBookmarked: (status, bookmarked) {
-            timelineNotifier.updateStatus(status);
-          },
         );
       case 'grid':
         return ImageGridView(
@@ -683,15 +674,6 @@ class HomeScreen extends ConsumerWidget {
               hasMore: localState.hasMore,
               onLoadMore: localNotifier.loadMore,
               onRefresh: localNotifier.refreshTimeline,
-              onPostLiked: (status, liked) {
-                localNotifier.updateStatus(status);
-              },
-              onPostReblogged: (status, reblogged) {
-                localNotifier.updateStatus(status);
-              },
-              onPostBookmarked: (status, bookmarked) {
-                localNotifier.updateStatus(status);
-              },
             );
           case 'grid':
             return ImageGridView(
@@ -750,15 +732,6 @@ class HomeScreen extends ConsumerWidget {
               hasMore: federatedState.hasMore,
               onLoadMore: federatedNotifier.loadMore,
               onRefresh: federatedNotifier.refreshTimeline,
-              onPostLiked: (status, liked) {
-                federatedNotifier.updateStatus(status);
-              },
-              onPostReblogged: (status, reblogged) {
-                federatedNotifier.updateStatus(status);
-              },
-              onPostBookmarked: (status, bookmarked) {
-                federatedNotifier.updateStatus(status);
-              },
             );
           case 'grid':
             return ImageGridView(
@@ -816,15 +789,6 @@ class HomeScreen extends ConsumerWidget {
               hasMore: timelineState.hasMore,
               onLoadMore: timelineNotifier.loadMore,
               onRefresh: timelineNotifier.refreshTimeline,
-              onPostLiked: (status, liked) {
-                timelineNotifier.updateStatus(status);
-              },
-              onPostReblogged: (status, reblogged) {
-                timelineNotifier.updateStatus(status);
-              },
-              onPostBookmarked: (status, bookmarked) {
-                timelineNotifier.updateStatus(status);
-              },
             );
             break;
           case 'grid':
@@ -901,15 +865,6 @@ class HomeScreen extends ConsumerWidget {
                   hasMore: localState.hasMore,
                   onLoadMore: localNotifier.loadMore,
                   onRefresh: localNotifier.refreshTimeline,
-                  onPostLiked: (status, liked) {
-                    localNotifier.updateStatus(status);
-                  },
-                  onPostReblogged: (status, reblogged) {
-                    localNotifier.updateStatus(status);
-                  },
-                  onPostBookmarked: (status, bookmarked) {
-                    localNotifier.updateStatus(status);
-                  },
                 );
                 break;
               case 'grid':
@@ -988,15 +943,6 @@ class HomeScreen extends ConsumerWidget {
                   hasMore: federatedState.hasMore,
                   onLoadMore: federatedNotifier.loadMore,
                   onRefresh: federatedNotifier.refreshTimeline,
-                  onPostLiked: (status, liked) {
-                    federatedNotifier.updateStatus(status);
-                  },
-                  onPostReblogged: (status, reblogged) {
-                    federatedNotifier.updateStatus(status);
-                  },
-                  onPostBookmarked: (status, bookmarked) {
-                    federatedNotifier.updateStatus(status);
-                  },
                 );
                 break;
               case 'grid':

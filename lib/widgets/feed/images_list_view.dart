@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
 
-import 'package:pixelodon/widgets/feed/image_post_card.dart';
+import 'package:pixelodon/widgets/feed/minimal_image_card.dart';
 
-/// Widget for displaying only posts with images in a list format
+/// Widget for displaying only posts with images in a seamless, minimal list format
+/// No buttons, counters, or dividers - just images with user info overlay
 class ImagesListView extends ConsumerWidget {
   final List<Status> statuses;
   final String domain;
@@ -15,9 +15,6 @@ class ImagesListView extends ConsumerWidget {
   final bool hasMore;
   final VoidCallback? onLoadMore;
   final VoidCallback? onRefresh;
-  final Function(Status, bool)? onPostLiked;
-  final Function(Status, bool)? onPostReblogged;
-  final Function(Status, bool)? onPostBookmarked;
 
   const ImagesListView({
     super.key,
@@ -29,9 +26,6 @@ class ImagesListView extends ConsumerWidget {
     this.hasMore = true,
     this.onLoadMore,
     this.onRefresh,
-    this.onPostLiked,
-    this.onPostReblogged,
-    this.onPostBookmarked,
   });
 
   @override
@@ -98,36 +92,25 @@ class ImagesListView extends ConsumerWidget {
           return false;
         },
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.zero, // Remove all padding for seamless experience
           itemCount: imageStatuses.length + (isLoading ? 1 : 0),
           itemBuilder: (context, index) {
             if (index >= imageStatuses.length) {
               // Loading indicator
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
+              return Container(
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).colorScheme.surface,
+                child: const Center(
                   child: CircularProgressIndicator(),
                 ),
               );
             }
 
             final status = imageStatuses[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ImagePostCard(
-                key: Key('image_post_card_${status.id}'),
-                status: status,
-                domain: domain,
-                onLiked: onPostLiked != null
-                    ? (liked) => onPostLiked!(status, liked)
-                    : null,
-                onReblogged: onPostReblogged != null
-                    ? (reblogged) => onPostReblogged!(status, reblogged)
-                    : null,
-                onBookmarked: onPostBookmarked != null
-                    ? (bookmarked) => onPostBookmarked!(status, bookmarked)
-                    : null,
-              ),
+            return MinimalImageCard(
+              key: Key('minimal_image_card_${status.id}'),
+              status: status,
+              domain: domain,
             );
           },
         ),
