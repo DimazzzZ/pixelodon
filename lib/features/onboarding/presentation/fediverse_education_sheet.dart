@@ -290,7 +290,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
     );
   }
 
-  Widget _buildIOSFaqItem(BuildContext context, ThemeData theme, int index, Map<String, String> item) {
+  Widget _buildIOSFaqItem(BuildContext context, ThemeData theme, int index, Map<String, dynamic> item) {
     return Padding(
       padding: EdgeInsets.only(bottom: index < 2 ? 8 : 0),
       child: Semantics(
@@ -351,7 +351,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
     );
   }
 
-  Widget _buildAndroidFaqItem(BuildContext context, ThemeData theme, int index, Map<String, String> item) {
+  Widget _buildAndroidFaqItem(BuildContext context, ThemeData theme, int index, Map<String, dynamic> item) {
     return Padding(
       padding: EdgeInsets.only(bottom: index < 2 ? 8 : 0),
       child: Theme(

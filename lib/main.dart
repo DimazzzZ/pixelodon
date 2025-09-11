@@ -6,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:pixelodon/core/routing/app_router.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
-import 'package:pixelodon/services/deep_link_service.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -19,10 +18,7 @@ void main() async {
   } catch (_) {
     // Ignore if .env is absent; defaults will apply
   }
-  
-  // Initialize deep link handling
-  await DeepLinkService().init();
-  
+
   // Run the app with ProviderScope for Riverpod
   runApp(
     const ProviderScope(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
@@ -39,7 +40,10 @@ class FeedList extends ConsumerStatefulWidget {
   /// If true, wraps the list in its own RefreshIndicator. Disable when an outer
   /// RefreshIndicator should control the whole page stretch.
   final bool wrapWithRefreshIndicator;
-  
+
+  /// Optional overlap handle for nested scroll views
+  final SliverOverlapAbsorberHandle? overlapHandle;
+
   /// Constructor
   const FeedList({
     super.key,
@@ -54,6 +58,7 @@ class FeedList extends ConsumerStatefulWidget {
     this.onPostReblogged,
     this.onPostBookmarked,
     this.wrapWithRefreshIndicator = true,
+    this.overlapHandle,
   });
 
   @override
@@ -240,7 +245,70 @@ class _FeedListState extends ConsumerState<FeedList> {
         child: listView,
       );
     } else {
-      return listView;
+      // Return CustomScrollView with slivers for proper nested scroll view integration
+      return CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (widget.overlapHandle != null)
+            SliverOverlapInjector(handle: widget.overlapHandle!),
+          CupertinoSliverRefreshControl(
+            onRefresh: widget.onRefresh ?? () async {},
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == widget.statuses.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 8),
+                            Text('Loading more posts...'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final status = widget.statuses[index];
+                  final activeInstance = ref.watch(activeInstanceProvider);
+                  final domain = activeInstance?.domain ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: PostCard(
+                      status: status,
+                      domain: domain,
+                      onLiked: (liked) {
+                        if (widget.onPostLiked != null) {
+                          widget.onPostLiked!(status, liked);
+                        }
+                      },
+                      onReblogged: (reblogged) {
+                        if (widget.onPostReblogged != null) {
+                          widget.onPostReblogged!(status, reblogged);
+                        }
+                      },
+                      onBookmarked: (bookmarked) {
+                        if (widget.onPostBookmarked != null) {
+                          widget.onPostBookmarked!(status, bookmarked);
+                        }
+                      },
+                    ),
+                  );
+                },
+                childCount: widget.statuses.length + (widget.isLoading && widget.hasMore ? 1 : 0),
+              ),
+            ),
+          ),
+        ],
+      );
     }
   }
 }

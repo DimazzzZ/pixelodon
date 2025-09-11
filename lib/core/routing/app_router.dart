@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app_links/app_links.dart';
+import 'package:pixelodon/services/auth_service.dart';
 import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/features/auth/screens/login_screen.dart';
 import 'package:pixelodon/features/auth/screens/oauth_callback_screen.dart';
@@ -328,12 +331,78 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Set up deep link handling for OAuth callbacks (only in non-test environments)
+  if (!kIsWeb && !const bool.fromEnvironment('flutter.test')) {
+    _setupDeepLinkHandling(router);
+  }
+
   // Ensure initial configuration is set for tests and non-widget contexts
   // This makes router.routerDelegate.currentConfiguration available immediately
   // without needing a MaterialApp.router to mount the router.
   // Do not force navigation here; let initialLocation and SplashScreen control the flow.
   return router;
 });
+
+/// Set up deep link handling for OAuth callbacks
+void _setupDeepLinkHandling(GoRouter router) {
+  final appLinks = AppLinks();
+
+  // Handle initial link if app was launched from a deep link
+  appLinks.getInitialAppLink().then((uri) {
+    if (uri != null) {
+      _handleDeepLink(router, uri);
+    }
+  });
+
+  // Listen for deep links while app is running
+  appLinks.uriLinkStream.listen((uri) {
+    _handleDeepLink(router, uri);
+  });
+}
+
+/// Handle incoming deep links
+void _handleDeepLink(GoRouter router, Uri uri) async {
+  debugPrint('Received deep link: $uri');
+
+  // Check if this is an OAuth callback
+  if (uri.scheme == 'pixelodon' && uri.host == 'oauth' && uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'callback') {
+    debugPrint('Processing OAuth callback deep link');
+
+    // Extract parameters from the deep link
+    final code = uri.queryParameters['code'];
+    final state = uri.queryParameters['state'];
+    final error = uri.queryParameters['error'];
+
+    debugPrint('Deep link parameters - code: $code, state: $state, error: $error');
+
+    // Navigate to OAuth callback route with parameters
+    if (code != null && state != null) {
+      // Retrieve the domain from the stored state
+      final authService = AuthService();
+      final domain = await authService.getDomainFromState(state);
+
+      if (domain != null) {
+        debugPrint('Retrieved domain from state: $domain');
+        router.go('/oauth/callback', extra: {
+          'code': code,
+          'state': state,
+          'domain': domain,
+        });
+      } else {
+        debugPrint('Could not retrieve domain for state: $state');
+        router.go('/auth/login');
+      }
+    } else if (error != null) {
+      // Handle OAuth error
+      debugPrint('OAuth error from deep link: $error');
+      router.go('/auth/login');
+    } else {
+      debugPrint('Invalid OAuth callback deep link - missing required parameters');
+      router.go('/auth/login');
+    }
+  }
+}
 
 /// Helper function to build the OAuth callback screen
 Widget _buildOAuthCallbackScreen(GoRouterState state) {

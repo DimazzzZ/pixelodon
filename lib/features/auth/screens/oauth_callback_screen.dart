@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:app_links/app_links.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
@@ -35,15 +34,12 @@ class OAuthCallbackScreen extends ConsumerStatefulWidget {
 class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
   bool _isLoading = true;
   String? _errorMessage;
-  late AppLinks _appLinks;
   Timer? _timeoutTimer;
   static const int _timeoutSeconds = 60; // 1 minute timeout
-  
+
   @override
   void initState() {
     super.initState();
-    _appLinks = AppLinks();
-    _setupDeepLinkListener();
     _handleCallback();
     _startTimeout();
   }
@@ -62,69 +58,41 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
     });
   }
 
-  void _setupDeepLinkListener() {
-    _appLinks.uriLinkStream.listen((uri) {
-      debugPrint('Received deep link: $uri');
-      _processCallback(uri);
-    }, onError: (err) {
-      debugPrint('Deep link error: $err');
-      _setError('Failed to handle authentication callback');
-    });
-  }
-
   Future<void> _handleCallback() async {
     try {
-      // Get the initial link in case the app was opened by the callback
-      final initialUri = await _appLinks.getInitialAppLink();
-      if (initialUri != null) {
-        debugPrint('Initial URI: $initialUri');
-        await _processCallback(initialUri);
+      // If we have a code, process it immediately
+      if (widget.code != null) {
+        await _processCallback();
+      } else {
+        // Wait a bit for the deep link to be processed
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted && _isLoading) {
+          _setError('No authorization code received');
+        }
       }
     } catch (e) {
-      debugPrint('Error getting initial link: $e');
-      // Continue waiting for deep link
+      debugPrint('Error handling callback: $e');
+      _setError('Failed to handle authentication callback');
     }
   }
   
   /// Process the OAuth callback
-  Future<void> _processCallback(Uri uri) async {
+  Future<void> _processCallback() async {
     try {
-      debugPrint('Processing callback URI: $uri');
-      
-      // Check if this is our OAuth callback
-      if (uri.scheme != 'pixelodon' || uri.host != 'oauth' || uri.pathSegments.first != 'callback') {
-        debugPrint('URI is not OAuth callback: ${uri.scheme}://${uri.host}${uri.path}');
-        return;
-      }
+      debugPrint('Processing OAuth callback');
+      debugPrint('Domain: ${widget.domain}');
+      debugPrint('State: ${widget.state}');
+      debugPrint('Code: ${widget.code}');
 
-      final code = uri.queryParameters['code'];
-      final state = uri.queryParameters['state'];
-      final error = uri.queryParameters['error'];
-      final errorDescription = uri.queryParameters['error_description'];
-
-      if (error != null) {
-        _setError('Authentication failed: ${errorDescription ?? error}');
-        return;
-      }
-
+      final code = widget.code;
       if (code == null) {
         _setError('No authorization code received');
         return;
       }
 
-      debugPrint('Received authorization code: $code');
-      debugPrint('Received state: $state');
-      debugPrint('Expected state: ${widget.state}');
-
-      // Verify state if provided
-      if (state != widget.state) {
-        _setError('State mismatch - possible security issue');
-        return;
-      }
-
       // Exchange the authorization code for tokens
       final authRepository = ref.read(authRepositoryProvider);
-      await authRepository.completeOAuthFlow(widget.domain, code, state: state);
+      await authRepository.completeOAuthFlow(widget.domain, code, state: widget.state);
 
       if (mounted) {
         // Mark onboarding as completed since user successfully logged in

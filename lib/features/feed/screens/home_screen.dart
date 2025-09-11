@@ -828,16 +828,57 @@ class HomeScreen extends ConsumerWidget {
             break;
         }
 
-        return CustomScrollView(
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverToBoxAdapter(
-              child: content,
-            ),
-          ],
-        );
+        // Handle different content types
+        if (homeViewMode == 'images') {
+          // ImagesListView returns a CustomScrollView with overlap handling built-in
+          return ImagesListView(
+            key: const Key('images_list_following'),
+            statuses: timelineState.statuses,
+            domain: domain,
+            isLoading: timelineState.isLoading,
+            hasError: timelineState.hasError,
+            errorMessage: timelineState.errorMessage,
+            hasMore: timelineState.hasMore,
+            onLoadMore: timelineNotifier.loadMore,
+            onRefresh: timelineNotifier.refreshTimeline,
+            overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          );
+        } else if (homeViewMode == 'list' || homeViewMode == null) {
+          // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
+          return FeedList(
+            key: const Key('feed_list_following'),
+            statuses: timelineState.statuses,
+            isLoading: timelineState.isLoading,
+            hasError: timelineState.hasError,
+            errorMessage: timelineState.errorMessage,
+            hasMore: timelineState.hasMore,
+            onLoadMore: timelineNotifier.loadMore,
+            onRefresh: timelineNotifier.refreshTimeline,
+            onPostLiked: (status, liked) {
+              timelineNotifier.updateStatus(status);
+            },
+            onPostReblogged: (status, reblogged) {
+              timelineNotifier.updateStatus(status);
+            },
+            onPostBookmarked: (status, bookmarked) {
+              timelineNotifier.updateStatus(status);
+            },
+            wrapWithRefreshIndicator: false,
+            overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          );
+        } else {
+          // For other content types (like grid), wrap in CustomScrollView
+          return CustomScrollView(
+            slivers: [
+              SliverOverlapInjector(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              ),
+              SliverToBoxAdapter(
+                child: content,
+              ),
+            ],
+          );
+        }
       },
     );
   }
@@ -904,16 +945,57 @@ class HomeScreen extends ConsumerWidget {
                 break;
             }
 
-            return CustomScrollView(
-              slivers: [
-                SliverOverlapInjector(
-                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                SliverToBoxAdapter(
-                  child: content,
-                ),
-              ],
-            );
+            // Handle different content types
+            if (homeViewMode == 'images') {
+              // ImagesListView returns a CustomScrollView with overlap handling built-in
+              return ImagesListView(
+                key: const Key('images_list_local'),
+                statuses: localState.statuses,
+                domain: domain,
+                isLoading: localState.isLoading,
+                hasError: localState.hasError,
+                errorMessage: localState.errorMessage,
+                hasMore: localState.hasMore,
+                onLoadMore: localNotifier.loadMore,
+                onRefresh: localNotifier.refreshTimeline,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
+            } else if (homeViewMode == 'list' || homeViewMode == null) {
+              // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
+              return FeedList(
+                key: const Key('feed_list_local'),
+                statuses: localState.statuses,
+                isLoading: localState.isLoading,
+                hasError: localState.hasError,
+                errorMessage: localState.errorMessage,
+                hasMore: localState.hasMore,
+                onLoadMore: localNotifier.loadMore,
+                onRefresh: localNotifier.refreshTimeline,
+                onPostLiked: (status, liked) {
+                  localNotifier.updateStatus(status);
+                },
+                onPostReblogged: (status, reblogged) {
+                  localNotifier.updateStatus(status);
+                },
+                onPostBookmarked: (status, bookmarked) {
+                  localNotifier.updateStatus(status);
+                },
+                wrapWithRefreshIndicator: false,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
+            } else {
+              // For other content types (like grid), wrap in CustomScrollView
+              return CustomScrollView(
+                slivers: [
+                  SliverOverlapInjector(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  ),
+                  SliverToBoxAdapter(
+                    child: content,
+                  ),
+                ],
+              );
+            }
           },
         );
       },
@@ -982,16 +1064,57 @@ class HomeScreen extends ConsumerWidget {
                 break;
             }
 
-            return CustomScrollView(
-              slivers: [
-                SliverOverlapInjector(
-                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                SliverToBoxAdapter(
-                  child: content,
-                ),
-              ],
-            );
+            // Handle different content types
+            if (homeViewMode == 'images') {
+              // ImagesListView returns a CustomScrollView with overlap handling built-in
+              return ImagesListView(
+                key: const Key('images_list_federated'),
+                statuses: federatedState.statuses,
+                domain: domain,
+                isLoading: federatedState.isLoading,
+                hasError: federatedState.hasError,
+                errorMessage: federatedState.errorMessage,
+                hasMore: federatedState.hasMore,
+                onLoadMore: federatedNotifier.loadMore,
+                onRefresh: federatedNotifier.refreshTimeline,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
+            } else if (homeViewMode == 'list' || homeViewMode == null) {
+              // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
+              return FeedList(
+                key: const Key('feed_list_federated'),
+                statuses: federatedState.statuses,
+                isLoading: federatedState.isLoading,
+                hasError: federatedState.hasError,
+                errorMessage: federatedState.errorMessage,
+                hasMore: federatedState.hasMore,
+                onLoadMore: federatedNotifier.loadMore,
+                onRefresh: federatedNotifier.refreshTimeline,
+                onPostLiked: (status, liked) {
+                  federatedNotifier.updateStatus(status);
+                },
+                onPostReblogged: (status, reblogged) {
+                  federatedNotifier.updateStatus(status);
+                },
+                onPostBookmarked: (status, bookmarked) {
+                  federatedNotifier.updateStatus(status);
+                },
+                wrapWithRefreshIndicator: false,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
+            } else {
+              // For other content types (like grid), wrap in CustomScrollView
+              return CustomScrollView(
+                slivers: [
+                  SliverOverlapInjector(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  ),
+                  SliverToBoxAdapter(
+                    child: content,
+                  ),
+                ],
+              );
+            }
           },
         );
       },

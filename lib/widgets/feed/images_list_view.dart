@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixelodon/models/status.dart';
 
@@ -15,6 +16,7 @@ class ImagesListView extends ConsumerWidget {
   final bool hasMore;
   final VoidCallback? onLoadMore;
   final VoidCallback? onRefresh;
+  final SliverOverlapAbsorberHandle? overlapHandle;
 
   const ImagesListView({
     super.key,
@@ -26,6 +28,7 @@ class ImagesListView extends ConsumerWidget {
     this.hasMore = true,
     this.onLoadMore,
     this.onRefresh,
+    this.overlapHandle,
   });
 
   @override
@@ -79,41 +82,48 @@ class ImagesListView extends ConsumerWidget {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        onRefresh?.call();
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
+            hasMore && !isLoading) {
+          onLoadMore?.call();
+        }
+        return false;
       },
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification scrollInfo) {
-          if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
-              hasMore && !isLoading) {
-            onLoadMore?.call();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          padding: EdgeInsets.zero, // Remove all padding for seamless experience
-          itemCount: imageStatuses.length + (isLoading ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= imageStatuses.length) {
-              // Loading indicator
-              return Container(
-                padding: const EdgeInsets.all(16),
-                color: Theme.of(context).colorScheme.surface,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+      child: CustomScrollView(
+        slivers: [
+          if (overlapHandle != null)
+            SliverOverlapInjector(handle: overlapHandle!),
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              onRefresh?.call();
+            },
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                if (index >= imageStatuses.length) {
+                  // Loading indicator
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Theme.of(context).colorScheme.surface,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
 
-            final status = imageStatuses[index];
-            return MinimalImageCard(
-              key: Key('minimal_image_card_${status.id}'),
-              status: status,
-              domain: domain,
-            );
-          },
-        ),
+                final status = imageStatuses[index];
+                return MinimalImageCard(
+                  key: Key('minimal_image_card_${status.id}'),
+                  status: status,
+                  domain: domain,
+                );
+              },
+              childCount: imageStatuses.length + (isLoading ? 1 : 0),
+            ),
+          ),
+        ],
       ),
     );
   }

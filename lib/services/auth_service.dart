@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/models/account.dart';
@@ -248,7 +249,8 @@ class AuthService {
   }
   
   /// Stores a PKCE code verifier for a domain and state
-  Future<void> _storeCodeVerifier(String domain, String state, String verifier) async {
+  @visibleForTesting
+  Future<void> storeCodeVerifier(String domain, String state, String verifier) async {
     debugPrint('Storing code verifier for domain: $domain, state: $state');
     
     try {
@@ -260,6 +262,9 @@ class AuthService {
         key: key,
         value: verifier,
       );
+
+      // Also store the domain-state mapping for deep link handling
+      await _secureStorage.write(key: 'oauth_domain_$state', value: domain);
       
       // Verify that the verifier was stored correctly
       final storedVerifier = await _secureStorage.read(key: key);
@@ -274,8 +279,21 @@ class AuthService {
     }
   }
   
+  /// Retrieves the domain associated with an OAuth state
+  Future<String?> getDomainFromState(String state) async {
+    try {
+      final domain = await _secureStorage.read(key: 'oauth_domain_$state');
+      debugPrint('Retrieved domain for state $state: $domain');
+      return domain;
+    } catch (e) {
+      debugPrint('Error retrieving domain for state $state: $e');
+      return null;
+    }
+  }
+
   /// Retrieves and removes a PKCE code verifier for a domain and state
-  Future<String?> _getAndRemoveCodeVerifier(String domain, String? state) async {
+  @visibleForTesting
+  Future<String?> getAndRemoveCodeVerifier(String domain, String? state) async {
     debugPrint('Getting code verifier for domain: $domain, state: $state');
     // If state is null or empty, we're not using PKCE
     if (state == null || state.isEmpty) {
@@ -296,6 +314,10 @@ class AuthService {
         // Remove the used verifier
         await _secureStorage.delete(key: key);
         debugPrint('Removed code verifier for key: $key');
+
+        // Also remove the domain-state mapping
+        await _secureStorage.delete(key: 'oauth_domain_$state');
+        debugPrint('Removed domain mapping for state: $state');
         
         return verifier;
       } else {
@@ -332,7 +354,7 @@ class AuthService {
     debugPrint('Generated code challenge: $codeChallenge');
     
     // Store the code verifier for later use
-    await _storeCodeVerifier(domain, state, codeVerifier);
+    await storeCodeVerifier(domain, state, codeVerifier);
     
     // Build the URL - use sign-up page for registration, OAuth for login
     String url;
@@ -386,7 +408,7 @@ class AuthService {
       debugPrint('Got client credentials: client_id=${credentials['client_id']}');
       
       // Get the code verifier if we have a state
-      final codeVerifier = await _getAndRemoveCodeVerifier(domain, state);
+      final codeVerifier = await getAndRemoveCodeVerifier(domain, state);
       debugPrint('Code verifier: ${codeVerifier != null ? '${codeVerifier.substring(0, 10)}...' : 'null'}');
       
       // Prepare request data
