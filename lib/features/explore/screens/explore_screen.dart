@@ -987,19 +987,37 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with TickerProvid
 
   /// Build the Posts tab (Material)
   Widget _buildMaterialPostsTab(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            SliverToBoxAdapter(
-              child: _buildPostsTab(),
-            ),
-          ],
-        );
+    final timelineState = ref.watch(publicTimelineProvider);
+    final timelineNotifier = ref.read(publicTimelineProvider.notifier);
+
+    // Try to get the overlap handle, but handle the case where NestedScrollView isn't available yet
+    SliverOverlapAbsorberHandle? overlapHandle;
+    try {
+      overlapHandle = NestedScrollView.sliverOverlapAbsorberHandleFor(context);
+    } catch (e) {
+      // NestedScrollView not available in this context, use null
+      overlapHandle = null;
+    }
+
+    return FeedList(
+      statuses: timelineState.statuses,
+      isLoading: timelineState.isLoading,
+      hasError: timelineState.hasError,
+      errorMessage: timelineState.errorMessage,
+      hasMore: timelineState.hasMore,
+      onLoadMore: timelineNotifier.loadMore,
+      onRefresh: timelineNotifier.refreshTimeline,
+      onPostLiked: (status, liked) {
+        timelineNotifier.updateStatus(status);
       },
+      onPostReblogged: (status, reblogged) {
+        timelineNotifier.updateStatus(status);
+      },
+      onPostBookmarked: (status, bookmarked) {
+        timelineNotifier.updateStatus(status);
+      },
+      wrapWithRefreshIndicator: false,
+      overlapHandle: overlapHandle,
     );
   }
 

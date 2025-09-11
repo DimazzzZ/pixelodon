@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
@@ -13,6 +14,7 @@ class ImageGridView extends ConsumerWidget {
   final bool hasMore;
   final VoidCallback? onLoadMore;
   final VoidCallback? onRefresh;
+  final SliverOverlapAbsorberHandle? overlapHandle;
 
   const ImageGridView({
     super.key,
@@ -23,6 +25,7 @@ class ImageGridView extends ConsumerWidget {
     this.hasMore = true,
     this.onLoadMore,
     this.onRefresh,
+    this.overlapHandle,
   });
 
   @override
@@ -76,49 +79,59 @@ class ImageGridView extends ConsumerWidget {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        onRefresh?.call();
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
+            hasMore && !isLoading) {
+          onLoadMore?.call();
+        }
+        return false;
       },
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification scrollInfo) {
-          if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
-              hasMore && !isLoading) {
-            onLoadMore?.call();
-          }
-          return false;
-        },
-        child: GridView.builder(
-          padding: const EdgeInsets.all(4),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 4,
-            mainAxisSpacing: 4,
-            childAspectRatio: 1.0,
+      child: CustomScrollView(
+        slivers: [
+          if (overlapHandle != null)
+            SliverOverlapInjector(handle: overlapHandle!),
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              onRefresh?.call();
+            },
           ),
-          itemCount: imageStatuses.length + (isLoading ? 3 : 0),
-          itemBuilder: (context, index) {
-            if (index >= imageStatuses.length) {
-              // Loading placeholder
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+          SliverPadding(
+            padding: const EdgeInsets.all(4),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+                childAspectRatio: 1.0,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index >= imageStatuses.length) {
+                    // Loading placeholder
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
 
-            final status = imageStatuses[index];
-            final imageMedia = status.mediaAttachments.firstWhere(
-              (media) => media.type == AttachmentType.image || media.type == AttachmentType.gifv,
-            );
+                  final status = imageStatuses[index];
+                  final imageMedia = status.mediaAttachments.firstWhere(
+                    (media) => media.type == AttachmentType.image || media.type == AttachmentType.gifv,
+                  );
 
-            return _buildImageTile(context, status, imageMedia);
-          },
-        ),
+                  return _buildImageTile(context, status, imageMedia);
+                },
+                childCount: imageStatuses.length + (isLoading ? 3 : 0),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

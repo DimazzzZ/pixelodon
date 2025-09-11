@@ -843,7 +843,7 @@ class HomeScreen extends ConsumerWidget {
             onRefresh: timelineNotifier.refreshTimeline,
             overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           );
-        } else if (homeViewMode == 'list' || homeViewMode == null) {
+        } else if (homeViewMode == 'list') {
           // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
           return FeedList(
             key: const Key('feed_list_following'),
@@ -866,8 +866,21 @@ class HomeScreen extends ConsumerWidget {
             wrapWithRefreshIndicator: false,
             overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           );
+        } else if (homeViewMode == 'grid') {
+          // ImageGridView returns a CustomScrollView with overlap handling built-in
+          return ImageGridView(
+            key: const Key('image_grid_following'),
+            statuses: timelineState.statuses,
+            isLoading: timelineState.isLoading,
+            hasError: timelineState.hasError,
+            errorMessage: timelineState.errorMessage,
+            hasMore: timelineState.hasMore,
+            onLoadMore: timelineNotifier.loadMore,
+            onRefresh: timelineNotifier.refreshTimeline,
+            overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          );
         } else {
-          // For other content types (like grid), wrap in CustomScrollView
+          // For other content types, wrap in CustomScrollView
           return CustomScrollView(
             slivers: [
               SliverOverlapInjector(
@@ -960,7 +973,7 @@ class HomeScreen extends ConsumerWidget {
                 onRefresh: localNotifier.refreshTimeline,
                 overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               );
-            } else if (homeViewMode == 'list' || homeViewMode == null) {
+            } else if (homeViewMode == 'list') {
               // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
               return FeedList(
                 key: const Key('feed_list_local'),
@@ -983,8 +996,21 @@ class HomeScreen extends ConsumerWidget {
                 wrapWithRefreshIndicator: false,
                 overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               );
+            } else if (homeViewMode == 'grid') {
+              // ImageGridView returns a CustomScrollView with overlap handling built-in
+              return ImageGridView(
+                key: const Key('image_grid_local'),
+                statuses: localState.statuses,
+                isLoading: localState.isLoading,
+                hasError: localState.hasError,
+                errorMessage: localState.errorMessage,
+                hasMore: localState.hasMore,
+                onLoadMore: localNotifier.loadMore,
+                onRefresh: localNotifier.refreshTimeline,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
             } else {
-              // For other content types (like grid), wrap in CustomScrollView
+              // For other content types, wrap in CustomScrollView
               return CustomScrollView(
                 slivers: [
                   SliverOverlapInjector(
@@ -1079,7 +1105,7 @@ class HomeScreen extends ConsumerWidget {
                 onRefresh: federatedNotifier.refreshTimeline,
                 overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               );
-            } else if (homeViewMode == 'list' || homeViewMode == null) {
+            } else if (homeViewMode == 'list') {
               // FeedList returns a CustomScrollView with overlap handling built-in when wrapWithRefreshIndicator is false
               return FeedList(
                 key: const Key('feed_list_federated'),
@@ -1102,8 +1128,21 @@ class HomeScreen extends ConsumerWidget {
                 wrapWithRefreshIndicator: false,
                 overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               );
+            } else if (homeViewMode == 'grid') {
+              // ImageGridView returns a CustomScrollView with overlap handling built-in
+              return ImageGridView(
+                key: const Key('image_grid_federated'),
+                statuses: federatedState.statuses,
+                isLoading: federatedState.isLoading,
+                hasError: federatedState.hasError,
+                errorMessage: federatedState.errorMessage,
+                hasMore: federatedState.hasMore,
+                onLoadMore: federatedNotifier.loadMore,
+                onRefresh: federatedNotifier.refreshTimeline,
+                overlapHandle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              );
             } else {
-              // For other content types (like grid), wrap in CustomScrollView
+              // For other content types, wrap in CustomScrollView
               return CustomScrollView(
                 slivers: [
                   SliverOverlapInjector(

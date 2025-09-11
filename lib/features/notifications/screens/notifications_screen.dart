@@ -351,16 +351,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         },
         body: Builder(
           builder: (context) {
-            return CustomScrollView(
-              slivers: [
-                SliverOverlapInjector(
-                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                SliverToBoxAdapter(
-                  child: _buildNotificationsList(context, notificationsState, notificationsNotifier, isIOS: false),
-                ),
-              ],
-            );
+            // Try to get the overlap handle, but handle the case where NestedScrollView isn't available yet
+            SliverOverlapAbsorberHandle? overlapHandle;
+            try {
+              overlapHandle = NestedScrollView.sliverOverlapAbsorberHandleFor(context);
+            } catch (e) {
+              // NestedScrollView not available in this context, use null
+              overlapHandle = null;
+            }
+
+            return _buildNotificationsList(context, notificationsState, notificationsNotifier, isIOS: false, useSliver: true, overlapHandle: overlapHandle);
           },
         ),
       ),
@@ -414,7 +414,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   /// Build notifications list content
-  Widget _buildNotificationsList(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier, {required bool isIOS}) {
+  Widget _buildNotificationsList(BuildContext context, NotificationsState notificationsState, NotificationsNotifier notificationsNotifier, {required bool isIOS, bool useSliver = false, SliverOverlapAbsorberHandle? overlapHandle}) {
     if (notificationsState.hasError) {
       return _buildErrorState(context, notificationsState, notificationsNotifier, isIOS: isIOS);
     }
@@ -452,27 +452,60 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       );
     } else {
-      return RefreshIndicator(
-        onRefresh: notificationsNotifier.refreshNotifications,
-        child: ListView.builder(
+      if (useSliver) {
+        // Return CustomScrollView with slivers for proper nested scroll view integration
+        return CustomScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == notificationsState.notifications.length) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+          slivers: [
+            if (overlapHandle != null)
+              SliverOverlapInjector(handle: overlapHandle),
+            CupertinoSliverRefreshControl(
+              onRefresh: notificationsNotifier.refreshNotifications,
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == notificationsState.notifications.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
 
-            final notification = notificationsState.notifications[index];
-            return _buildNotificationItem(context, notification);
-          },
-        ),
-      );
+                  final notification = notificationsState.notifications[index];
+                  return _buildNotificationItem(context, notification);
+                },
+                childCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
+              ),
+            ),
+          ],
+        );
+      } else {
+        return RefreshIndicator(
+          onRefresh: notificationsNotifier.refreshNotifications,
+          child: ListView.builder(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: notificationsState.notifications.length + (notificationsState.isLoading && notificationsState.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == notificationsState.notifications.length) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final notification = notificationsState.notifications[index];
+              return _buildNotificationItem(context, notification);
+            },
+          ),
+        );
+      }
     }
   }
 

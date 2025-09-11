@@ -204,8 +204,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 pinned: true,
                 actions: _buildMaterialActions(context, state),
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(56.0),
-                  child: SliverProfileTabBar(
+                  preferredSize: const Size.fromHeight(48.0),
+                  child: ProfileTabBar(
                     selectedIndex: state.selectedTabIndex,
                     onTabChanged: (index) => controller.switchTab(index),
                     isLoading: state.isCurrentTabLoading,
