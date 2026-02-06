@@ -280,7 +280,7 @@ class _ThreadConnectorPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Draw near the left edge of the Positioned.fill area.
-    final double x = 0;
+    const double x = 0;
     final double startY = topGap;
     final double endY = size.height - bottomGap;
 

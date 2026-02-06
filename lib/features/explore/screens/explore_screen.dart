@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:pixelodon/models/status.dart';
@@ -10,18 +11,204 @@ import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/feed/feed_list.dart';
 import 'package:pixelodon/core/network/api_service.dart';
 import 'package:pixelodon/providers/api_provider.dart' as api_providers;
-import 'package:pixelodon/services/timeline_service.dart';
+
+part 'explore_screen.g.dart';
 
 /// Provider for the public timeline
-final publicTimelineProvider = StateNotifierProvider<PublicTimelineNotifier, TimelineState>((ref) {
-  final timelineService = ref.watch(timelineServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
+@Riverpod(keepAlive: true)
+class PublicTimeline extends _$PublicTimeline {
+  CancelToken? _cancelToken;
+
+  @override
+  TimelineState build() {
+    ref.onDispose(() {
+      _cancelToken?.cancel('PublicTimeline disposed');
+    });
+
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final domain = activeInstance?.domain;
+    
+    if (domain != null) {
+      Future.microtask(() => loadTimeline());
+    }
+
+    return TimelineState();
+  }
+
+  /// Set timeline filters
+  void setFilters({bool? local, bool? onlyMedia}) {
+    final newLocal = local ?? state.local;
+    final newOnlyMedia = onlyMedia ?? state.onlyMedia;
+    
+    // Only reload if filters actually changed
+    if (newLocal != state.local || newOnlyMedia != state.onlyMedia) {
+      state = state.copyWith(
+        local: newLocal,
+        onlyMedia: newOnlyMedia,
+      );
+      
+      loadTimeline();
+    }
+  }
   
-  return PublicTimelineNotifier(
-    timelineService: timelineService,
-    domain: activeInstance?.domain,
-  );
-});
+  /// Load the initial timeline
+  Future<void> loadTimeline({int retryCount = 0, bool isRetry = false}) async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
+    if (domain == null) return;
+    
+    // Only cancel if this is NOT a retry attempt - let retries use existing token
+    if (!isRetry) {
+      if (_cancelToken != null && !_cancelToken!.isCancelled) {
+        _cancelToken!.cancel('New timeline request');
+      }
+      _cancelToken = CancelToken();
+    }
+    
+    state = state.copyWith(
+      isLoading: true,
+      hasError: false,
+      errorMessage: null,
+    );
+    
+    try {
+      final timelineService = ref.read(timelineServiceProvider);
+      final statuses = await timelineService.getPublicTimeline(
+        domain,
+        limit: 20,
+        local: state.local,
+        onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
+      );
+      
+      String? maxId;
+      if (statuses.isNotEmpty) {
+        maxId = statuses.last.id;
+      }
+      
+      state = state.copyWith(
+        statuses: statuses,
+        isLoading: false,
+        hasMore: statuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      // Automatic retry for cancellation errors with longer delays to allow network requests to complete
+      if (e is CancellationException && retryCount < 3) {
+        final delay = Duration(milliseconds: 1000 * (retryCount + 1)); // 1s, 2s, 3s - more reasonable for network requests
+        await Future.delayed(delay);
+        return loadTimeline(retryCount: retryCount + 1, isRetry: true);
+      }
+      
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Failed to load timeline: $e',
+      );
+    }
+  }
+  
+  /// Refresh the timeline
+  Future<void> refreshTimeline() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
+    if (domain == null) return;
+    
+    // Cancel any previous request
+    _cancelToken?.cancel('Timeline refresh');
+    _cancelToken = CancelToken();
+    
+    try {
+      final timelineService = ref.read(timelineServiceProvider);
+      final statuses = await timelineService.getPublicTimeline(
+        domain,
+        limit: 20,
+        local: state.local,
+        onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
+      );
+      
+      String? maxId;
+      if (statuses.isNotEmpty) {
+        maxId = statuses.last.id;
+      }
+      
+      state = state.copyWith(
+        statuses: statuses,
+        hasMore: statuses.length >= 20,
+        maxId: maxId,
+        hasError: false,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Failed to refresh timeline: $e',
+      );
+    }
+  }
+  
+  /// Load more posts
+  Future<void> loadMore() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
+    if (domain == null || state.isLoading || !state.hasMore) return;
+    
+    // Cancel any previous request
+    _cancelToken?.cancel('Load more request');
+    _cancelToken = CancelToken();
+    
+    state = state.copyWith(
+      isLoading: true,
+    );
+    
+    try {
+      final timelineService = ref.read(timelineServiceProvider);
+      final statuses = await timelineService.getPublicTimeline(
+        domain,
+        limit: 20,
+        maxId: state.maxId,
+        local: state.local,
+        onlyMedia: state.onlyMedia,
+        cancelToken: _cancelToken,
+      );
+      
+      String? maxId;
+      if (statuses.isNotEmpty) {
+        maxId = statuses.last.id;
+      }
+      
+      state = state.copyWith(
+        statuses: [...state.statuses, ...statuses],
+        isLoading: false,
+        hasMore: statuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Failed to load more posts: $e',
+      );
+    }
+  }
+  
+  /// Update a status in the timeline
+  void updateStatus(Status status) {
+    final index = state.statuses.indexWhere((s) => s.id == status.id);
+    
+    if (index != -1) {
+      final updatedStatuses = List<Status>.from(state.statuses);
+      updatedStatuses[index] = status;
+      
+      state = state.copyWith(
+        statuses: updatedStatuses,
+      );
+    }
+  }
+}
+
+typedef PublicTimelineNotifier = PublicTimeline;
 
 /// State for a timeline
 class TimelineState {
@@ -68,193 +255,10 @@ class TimelineState {
   }
 }
 
-/// Notifier for the public timeline
-class PublicTimelineNotifier extends StateNotifier<TimelineState> {
-  final TimelineService timelineService;
-  final String? domain;
-  CancelToken? _cancelToken;
-  
-  PublicTimelineNotifier({
-    required this.timelineService,
-    this.domain,
-  }) : super(TimelineState()) {
-    if (domain != null) {
-      loadTimeline();
-    }
-  }
-  
-  @override
-  void dispose() {
-    _cancelToken?.cancel('Timeline navigation cancelled');
-    super.dispose();
-  }
-  
-  /// Set timeline filters
-  void setFilters({bool? local, bool? onlyMedia}) {
-    final newLocal = local ?? state.local;
-    final newOnlyMedia = onlyMedia ?? state.onlyMedia;
-    
-    // Only reload if filters actually changed
-    if (newLocal != state.local || newOnlyMedia != state.onlyMedia) {
-      state = state.copyWith(
-        local: newLocal,
-        onlyMedia: newOnlyMedia,
-      );
-      
-      loadTimeline();
-    }
-  }
-  
-  /// Load the initial timeline
-  Future<void> loadTimeline({int retryCount = 0, bool isRetry = false}) async {
-    if (domain == null) return;
-    
-    // Only cancel if this is NOT a retry attempt - let retries use existing token
-    if (!isRetry) {
-      if (_cancelToken != null && !_cancelToken!.isCancelled) {
-        _cancelToken!.cancel('New timeline request');
-      }
-      _cancelToken = CancelToken();
-    }
-    
-    state = state.copyWith(
-      isLoading: true,
-      hasError: false,
-      errorMessage: null,
-    );
-    
-    try {
-      final statuses = await timelineService.getPublicTimeline(
-        domain!,
-        limit: 20,
-        local: state.local,
-        onlyMedia: state.onlyMedia,
-        cancelToken: _cancelToken,
-      );
-      
-      String? maxId;
-      if (statuses.isNotEmpty) {
-        maxId = statuses.last.id;
-      }
-      
-      state = state.copyWith(
-        statuses: statuses,
-        isLoading: false,
-        hasMore: statuses.length >= 20,
-        maxId: maxId,
-      );
-    } catch (e) {
-      // Automatic retry for cancellation errors with longer delays to allow network requests to complete
-      if (e is CancellationException && retryCount < 3) {
-        final delay = Duration(milliseconds: 1000 * (retryCount + 1)); // 1s, 2s, 3s - more reasonable for network requests
-        await Future.delayed(delay);
-        return loadTimeline(retryCount: retryCount + 1, isRetry: true);
-      }
-      
-      state = state.copyWith(
-        isLoading: false,
-        hasError: true,
-        errorMessage: 'Failed to load timeline: $e',
-      );
-    }
-  }
-  
-  /// Refresh the timeline
-  Future<void> refreshTimeline() async {
-    if (domain == null) return;
-    
-    // Cancel any previous request
-    _cancelToken?.cancel('Timeline refresh');
-    _cancelToken = CancelToken();
-    
-    try {
-      final statuses = await timelineService.getPublicTimeline(
-        domain!,
-        limit: 20,
-        local: state.local,
-        onlyMedia: state.onlyMedia,
-        cancelToken: _cancelToken,
-      );
-      
-      String? maxId;
-      if (statuses.isNotEmpty) {
-        maxId = statuses.last.id;
-      }
-      
-      state = state.copyWith(
-        statuses: statuses,
-        hasMore: statuses.length >= 20,
-        maxId: maxId,
-        hasError: false,
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        hasError: true,
-        errorMessage: 'Failed to refresh timeline: $e',
-      );
-    }
-  }
-  
-  /// Load more posts
-  Future<void> loadMore() async {
-    if (domain == null || state.isLoading || !state.hasMore) return;
-    
-    // Cancel any previous request
-    _cancelToken?.cancel('Load more request');
-    _cancelToken = CancelToken();
-    
-    state = state.copyWith(
-      isLoading: true,
-    );
-    
-    try {
-      final statuses = await timelineService.getPublicTimeline(
-        domain!,
-        limit: 20,
-        maxId: state.maxId,
-        local: state.local,
-        onlyMedia: state.onlyMedia,
-        cancelToken: _cancelToken,
-      );
-      
-      String? maxId;
-      if (statuses.isNotEmpty) {
-        maxId = statuses.last.id;
-      }
-      
-      state = state.copyWith(
-        statuses: [...state.statuses, ...statuses],
-        isLoading: false,
-        hasMore: statuses.length >= 20,
-        maxId: maxId,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        hasError: true,
-        errorMessage: 'Failed to load more posts: $e',
-      );
-    }
-  }
-  
-  /// Update a status in the timeline
-  void updateStatus(Status status) {
-    final index = state.statuses.indexWhere((s) => s.id == status.id);
-    
-    if (index != -1) {
-      final updatedStatuses = List<Status>.from(state.statuses);
-      updatedStatuses[index] = status;
-      
-      state = state.copyWith(
-        statuses: updatedStatuses,
-      );
-    }
-  }
-}
 
 /// Provider for trending hashtags (fetches from /api/v1/trends/tags when available)
-final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
+@Riverpod(keepAlive: true)
+Future<List<String>> trendingHashtags(TrendingHashtagsRef ref) async {
   final activeInstance = ref.watch(activeInstanceProvider);
   final domain = activeInstance?.domain;
   if (domain == null) return const <String>[];
@@ -282,42 +286,36 @@ final trendingHashtagsProvider = FutureProvider<List<String>>((ref) async {
     // Re-throw other errors so the UI can show an error state
     rethrow;
   }
-});
+}
 
 /// Trending posts timeline provider backed by a notifier for pagination
-final trendingTimelineProvider = StateNotifierProvider<TrendingPostsNotifier, TimelineState>((ref) {
-  final timelineService = ref.watch(timelineServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
-  return TrendingPostsNotifier(
-    timelineService: timelineService,
-    domain: activeInstance?.domain,
-  );
-});
-
-class TrendingPostsNotifier extends StateNotifier<TimelineState> {
-  final TimelineService timelineService;
-  final String? domain;
+@Riverpod(keepAlive: true)
+class TrendingTimeline extends _$TrendingTimeline {
   CancelToken? _cancelToken;
   bool _isFallbackMode = false; // true when using public timeline onlyMedia=true
   int _currentLimit = 20; // used for growing-window when trends endpoint exists
 
-  TrendingPostsNotifier({
-    required this.timelineService,
-    required this.domain,
-  }) : super(TimelineState(onlyMedia: true)) {
-    if (domain != null) {
-      loadInitial();
-    }
-  }
-
   @override
-  void dispose() {
-    _cancelToken?.cancel('Trending navigation cancelled');
-    super.dispose();
+  TimelineState build() {
+    ref.onDispose(() {
+      _cancelToken?.cancel('TrendingTimeline disposed');
+    });
+
+    final activeInstance = ref.watch(activeInstanceProvider);
+    final domain = activeInstance?.domain;
+    
+    if (domain != null) {
+      Future.microtask(() => loadInitial());
+    }
+
+    return TimelineState(onlyMedia: true);
   }
 
   Future<void> loadInitial() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
     if (domain == null) return;
+    
     // Cancel ongoing
     _cancelToken?.cancel('Trending initial');
     _cancelToken = CancelToken();
@@ -332,9 +330,10 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
     _isFallbackMode = false;
 
     try {
+      final timelineService = ref.read(timelineServiceProvider);
       // Try real trends endpoint first
       final statuses = await timelineService.getTrendingStatuses(
-        domain!,
+        domain,
         limit: _currentLimit,
         cancelToken: _cancelToken,
       );
@@ -350,8 +349,9 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
       // Fallback to public timeline with only_media=true for real pagination
       _isFallbackMode = true;
       try {
+        final timelineService = ref.read(timelineServiceProvider);
         final statuses = await timelineService.getPublicTimeline(
-          domain!,
+          domain,
           limit: 20,
           onlyMedia: true,
           cancelToken: _cancelToken,
@@ -377,6 +377,8 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
   }
 
   Future<void> loadMore() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
     if (domain == null || state.isLoading || !state.hasMore) return;
 
     _cancelToken?.cancel('Trending load more');
@@ -385,9 +387,10 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      final timelineService = ref.read(timelineServiceProvider);
       if (_isFallbackMode) {
         final statuses = await timelineService.getPublicTimeline(
-          domain!,
+          domain,
           limit: 20,
           maxId: state.maxId,
           onlyMedia: true,
@@ -404,7 +407,7 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
         // Growing window approach for trends endpoint
         _currentLimit += 20;
         final fetched = await timelineService.getTrendingStatuses(
-          domain!,
+          domain,
           limit: _currentLimit,
           cancelToken: _cancelToken,
         );
@@ -437,6 +440,8 @@ class TrendingPostsNotifier extends StateNotifier<TimelineState> {
     }
   }
 }
+
+typedef TrendingPostsNotifier = TrendingTimeline;
 
 /// Screen for exploring content
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -940,7 +945,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> with TickerProvid
               child: ListTile(
                 leading: const Icon(Icons.tag),
                 title: Text('#$hashtag'),
-                subtitle: Text('Trending hashtag'),
+                subtitle: const Text('Trending hashtag'),
                 onTap: () {
                   context.push('/tag/$hashtag');
                 },

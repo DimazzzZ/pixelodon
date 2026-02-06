@@ -1,6 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'profile_models.dart';
-import 'profile_sources.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/data/profile_sources.dart';
+
+part 'profile_repository.g.dart';
 
 /// Repository for profile-related operations
 /// Coordinates between remote and local data sources
@@ -99,9 +101,10 @@ class ProfileRepository {
 }
 
 /// Provider for profile repository
-final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+@Riverpod(keepAlive: true)
+ProfileRepository profileRepository(ProfileRepositoryRef ref) {
   return ProfileRepository(
     remoteDataSource: ref.watch(profileRemoteDataSourceProvider),
     localDataSource: ref.watch(profileLocalDataSourceProvider),
   );
-});
+}

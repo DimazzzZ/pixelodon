@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../state/profile_state.dart';
+import 'package:pixelodon/features/profile/state/profile_state.dart';
 
 /// Pinned tab bar for profile tabs (Media, Comments, Boosts, Likes)
 class ProfileTabBar extends StatelessWidget {

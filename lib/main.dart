@@ -54,7 +54,7 @@ class _PixelodonAppState extends ConsumerState<PixelodonApp> {
     // Get the router from the provider
     final router = ref.watch(appRouterProvider);
     // Get the current theme mode from settings
-    final themeMode = ref.watch(themeModeProvider);
+    final themeMode = ref.watch(themeModeNotifierProvider);
     
     return PlatformApp.router(
       title: 'Pixelodon',

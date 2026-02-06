@@ -22,7 +22,7 @@ class _QuickQuizSheetState extends ConsumerState<QuickQuizSheet> {
   List<String> _selectedLanguages = [];
   InstanceFocus _selectedFocus = InstanceFocus.both;
   ModerationStyle _selectedModeration = ModerationStyle.balanced;
-  bool _preferOpenRegistration = true;
+  final bool _preferOpenRegistration = true;
   
   final List<String> _popularLanguages = [
     'en', 'es', 'fr', 'de', 'ja', 'pt', 'it', 'ru', 'zh', 'ko', 'ar', 'hi'
@@ -91,7 +91,7 @@ class _QuickQuizSheetState extends ConsumerState<QuickQuizSheet> {
                 Expanded(
                   child: LinearProgressIndicator(
                     value: (_currentPage + 1) / 3,
-                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
                   ),
                 ),
@@ -358,7 +358,7 @@ class _QuickQuizSheetState extends ConsumerState<QuickQuizSheet> {
               decoration: BoxDecoration(
                 color: isSelected 
                     ? theme.colorScheme.primary 
-                    : theme.colorScheme.surfaceVariant,
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -496,7 +496,7 @@ class _QuickQuizSheetState extends ConsumerState<QuickQuizSheet> {
               decoration: BoxDecoration(
                 color: isSelected 
                     ? theme.colorScheme.primary 
-                    : theme.colorScheme.surfaceVariant,
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

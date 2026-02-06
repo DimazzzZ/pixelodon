@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../data/profile_models.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
 
 /// Compact action button for profile header (Edit Profile / Follow / Unfollow)
 class ProfileActionButton extends StatelessWidget {

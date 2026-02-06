@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'account.dart';
+import 'package:pixelodon/models/account.dart';
 
 part 'status.freezed.dart';
 part 'status.g.dart';
@@ -121,14 +121,17 @@ class Status with _$Status {
   factory Status.fromJson(Map<String, dynamic> json) => _$StatusFromJson(json);
 }
 
-/// Helper function to parse tags from JSON, filtering out null values
+/// Helper function to parse tags from JSON
 List<String> _tagsFromJson(dynamic json) {
   if (json == null) return [];
   if (json is List) {
-    return json
-        .where((tag) => tag != null && tag is String)
-        .cast<String>()
-        .toList();
+    return json.map((tag) {
+      if (tag is String) return tag;
+      if (tag is Map && tag.containsKey('name')) {
+        return tag['name'].toString();
+      }
+      return null;
+    }).whereType<String>().toList();
   }
   return [];
 }

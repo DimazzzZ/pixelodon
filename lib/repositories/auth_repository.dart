@@ -3,90 +3,128 @@ import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/services/auth_service.dart';
 import 'package:pixelodon/core/config/tech_account_config.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
 
-/// Repository for managing authentication state with improved features
-class AuthRepository extends ChangeNotifier {
-  final AuthService _authService;
-  
-  /// Currently authenticated instances
-  final List<Instance> _instances = [];
-  
-  /// Currently active instance domain
-  String? _activeInstanceDomain;
-  
-  /// Currently authenticated accounts
-  final Map<String, Account> _accounts = {};
+part 'auth_repository.g.dart';
 
-  /// Flag to track if initialization has been completed
-  bool _isInitialized = false;
+/// State class for authentication
+class AuthState {
+  final List<Instance> instances;
+  final String? activeInstanceDomain;
+  final Map<String, Account> accounts;
+  final bool isInitialized;
 
-  /// Constructor
-  AuthRepository({
-    AuthService? authService,
-  }) : _authService = authService ?? AuthService();
-  
-  /// Initialize the repository
-  Future<void> initialize() async {
-    // Prevent multiple initializations
-    if (_isInitialized) {
-      return;
-    }
+  const AuthState({
+    this.instances = const [],
+    this.activeInstanceDomain,
+    this.accounts = const {},
+    this.isInitialized = false,
+  });
 
-    // Load authenticated instances
-    final domains = await _authService.getAuthenticatedInstances();
-
-    if (domains.isNotEmpty) {
-      // Load instance information for each domain
-      for (final domain in domains) {
-        try {
-          final instance = await _authService.discoverInstance(domain);
-          _instances.add(instance);
-
-          // Load account information
-          final account = await _authService.getAccountInfo(domain);
-          if (account != null) {
-            _accounts[domain] = account;
-          }
-
-          // Set the first instance as active if none is set
-          _activeInstanceDomain ??= domain;
-        } catch (e) {
-          debugPrint('Failed to load instance $domain: $e');
-        }
-      }
-
-      notifyListeners();
-    }
-
-    _isInitialized = true;
+  AuthState copyWith({
+    List<Instance>? instances,
+    String? activeInstanceDomain,
+    Map<String, Account>? accounts,
+    bool? isInitialized,
+  }) {
+    return AuthState(
+      instances: instances ?? this.instances,
+      activeInstanceDomain: activeInstanceDomain ?? this.activeInstanceDomain,
+      accounts: accounts ?? this.accounts,
+      isInitialized: isInitialized ?? this.isInitialized,
+    );
   }
-  
-  /// Get the list of authenticated instances
-  List<Instance> get instances => _instances;
-  
+
   /// Get the currently active instance
   Instance? get activeInstance {
-    if (_activeInstanceDomain == null) return null;
+    if (activeInstanceDomain == null) return null;
     try {
-      return _instances.firstWhere(
-        (instance) => instance.domain == _activeInstanceDomain,
+      return instances.firstWhere(
+        (instance) => instance.domain == activeInstanceDomain,
       );
     } catch (_) {
       return null;
     }
   }
-  
+
   /// Get the currently active account
   Account? get activeAccount {
-    if (_activeInstanceDomain == null) return null;
-    return _accounts[_activeInstanceDomain];
+    if (activeInstanceDomain == null) return null;
+    return accounts[activeInstanceDomain];
+  }
+}
+
+/// Repository for managing authentication state with improved features
+@Riverpod(keepAlive: true)
+class AuthRepository extends _$AuthRepository {
+  late final AuthService _authService;
+
+  @override
+  AuthState build() {
+    _authService = ref.watch(authServiceProvider);
+    
+    // Initial load
+    Future.microtask(() => initialize());
+    
+    return const AuthState();
+  }
+  
+  /// Initialize the repository
+  Future<void> initialize() async {
+    // Prevent multiple initializations if already initialized (though build handles recreation)
+    if (state.isInitialized) {
+      return;
+    }
+
+    try {
+      // Load authenticated instances
+      final domains = await _authService.getAuthenticatedInstances();
+
+      if (domains.isNotEmpty) {
+      final instances = <Instance>[];
+      final accounts = <String, Account>{};
+      String? activeInstanceDomain;
+
+      // Load instance information for each domain
+      for (final domain in domains) {
+        try {
+          final instance = await _authService.discoverInstance(domain);
+          instances.add(instance);
+
+          // Load account information
+          final account = await _authService.getAccountInfo(domain);
+          if (account != null) {
+            accounts[domain] = account;
+          }
+
+          // Set the first instance as active if none is set
+          activeInstanceDomain ??= domain;
+        } catch (e) {
+          debugPrint('Failed to load instance $domain: $e');
+        }
+      }
+
+        state = state.copyWith(
+          instances: instances,
+          accounts: accounts,
+          activeInstanceDomain: activeInstanceDomain,
+          isInitialized: true,
+        );
+      } else {
+        state = state.copyWith(isInitialized: true);
+      }
+    } catch (e) {
+      // Mark as initialized even on error to prevent retry loops
+      // The app will continue with empty state (logged out)
+      state = state.copyWith(isInitialized: true);
+    }
   }
   
   /// Set the active instance
   void setActiveInstance(String domain) {
-    if (_instances.any((instance) => instance.domain == domain)) {
-      _activeInstanceDomain = domain;
-      notifyListeners();
+    if (state.instances.any((instance) => instance.domain == domain)) {
+      state = state.copyWith(activeInstanceDomain: domain);
     }
   }
   
@@ -115,36 +153,47 @@ class AuthRepository extends ChangeNotifier {
       // Exchange the authorization code for an access token
       await _authService.exchangeAuthorizationCode(domain, code, state: state);
       
+      final currentInstances = List<Instance>.from(this.state.instances);
+      final currentAccounts = Map<String, Account>.from(this.state.accounts);
+      String? activeInstanceDomain = this.state.activeInstanceDomain;
+
       // Add the instance to the list if it's not already there
-      if (!_instances.any((instance) => instance.domain == domain)) {
+      if (!currentInstances.any((instance) => instance.domain == domain)) {
         final instance = await _authService.discoverInstance(domain);
-        _instances.add(instance);
+        currentInstances.add(instance);
         
         // Set as active instance if none is set
-        _activeInstanceDomain ??= domain;
+        activeInstanceDomain ??= domain;
         
         // Get the account information
         final account = await _authService.getAccountInfo(domain);
         if (account != null) {
-          _accounts[domain] = account;
+          currentAccounts[domain] = account;
         }
         
-        notifyListeners();
+        this.state = this.state.copyWith(
+          instances: currentInstances,
+          accounts: currentAccounts,
+          activeInstanceDomain: activeInstanceDomain,
+        );
       } else {
         // If the instance is already in the list, make sure it's up to date
-        final index = _instances.indexWhere((instance) => instance.domain == domain);
+        final index = currentInstances.indexWhere((instance) => instance.domain == domain);
         if (index >= 0) {
           try {
             final updatedInstance = await _authService.discoverInstance(domain);
-            _instances[index] = updatedInstance;
+            currentInstances[index] = updatedInstance;
             
             // Update the account information
             final account = await _authService.getAccountInfo(domain);
             if (account != null) {
-              _accounts[domain] = account;
+              currentAccounts[domain] = account;
             }
             
-            notifyListeners();
+            this.state = this.state.copyWith(
+              instances: currentInstances,
+              accounts: currentAccounts,
+            );
           } catch (e) {
             debugPrint('Failed to update instance info: $e');
             // Continue with the existing instance info
@@ -177,15 +226,23 @@ class AuthRepository extends ChangeNotifier {
   Future<void> logout(String domain) async {
     await _authService.logout(domain);
     
-    _instances.removeWhere((instance) => instance.domain == domain);
-    _accounts.remove(domain);
+    final currentInstances = List<Instance>.from(state.instances);
+    final currentAccounts = Map<String, Account>.from(state.accounts);
+    
+    currentInstances.removeWhere((instance) => instance.domain == domain);
+    currentAccounts.remove(domain);
     
     // If the active instance was removed, set a new one
-    if (_activeInstanceDomain == domain) {
-      _activeInstanceDomain = _instances.isNotEmpty ? _instances.first.domain : null;
+    String? activeInstanceDomain = state.activeInstanceDomain;
+    if (activeInstanceDomain == domain) {
+      activeInstanceDomain = currentInstances.isNotEmpty ? currentInstances.first.domain : null;
     }
     
-    notifyListeners();
+    state = state.copyWith(
+      instances: currentInstances,
+      accounts: currentAccounts,
+      activeInstanceDomain: activeInstanceDomain,
+    );
   }
   
   /// Check if the user is authenticated with an instance
@@ -234,8 +291,9 @@ class AuthRepository extends ChangeNotifier {
     try {
       final account = await _authService.getAccountInfo(domain);
       if (account != null) {
-        _accounts[domain] = account;
-        notifyListeners();
+        final currentAccounts = Map<String, Account>.from(state.accounts);
+        currentAccounts[domain] = account;
+        state = state.copyWith(accounts: currentAccounts);
       }
     } catch (e) {
       debugPrint('Failed to update account information: $e');
@@ -244,6 +302,11 @@ class AuthRepository extends ChangeNotifier {
   
   /// Get the account information for a domain
   Account? getAccount(String domain) {
-    return _accounts[domain];
+    return state.accounts[domain];
   }
+  
+  // Getters for compatibility with old AuthRepository
+  List<Instance> get instances => state.instances;
+  Instance? get activeInstance => state.activeInstance;
+  Account? get activeAccount => state.activeAccount;
 }

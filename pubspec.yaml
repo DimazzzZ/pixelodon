@@ -26,40 +26,40 @@ dependencies:
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   photo_view: ^0.15.0
-  flutter_svg: ^2.0.9
-  image_picker: ^1.0.7
-  image_cropper: ^9.1.0
+  flutter_svg: ^2.1.0
+  image_picker: ^1.1.2
+  image_cropper: ^10.0.0+1
   markdown_widget: ^2.3.2+2  # Replacing flutter_markdown
   flutter_html: ^3.0.0-beta.2  # HTML rendering with security
   html: ^0.15.4
-  url_launcher: ^6.2.4
-  share_plus: ^11.1.0
+  url_launcher: ^6.3.1
+  share_plus: ^12.0.1
   flutter_animate: ^4.5.0
 
   # Deep Linking
-  app_links: ^3.5.1  # Replacing uni_links - downgraded for compatibility
+  app_links: ^6.4.1  # Replacing uni_links - downgraded for compatibility
 
   # State Management
-  flutter_riverpod: ^2.4.10
-  riverpod_annotation: ^2.3.4
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
 
   # Routing
   go_router: ^15.1.2
 
   # Network
-  dio: ^5.4.0
-  connectivity_plus: ^6.1.5
+  dio: ^5.9.1
+  connectivity_plus: ^7.0.0
   http_parser: ^4.0.2
 
   # Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_secure_storage: ^10.0.0-beta.4
+  flutter_secure_storage: ^10.0.0
   path_provider: ^2.1.2
 
   # Serialization
-  json_annotation: ^4.8.1
-  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.4
 
   # Background Processing
   workmanager: ^0.7.0
@@ -70,15 +70,15 @@ dependencies:
 
   # Utilities
   intl: ^0.19.0
-  logger: ^2.0.2+1
-  package_info_plus: ^8.3.1
+  logger: ^2.6.2
+  package_info_plus: ^9.0.0
   device_info_plus: ^11.3.0
   permission_handler: ^12.0.1
-  uuid: ^4.3.3
+  uuid: ^4.5.2
   timeago: ^3.7.1
-  crypto: ^3.0.6
-  flutter_web_auth_2: ^4.1.0
-  flutter_dotenv: ^5.1.0
+  crypto: ^3.0.7
+  flutter_web_auth_2: ^5.0.1
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -88,13 +88,13 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   
   # App icons generation
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
   
   # Code Generation
-  build_runner: ^2.4.8
-  json_serializable: ^6.7.1
-  freezed: ^2.4.7
-  riverpod_generator: ^2.3.10
+  build_runner: ^2.4.13
+  json_serializable: ^6.9.0
+  freezed: ^2.5.7
+  riverpod_generator: ^2.6.3
   
   # Testing
   mockito: ^5.4.4

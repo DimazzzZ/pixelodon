@@ -4,20 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
-import '../../../../providers/auth_provider.dart';
-import '../../domain/profile_usecases.dart';
-import '../../state/profile_controller.dart';
-import '../../state/profile_state.dart';
-import '../../data/profile_models.dart';
-import '../widgets/profile_header.dart';
-import '../widgets/profile_stats_row.dart';
-import '../widgets/profile_tabbar.dart';
-import '../widgets/media_grid_sliver.dart';
-import '../widgets/comments_list_sliver.dart';
-import '../widgets/boosts_list_sliver.dart';
-import '../widgets/likes_grid_sliver.dart';
-import '../widgets/shimmer_placeholders.dart';
-import '../../../../utils/account_utils.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/features/profile/domain/profile_usecases.dart';
+import 'package:pixelodon/features/profile/state/profile_controller.dart';
+import 'package:pixelodon/features/profile/state/profile_state.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/profile_header.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/profile_stats_row.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/profile_tabbar.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/media_grid_sliver.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/comments_list_sliver.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/boosts_list_sliver.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/likes_grid_sliver.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/shimmer_placeholders.dart';
+import 'package:pixelodon/utils/account_utils.dart';
 
 /// Main profile screen with image-first design
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -104,8 +104,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final state = ref.watch(profileControllerProvider(userId));
-    final controller = ref.read(profileControllerProvider(userId).notifier);
+    final controller = ref.watch(profileControllerProvider(userId));
+    final state = controller.state;
     final profile = state.profile.valueOrNull;
 
     final activeInstance = ref.watch(activeInstanceProvider);
@@ -117,14 +117,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     // Use platform-specific scaffold similar to Home and Notifications screens
     if (Platform.isIOS) {
-      return _buildIOSScaffold(context, state, controller, profile, formattedHandle);
+      return _buildIOSScaffold(context, controller, profile, formattedHandle);
     } else {
-      return _buildMaterialScaffold(context, state, controller, profile, formattedHandle);
+      return _buildMaterialScaffold(context, controller, profile, formattedHandle);
     }
   }
 
   /// Build iOS-style scaffold with CupertinoSliverNavigationBar
-  Widget _buildIOSScaffold(BuildContext context, ProfileState state, ProfileController controller, UserProfile? profile, String formattedHandle) {
+  Widget _buildIOSScaffold(BuildContext context, ProfileController controller, UserProfile? profile, String formattedHandle) {
+    final state = controller.state;
     return CupertinoPageScaffold(
       child: Material(
         type: MaterialType.transparency,
@@ -149,7 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   fit: StackFit.expand,
                   children: [
                     _buildHeaderImage(context, state),
-                    DecoratedBox(
+                    const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
@@ -192,7 +193,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   /// Build Material 3 scaffold with SliverAppBar
-  Widget _buildMaterialScaffold(BuildContext context, ProfileState state, ProfileController controller, UserProfile? profile, String formattedHandle) {
+  Widget _buildMaterialScaffold(BuildContext context, ProfileController controller, UserProfile? profile, String formattedHandle) {
+    final state = controller.state;
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -235,7 +237,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       fit: StackFit.expand,
                       children: [
                         _buildHeaderImage(context, state),
-                        DecoratedBox(
+                        const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
@@ -361,8 +363,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   /// Handle share action
   void _handleShare(BuildContext context) async {
     try {
-      final state = ref.read(profileControllerProvider(userId));
-      final profile = state.profile.valueOrNull;
+      final controller = ref.read(profileControllerProvider(userId));
+      final profile = controller.state.profile.valueOrNull;
 
       if (profile == null) {
         _showErrorMessage(context, 'Profile not loaded');
@@ -772,8 +774,8 @@ class ProfileScreenWithAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(profileControllerProvider(args.userId));
-    final username = state.profile.valueOrNull?.username ?? 
+    final controller = ref.watch(profileControllerProvider(args.userId));
+    final username = controller.state.profile.valueOrNull?.username ?? 
                     args.username ?? 
                     'Profile';
 
@@ -804,8 +806,8 @@ class ProfileScreenWithAppBar extends ConsumerWidget {
 
   void _handleShare(BuildContext context, ProfileRouteArgs args, WidgetRef ref) async {
     try {
-      final state = ref.read(profileControllerProvider(args.userId));
-      final profile = state.profile.valueOrNull;
+      final controller = ref.read(profileControllerProvider(args.userId));
+      final profile = controller.state.profile.valueOrNull;
 
       if (profile == null) {
         _showErrorMessage(context, 'Profile not loaded');

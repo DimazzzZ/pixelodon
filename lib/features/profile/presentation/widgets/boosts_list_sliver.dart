@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../data/profile_models.dart';
-import 'shimmer_placeholders.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/shimmer_placeholders.dart';
 
 /// Boosts list sliver for displaying user's boosted/reblogged posts
 class BoostsListSliver extends StatelessWidget {
@@ -497,8 +497,8 @@ class BoostsListConfig {
 extension BoostsListSliverExtensions on BoostsListSliver {
   /// Create a loading version
   BoostsListSliver asLoading() {
-    return BoostsListSliver(
-      items: const [],
+    return const BoostsListSliver(
+      items: [],
       isLoading: true,
     );
   }

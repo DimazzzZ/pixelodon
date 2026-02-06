@@ -4,12 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
-import 'dart:ui' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:pixelodon/models/account.dart' as _i5;
 import 'package:pixelodon/models/instance.dart' as _i2;
-import 'package:pixelodon/repositories/auth_repository.dart' as _i3;
+import 'package:pixelodon/services/auth_service.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -34,45 +33,10 @@ class _FakeInstance_0 extends _i1.SmartFake implements _i2.Instance {
         );
 }
 
-/// A class which mocks [AuthRepository].
+/// A class which mocks [AuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
-  MockAuthRepository() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  List<_i2.Instance> get instances => (super.noSuchMethod(
-        Invocation.getter(#instances),
-        returnValue: <_i2.Instance>[],
-      ) as List<_i2.Instance>);
-
-  @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i4.Future<void> initialize() => (super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  void setActiveInstance(String? domain) => super.noSuchMethod(
-        Invocation.method(
-          #setActiveInstance,
-          [domain],
-        ),
-        returnValueForMissingStub: null,
-      );
-
+class MockAuthService extends _i1.Mock implements _i3.AuthService {
   @override
   _i4.Future<_i2.Instance> discoverInstance(String? domain) =>
       (super.noSuchMethod(
@@ -87,48 +51,172 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
             [domain],
           ),
         )),
+        returnValueForMissingStub:
+            _i4.Future<_i2.Instance>.value(_FakeInstance_0(
+          this,
+          Invocation.method(
+            #discoverInstance,
+            [domain],
+          ),
+        )),
       ) as _i4.Future<_i2.Instance>);
 
   @override
-  _i4.Future<Map<String, String>> startOAuthFlow(
+  _i4.Future<Map<String, String>> getClientCredentials(String? domain) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getClientCredentials,
+          [domain],
+        ),
+        returnValue: _i4.Future<Map<String, String>>.value(<String, String>{}),
+        returnValueForMissingStub:
+            _i4.Future<Map<String, String>>.value(<String, String>{}),
+      ) as _i4.Future<Map<String, String>>);
+
+  @override
+  _i4.Future<void> storeCodeVerifier(
+    String? domain,
+    String? state,
+    String? verifier,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #storeCodeVerifier,
+          [
+            domain,
+            state,
+            verifier,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<String?> getDomainFromState(String? state) => (super.noSuchMethod(
+        Invocation.method(
+          #getDomainFromState,
+          [state],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+        returnValueForMissingStub: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
+  _i4.Future<String?> getAndRemoveCodeVerifier(
+    String? domain,
+    String? state,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAndRemoveCodeVerifier,
+          [
+            domain,
+            state,
+          ],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+        returnValueForMissingStub: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
+  _i4.Future<Map<String, String>> getAuthorizationUrl(
     String? domain, {
     bool? forRegistration = false,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
-          #startOAuthFlow,
+          #getAuthorizationUrl,
           [domain],
           {#forRegistration: forRegistration},
         ),
         returnValue: _i4.Future<Map<String, String>>.value(<String, String>{}),
+        returnValueForMissingStub:
+            _i4.Future<Map<String, String>>.value(<String, String>{}),
       ) as _i4.Future<Map<String, String>>);
 
   @override
-  _i4.Future<bool> completeOAuthFlow(
+  _i4.Future<Map<String, String>> exchangeAuthorizationCode(
     String? domain,
     String? code, {
     String? state,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
-          #completeOAuthFlow,
+          #exchangeAuthorizationCode,
           [
             domain,
             code,
           ],
           {#state: state},
         ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+        returnValue: _i4.Future<Map<String, String>>.value(<String, String>{}),
+        returnValueForMissingStub:
+            _i4.Future<Map<String, String>>.value(<String, String>{}),
+      ) as _i4.Future<Map<String, String>>);
 
   @override
-  _i4.Future<bool> refreshAccessToken(String? domain) => (super.noSuchMethod(
+  _i4.Future<Map<String, String>> refreshAccessToken(String? domain) =>
+      (super.noSuchMethod(
         Invocation.method(
           #refreshAccessToken,
           [domain],
         ),
+        returnValue: _i4.Future<Map<String, String>>.value(<String, String>{}),
+        returnValueForMissingStub:
+            _i4.Future<Map<String, String>>.value(<String, String>{}),
+      ) as _i4.Future<Map<String, String>>);
+
+  @override
+  _i4.Future<String?> getAccessToken(String? domain) => (super.noSuchMethod(
+        Invocation.method(
+          #getAccessToken,
+          [domain],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+        returnValueForMissingStub: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
+  _i4.Future<String?> getRefreshToken(String? domain) => (super.noSuchMethod(
+        Invocation.method(
+          #getRefreshToken,
+          [domain],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+        returnValueForMissingStub: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
+  _i4.Future<_i5.Account?> getAccountInfo(String? domain) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAccountInfo,
+          [domain],
+        ),
+        returnValue: _i4.Future<_i5.Account?>.value(),
+        returnValueForMissingStub: _i4.Future<_i5.Account?>.value(),
+      ) as _i4.Future<_i5.Account?>);
+
+  @override
+  _i4.Future<bool> isAuthenticated(String? domain) => (super.noSuchMethod(
+        Invocation.method(
+          #isAuthenticated,
+          [domain],
+        ),
         returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<List<String>> getAuthenticatedInstances() => (super.noSuchMethod(
+        Invocation.method(
+          #getAuthenticatedInstances,
+          [],
+        ),
+        returnValue: _i4.Future<List<String>>.value(<String>[]),
+        returnValueForMissingStub: _i4.Future<List<String>>.value(<String>[]),
+      ) as _i4.Future<List<String>>);
 
   @override
   _i4.Future<void> logout(String? domain) => (super.noSuchMethod(
@@ -141,82 +229,19 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<bool> isAuthenticated(String? domain) => (super.noSuchMethod(
-        Invocation.method(
-          #isAuthenticated,
-          [domain],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<String?> getAccessToken(String? domain) => (super.noSuchMethod(
-        Invocation.method(
-          #getAccessToken,
-          [domain],
-        ),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
-
-  @override
-  _i4.Future<bool> validateAccessToken(String? domain) => (super.noSuchMethod(
+  _i4.Future<bool> validateAccessToken(
+    String? domain,
+    String? accessToken,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #validateAccessToken,
-          [domain],
+          [
+            domain,
+            accessToken,
+          ],
         ),
         returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<void> updateAccountInfo(String? domain) => (super.noSuchMethod(
-        Invocation.method(
-          #updateAccountInfo,
-          [domain],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i5.Account? getAccount(String? domain) =>
-      (super.noSuchMethod(Invocation.method(
-        #getAccount,
-        [domain],
-      )) as _i5.Account?);
-
-  @override
-  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
 }

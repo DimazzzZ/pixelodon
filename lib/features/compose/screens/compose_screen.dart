@@ -3,134 +3,40 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/models/status.dart' as model;
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
-/// Provider for the compose screen state
-final composeProvider = StateNotifierProvider.autoDispose<ComposeNotifier, ComposeState>((ref) {
-  final timelineService = ref.watch(timelineServiceProvider);
-  final mediaService = ref.watch(mediaServiceProvider);
-  final activeInstance = ref.watch(activeInstanceProvider);
-  
-  return ComposeNotifier(
-    timelineService: timelineService,
-    mediaService: mediaService,
-    domain: activeInstance?.domain,
-    isPixelfed: activeInstance?.isPixelfed ?? false,
-    maxCharacters: activeInstance?.maxCharsPerPost,
-    maxMediaAttachments: activeInstance?.maxMediaAttachments,
-  );
-});
+part 'compose_screen.g.dart';
 
-/// State for the compose screen
-class ComposeState {
-  final String text;
-  final List<File> mediaFiles;
-  final List<model.MediaAttachment> uploadedMedia;
-  final bool isSensitive;
-  final String? contentWarning;
-  final model.Visibility visibility;
-  final bool isSubmitting;
-  final bool hasError;
-  final String? errorMessage;
-  final model.Status? replyToStatus;
-  final model.Status? editStatus;
-  
-  // Instance-based limits
-  final int maxCharacters; // default 500
-  final int maxMediaAttachments; // default 4
-  
-  ComposeState({
-    this.text = '',
-    this.mediaFiles = const [],
-    this.uploadedMedia = const [],
-    this.isSensitive = false,
-    this.contentWarning,
-    this.visibility = model.Visibility.public,
-    this.isSubmitting = false,
-    this.hasError = false,
-    this.errorMessage,
-    this.replyToStatus,
-    this.editStatus,
-    this.maxCharacters = 500,
-    this.maxMediaAttachments = 4,
-  });
-  
-  ComposeState copyWith({
-    String? text,
-    List<File>? mediaFiles,
-    List<model.MediaAttachment>? uploadedMedia,
-    bool? isSensitive,
-    String? contentWarning,
-    model.Visibility? visibility,
-    bool? isSubmitting,
-    bool? hasError,
-    String? errorMessage,
+/// Provider for the compose screen state
+@riverpod
+class Compose extends _$Compose {
+  @override
+  ComposeState build({
     model.Status? replyToStatus,
     model.Status? editStatus,
-    int? maxCharacters,
-    int? maxMediaAttachments,
   }) {
+    final activeInstance = ref.watch(activeInstanceProvider);
+    
     return ComposeState(
-      text: text ?? this.text,
-      mediaFiles: mediaFiles ?? this.mediaFiles,
-      uploadedMedia: uploadedMedia ?? this.uploadedMedia,
-      isSensitive: isSensitive ?? this.isSensitive,
-      contentWarning: contentWarning ?? this.contentWarning,
-      visibility: visibility ?? this.visibility,
-      isSubmitting: isSubmitting ?? this.isSubmitting,
-      hasError: hasError ?? this.hasError,
-      errorMessage: errorMessage ?? this.errorMessage,
-      replyToStatus: replyToStatus ?? this.replyToStatus,
-      editStatus: editStatus ?? this.editStatus,
-      maxCharacters: maxCharacters ?? this.maxCharacters,
-      maxMediaAttachments: maxMediaAttachments ?? this.maxMediaAttachments,
+      replyToStatus: replyToStatus,
+      editStatus: editStatus,
+      text: editStatus?.content ?? '',
+      contentWarning: editStatus?.spoilerText,
+      isSensitive: editStatus?.sensitive ?? false,
+      visibility: editStatus?.visibility ?? model.Visibility.public,
+      uploadedMedia: editStatus?.mediaAttachments ?? [],
+      maxCharacters: activeInstance?.maxCharsPerPost ?? 500,
+      maxMediaAttachments: activeInstance?.maxMediaAttachments ?? 4,
     );
   }
-  
-  bool get isEditing => editStatus != null;
-  bool get isReplying => replyToStatus != null && !isEditing;
-  bool get hasMedia => mediaFiles.isNotEmpty || uploadedMedia.isNotEmpty;
-  bool get canSubmit => text.isNotEmpty || hasMedia;
-  bool get showContentWarning => contentWarning != null;
-  int get remainingCharacters => maxCharacters - text.length;
-  bool get isOverCharacterLimit => remainingCharacters < 0;
-}
 
-/// Notifier for the compose screen
-class ComposeNotifier extends StateNotifier<ComposeState> {
-  final dynamic timelineService;
-  final dynamic mediaService;
-  final String? domain;
-  final bool isPixelfed;
-  final int? maxCharacters;
-  final int? maxMediaAttachments;
-  
-  ComposeNotifier({
-    required this.timelineService,
-    required this.mediaService,
-    this.domain,
-    required this.isPixelfed,
-    this.maxCharacters,
-    this.maxMediaAttachments,
-    model.Status? replyToStatus,
-    model.Status? editStatus,
-  }) : super(ComposeState(
-          replyToStatus: replyToStatus,
-          editStatus: editStatus,
-          text: editStatus?.content ?? '',
-          contentWarning: editStatus?.spoilerText,
-          isSensitive: editStatus?.sensitive ?? false,
-          visibility: editStatus?.visibility ?? model.Visibility.public,
-          uploadedMedia: editStatus?.mediaAttachments ?? [],
-          maxCharacters: maxCharacters ?? 500,
-          maxMediaAttachments: maxMediaAttachments ?? 4,
-        ));
-  
   /// Update the post text
   void updateText(String text) {
     state = state.copyWith(
@@ -236,14 +142,17 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   
   /// Upload media files
   Future<bool> _uploadMediaFiles() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
     if (domain == null || state.mediaFiles.isEmpty) return true;
     
     try {
+      final mediaService = ref.read(mediaServiceProvider);
       final uploadedMedia = List<model.MediaAttachment>.from(state.uploadedMedia);
       
       for (final file in state.mediaFiles) {
         final media = await mediaService.uploadMedia(
-          domain!,
+          domain,
           file: file,
         );
         
@@ -269,7 +178,11 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
   
   /// Submit the post
   Future<bool> submitPost() async {
+    final activeInstance = ref.read(activeInstanceProvider);
+    final domain = activeInstance?.domain;
     if (domain == null) return false;
+    
+    final isPixelfed = activeInstance?.isPixelfed ?? false;
     
     // Pixelfed requires media for top-level posts
     if (isPixelfed && !state.isEditing && !state.isReplying && !state.hasMedia) {
@@ -321,8 +234,9 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
         return true;
       } else {
         // Create new post
+        final timelineService = ref.read(timelineServiceProvider);
         await timelineService.createStatus(
-          domain!,
+          domain,
           status: state.text,
           inReplyToId: state.replyToStatus?.id,
           mediaIds: state.uploadedMedia.map((media) => media.id).toList(),
@@ -348,6 +262,83 @@ class ComposeNotifier extends StateNotifier<ComposeState> {
     }
   }
 }
+
+/// State for the compose screen
+class ComposeState {
+  final String text;
+  final List<File> mediaFiles;
+  final List<model.MediaAttachment> uploadedMedia;
+  final bool isSensitive;
+  final String? contentWarning;
+  final model.Visibility visibility;
+  final bool isSubmitting;
+  final bool hasError;
+  final String? errorMessage;
+  final model.Status? replyToStatus;
+  final model.Status? editStatus;
+  
+  // Instance-based limits
+  final int maxCharacters; // default 500
+  final int maxMediaAttachments; // default 4
+  
+  ComposeState({
+    this.text = '',
+    this.mediaFiles = const [],
+    this.uploadedMedia = const [],
+    this.isSensitive = false,
+    this.contentWarning,
+    this.visibility = model.Visibility.public,
+    this.isSubmitting = false,
+    this.hasError = false,
+    this.errorMessage,
+    this.replyToStatus,
+    this.editStatus,
+    this.maxCharacters = 500,
+    this.maxMediaAttachments = 4,
+  });
+  
+  ComposeState copyWith({
+    String? text,
+    List<File>? mediaFiles,
+    List<model.MediaAttachment>? uploadedMedia,
+    bool? isSensitive,
+    String? contentWarning,
+    model.Visibility? visibility,
+    bool? isSubmitting,
+    bool? hasError,
+    String? errorMessage,
+    model.Status? replyToStatus,
+    model.Status? editStatus,
+    int? maxCharacters,
+    int? maxMediaAttachments,
+  }) {
+    return ComposeState(
+      text: text ?? this.text,
+      mediaFiles: mediaFiles ?? this.mediaFiles,
+      uploadedMedia: uploadedMedia ?? this.uploadedMedia,
+      isSensitive: isSensitive ?? this.isSensitive,
+      contentWarning: contentWarning ?? this.contentWarning,
+      visibility: visibility ?? this.visibility,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      hasError: hasError ?? this.hasError,
+      errorMessage: errorMessage ?? this.errorMessage,
+      replyToStatus: replyToStatus ?? this.replyToStatus,
+      editStatus: editStatus ?? this.editStatus,
+      maxCharacters: maxCharacters ?? this.maxCharacters,
+      maxMediaAttachments: maxMediaAttachments ?? this.maxMediaAttachments,
+    );
+  }
+  
+  bool get isEditing => editStatus != null;
+  bool get isReplying => replyToStatus != null && !isEditing;
+  bool get hasMedia => mediaFiles.isNotEmpty || uploadedMedia.isNotEmpty;
+  bool get canSubmit => text.isNotEmpty || hasMedia;
+  bool get showContentWarning => contentWarning != null;
+  int get remainingCharacters => maxCharacters - text.length;
+  bool get isOverCharacterLimit => remainingCharacters < 0;
+}
+
+typedef ComposeNotifier = Compose;
 
 /// Screen for composing a new post or editing an existing one
 class ComposeScreen extends ConsumerStatefulWidget {
@@ -377,9 +368,6 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   void initState() {
     super.initState();
     
-    // Create a new provider instance with the reply or edit status
-    ProviderContainer().read(composeProvider.notifier);
-    
     _textController = TextEditingController();
     _contentWarningController = TextEditingController();
     _textFocusNode = FocusNode();
@@ -400,8 +388,14 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   
   @override
   Widget build(BuildContext context) {
-    final composeState = ref.watch(composeProvider);
-    final composeNotifier = ref.read(composeProvider.notifier);
+    final composeState = ref.watch(composeProvider(
+      replyToStatus: widget.replyToStatus,
+      editStatus: widget.editStatus,
+    ));
+    final composeNotifier = ref.read(composeProvider(
+      replyToStatus: widget.replyToStatus,
+      editStatus: widget.editStatus,
+    ).notifier);
     final activeAccount = ref.watch(activeAccountProvider);
     
     // Update controllers when state changes

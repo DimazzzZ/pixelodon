@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'account.dart';
+import 'package:pixelodon/models/account.dart';
 
 part 'story.freezed.dart';
 part 'story.g.dart';

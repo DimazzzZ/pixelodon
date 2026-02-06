@@ -6,11 +6,11 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:html/parser.dart' as html;
 import 'package:html/dom.dart' as dom;
 
-import 'adapters_masto_pixelfed.dart';
-import 'indent_guide.dart';
-import 'platform_adaptive.dart';
-import 'tree_builder.dart';
-import 'reply_action_bar.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/indent_guide.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
+import 'package:pixelodon/ui/post/tree_builder.dart';
+import 'package:pixelodon/ui/post/reply_action_bar.dart';
 
 typedef MentionTap = void Function(String handle);
 typedef HashtagTap = void Function(String tag);

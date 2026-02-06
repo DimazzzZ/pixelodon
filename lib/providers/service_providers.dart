@@ -1,48 +1,43 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixelodon/features/settings/data/settings_service.dart';
 import 'package:pixelodon/providers/api_provider.dart';
 import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/media_service.dart';
 import 'package:pixelodon/services/notification_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
-import 'package:pixelodon/services/account_statuses_cache.dart';
-import 'package:pixelodon/services/account_follow_counts_cache.dart';
-import 'package:pixelodon/services/account_posts_count_cache.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-/// Provider for the AccountService
-final accountServiceProvider = Provider<AccountService>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  return AccountService(apiService: apiService);
-});
+part 'service_providers.g.dart';
 
-/// Provider for the TimelineService
-final timelineServiceProvider = Provider<TimelineService>((ref) {
+/// Provider for SettingsService
+@Riverpod(keepAlive: true)
+SettingsService settingsService(SettingsServiceRef ref) {
+  return SettingsService();
+}
+
+/// Provider for TimelineService
+@Riverpod(keepAlive: true)
+TimelineService timelineService(TimelineServiceRef ref) {
   final apiService = ref.watch(apiServiceProvider);
   return TimelineService(apiService: apiService);
-});
+}
 
-/// Provider for the MediaService
-final mediaServiceProvider = Provider<MediaService>((ref) {
+/// Provider for AccountService
+@Riverpod(keepAlive: true)
+AccountService accountService(AccountServiceRef ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return AccountService(apiService: apiService);
+}
+
+/// Provider for MediaService
+@Riverpod(keepAlive: true)
+MediaService mediaService(MediaServiceRef ref) {
   final apiService = ref.watch(apiServiceProvider);
   return MediaService(apiService: apiService);
-});
+}
 
-/// Provider for the NotificationService
-final notificationServiceProvider = Provider<NotificationService>((ref) {
+/// Provider for NotificationService
+@Riverpod(keepAlive: true)
+NotificationService notificationService(NotificationServiceRef ref) {
   final apiService = ref.watch(apiServiceProvider);
   return NotificationService(apiService: apiService);
-});
-
-/// Provider for the AccountStatusesCache (in-memory TTL cache for profile statuses)
-final accountStatusesCacheProvider = Provider<AccountStatusesCache>((ref) {
-  return AccountStatusesCache();
-});
-
-/// Provider for the AccountFollowCountsCache (in-memory TTL cache for follower/following counts)
-final accountFollowCountsCacheProvider = Provider<AccountFollowCountsCache>((ref) {
-  return AccountFollowCountsCache();
-});
-
-/// Provider for the AccountPostsCountCache (in-memory TTL cache for posts count)
-final accountPostsCountCacheProvider = Provider<AccountPostsCountCache>((ref) {
-  return AccountPostsCountCache();
-});
+}

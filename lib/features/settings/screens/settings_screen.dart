@@ -8,6 +8,8 @@ import 'package:pixelodon/features/app_shell/app_shell.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
+import 'package:pixelodon/providers/service_providers.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 
 /// Settings screen with platform-specific design following established patterns
 class SettingsScreen extends ConsumerWidget {
@@ -56,6 +58,7 @@ class SettingsScreen extends ConsumerWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
+            forceElevated: innerBoxIsScrolled,
           ),
         ],
         body: _buildMaterialContent(context, ref),
@@ -304,7 +307,7 @@ class SettingsScreen extends ConsumerWidget {
         cupertino: (_, __) => const Icon(CupertinoIcons.paintbrush),
       ),
       title: const Text('Theme'),
-      subtitle: Text(ref.read(themeModeProvider.notifier).themeModeDisplayName),
+      subtitle: Text(ref.read(themeModeNotifierProvider.notifier).themeModeDisplayName),
       trailing: PlatformWidget(
         material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
         cupertino: (_, __) => const CupertinoListTileChevron(),
@@ -337,7 +340,7 @@ class SettingsScreen extends ConsumerWidget {
         cupertino: (_, __) => const Icon(CupertinoIcons.globe),
       ),
       title: const Text('Language'),
-      subtitle: Text(ref.read(languageProvider.notifier).languageDisplayName),
+      subtitle: Text(ref.read(languageNotifierProvider.notifier).languageDisplayName),
       trailing: PlatformWidget(
         material: (_, __) => const Icon(Icons.arrow_forward_ios, size: 16),
         cupertino: (_, __) => const CupertinoListTileChevron(),
@@ -447,7 +450,7 @@ class SettingsScreen extends ConsumerWidget {
       }
       
       // Perform logout through the auth repository
-      final authRepository = ref.read(authRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider.notifier);
       await authRepository.logout(domain);
       
       // Navigate to login screen
@@ -531,11 +534,11 @@ class SettingsScreen extends ConsumerWidget {
   
   /// Switches to the specified account
   void _switchAccount(BuildContext context, WidgetRef ref, String domain) {
-    final authRepository = ref.read(authRepositoryProvider);
+    final authRepository = ref.read(authRepositoryProvider.notifier);
     authRepository.setActiveInstance(domain);
     
     // Navigate to home and update bottom navigation state
-    ref.read(currentIndexProvider.notifier).state = 0; // Set to Home tab
+    ref.read(currentIndexProvider.notifier).setIndex(0); // Set to Home tab
     context.go('/home');
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -743,7 +746,7 @@ class SettingsScreen extends ConsumerWidget {
       ));
       
       // Perform logout through the auth repository
-      final authRepository = ref.read(authRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider.notifier);
       await authRepository.logout(domain);
 
       // Show success message
@@ -754,8 +757,9 @@ class SettingsScreen extends ConsumerWidget {
         ));
 
         // If no accounts left, navigate to login
-        // Check the repository directly since provider might not be updated immediately
-        if (authRepository.instances.isEmpty) {
+        // Check the instances provider directly
+        final instances = ref.read(instancesProvider);
+        if (instances.isEmpty) {
           context.go('/auth/login');
         }
       }
@@ -784,7 +788,7 @@ class SettingsScreen extends ConsumerWidget {
   void _showThemeSelection(BuildContext context, WidgetRef ref) {
     final settingsService = ref.read(settingsServiceProvider);
     final availableThemes = settingsService.getAvailableThemeModes();
-    final currentTheme = ref.read(themeModeProvider);
+    final currentTheme = ref.read(themeModeNotifierProvider);
 
     showPlatformModalSheet(
       context: context,
@@ -809,7 +813,7 @@ class SettingsScreen extends ConsumerWidget {
                   ? const Icon(Icons.check)
                   : null,
               onTap: () async {
-                await ref.read(themeModeProvider.notifier).setThemeMode(theme);
+                await ref.read(themeModeNotifierProvider.notifier).setThemeMode(theme);
                 if (context.mounted) Navigator.of(context).pop();
               },
             )),
@@ -843,7 +847,7 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => Consumer(
         builder: (context, ref, child) {
-          final notificationSettings = ref.watch(notificationSettingsProvider);
+          final notificationSettings = ref.watch(notificationSettingsNotifierProvider);
           
           return Container(
             decoration: BoxDecoration(
@@ -865,7 +869,7 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: PlatformSwitch(
                     value: entry.value,
                     onChanged: (value) async {
-                      await ref.read(notificationSettingsProvider.notifier)
+                      await ref.read(notificationSettingsNotifierProvider.notifier)
                           .updateSetting(entry.key, value);
                     },
                   ),

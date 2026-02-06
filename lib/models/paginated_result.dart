@@ -23,8 +23,9 @@ class PaginatedResult<T> {
   /// Parse Link header for pagination
   static PaginatedResult<T> fromResponse<T>(
     List<T> items,
-    Map<String, List<String>>? headers,
-  ) {
+    Map<String, List<String>>? headers, {
+    String? Function(T)? idExtractor,
+  }) {
     String? nextMaxId;
     bool hasMore = false;
 
@@ -55,15 +56,18 @@ class PaginatedResult<T> {
       // For backwards compatibility, if the response has exactly the limit count,
       // assume there might be more items
       hasMore = items.length >= 40; // Default limit for followers/following
-      
-      // Try to extract ID from the last item if it has an 'id' property
+
+      // Try to extract ID from the last item
       final lastItem = items.last;
-      if (lastItem is Map && lastItem.containsKey('id')) {
-        nextMaxId = lastItem['id'].toString();
+      if (idExtractor != null) {
+        nextMaxId = idExtractor(lastItem);
+      } else if (lastItem is Map) {
+        nextMaxId = lastItem['id']?.toString();
       } else {
         // Try to use reflection-like approach for objects with id property
         try {
           final dynamic itemWithId = lastItem;
+          // ignore: avoid_dynamic_calls
           nextMaxId = itemWithId.id?.toString();
         } catch (_) {
           // If we can't extract ID, set nextMaxId to null

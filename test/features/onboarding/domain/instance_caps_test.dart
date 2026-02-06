@@ -243,7 +243,7 @@ void main() {
         );
 
         // Base calculation + language bonus: 2 matches * 15 = +30
-        final baseScore = 139.0; // From previous test
+        const baseScore = 139.0; // From previous test
         expect(score, closeTo(150.0, 0.1)); // Capped at 150
       });
 

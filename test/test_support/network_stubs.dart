@@ -171,7 +171,7 @@ class NetworkStubs {
       bot: false,
       discoverable: true,
       group: false,
-      createdAt: DateTime.now().subtract(Duration(days: 30)),
+      createdAt: DateTime.now().subtract(const Duration(days: 30)),
       note: 'Test account bio',
       url: 'https://test.example.com/@testuser$id',
       avatar: null, // Use null to avoid network image loading in tests
@@ -188,7 +188,7 @@ class NetworkStubs {
 
   /// Create a mock media attachment for testing
   static MediaAttachment createMockMediaAttachment() {
-    return MediaAttachment(
+    return const MediaAttachment(
       id: 'media_1',
       type: AttachmentType.image,
       url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // 1x1 transparent PNG
@@ -202,7 +202,7 @@ class NetworkStubs {
 
   /// Create a mock application for testing
   static Application createMockApplication() {
-    return Application(
+    return const Application(
       name: 'Pixelodon Test',
       website: 'https://pixelodon.app',
     );

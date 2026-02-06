@@ -501,18 +501,12 @@ class TimelineService {
   }
   
   /// Convert Visibility enum to string
-  String _visibilityToString(Visibility visibility) {
-    switch (visibility) {
-      case Visibility.public:
-        return 'public';
-      case Visibility.unlisted:
-        return 'unlisted';
-      case Visibility.private:
-        return 'private';
-      case Visibility.direct:
-        return 'direct';
-    }
-  }
+  String _visibilityToString(Visibility visibility) => switch (visibility) {
+        Visibility.public => 'public',
+        Visibility.unlisted => 'unlisted',
+        Visibility.private => 'private',
+        Visibility.direct => 'direct',
+      };
   
   /// Handle errors
   Exception _handleError(dynamic error) {

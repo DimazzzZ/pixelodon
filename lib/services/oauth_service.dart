@@ -59,7 +59,7 @@ class OAuthService {
       );
 
       if (response.statusCode == 200) {
-        final tokenData = response.data;
+        final tokenData = response.data as Map<String, dynamic>;
         await _storeTokens(tokenData);
         return tokenData;
       } else {
@@ -87,9 +87,9 @@ class OAuthService {
       await _storage.write(key: _tokenExpiryKey, value: expiryDate.toIso8601String());
     }
     
-    await _storage.write(key: _tokenKey, value: tokenData['access_token']);
+    await _storage.write(key: _tokenKey, value: tokenData['access_token'] as String?);
     if (tokenData['refresh_token'] != null) {
-      await _storage.write(key: _refreshTokenKey, value: tokenData['refresh_token']);
+      await _storage.write(key: _refreshTokenKey, value: tokenData['refresh_token'] as String?);
     }
   }
 
@@ -122,7 +122,7 @@ class OAuthService {
       );
 
       if (response.statusCode == 200) {
-        final tokenData = response.data;
+        final tokenData = response.data as Map<String, dynamic>;
         await _storeTokens(tokenData);
         return tokenData;
       }

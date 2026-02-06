@@ -30,14 +30,14 @@ class SafeHtmlWidget extends StatelessWidget {
     
     // Default styles with security in mind
     final defaultStyles = <String, Style>{
-      "body": Style(
+      'body': Style(
         margin: Margins.zero,
         padding: HtmlPaddings.zero,
       ),
-      "p": Style(
+      'p': Style(
         margin: Margins.only(bottom: 8),
       ),
-      "a": Style(
+      'a': Style(
         color: theme.colorScheme.primary,
         textDecoration: TextDecoration.none,
       ),
@@ -65,7 +65,7 @@ class SafeHtmlWidget extends StatelessWidget {
       extensions: [
         // Disable potentially dangerous tags for security
         TagWrapExtension(
-          tagsToWrap: {"script", "iframe", "embed", "object", "form", "input"},
+          tagsToWrap: {'script', 'iframe', 'embed', 'object', 'form', 'input'},
           builder: (child) => const SizedBox.shrink(),
         ),
       ],

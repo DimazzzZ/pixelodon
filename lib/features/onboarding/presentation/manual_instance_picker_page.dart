@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 import 'package:pixelodon/features/common/widgets/sliver_fixed_header.dart';
@@ -326,8 +326,8 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
     String? error,
   ) {
     if (isLoading) {
-      return SliverFillRemaining(
-        child: const Center(
+      return const SliverFillRemaining(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -657,7 +657,7 @@ class _ManualInstancePickerPageState extends ConsumerState<ManualInstancePickerP
   Future<void> _startDirectOAuthFlow(BuildContext context, String domain) async {
     try {
       // Get the authorization URL from the auth repository (for registration)
-      final authRepository = ref.read(authRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider.notifier);
       final authInfo = await authRepository.startOAuthFlow(domain, forRegistration: true);
 
       // Launch the authorization URL in browser

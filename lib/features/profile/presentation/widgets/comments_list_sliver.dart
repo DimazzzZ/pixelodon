@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../data/profile_models.dart';
-import 'shimmer_placeholders.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/shimmer_placeholders.dart';
 
 /// Comments list sliver for displaying user's replies and comments
 class CommentsListSliver extends StatelessWidget {
@@ -419,8 +419,8 @@ class CommentsListConfig {
 extension CommentsListSliverExtensions on CommentsListSliver {
   /// Create a loading version
   CommentsListSliver asLoading() {
-    return CommentsListSliver(
-      items: const [],
+    return const CommentsListSliver(
+      items: [],
       isLoading: true,
     );
   }

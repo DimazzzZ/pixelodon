@@ -383,12 +383,12 @@ void main() {
     });
 
     group('Exception Classes', () {
-      test('ApiException should have correct properties', () {
+      test('GeneralApiException should have correct properties', () {
         const message = 'Test error';
         const statusCode = 400;
         const data = {'error': 'Bad request'};
         
-        final exception = ApiException(message, statusCode: statusCode, data: data);
+        const exception = GeneralApiException(message, statusCode: statusCode, data: data);
         
         expect(exception.message, message);
         expect(exception.statusCode, statusCode);
@@ -397,44 +397,44 @@ void main() {
       });
 
       test('UnauthorizedException should have status code 401', () {
-        final exception = UnauthorizedException('Unauthorized');
+        const exception = UnauthorizedException('Unauthorized');
         expect(exception.statusCode, 401);
       });
 
       test('ForbiddenException should have status code 403', () {
-        final exception = ForbiddenException('Forbidden');
+        const exception = ForbiddenException('Forbidden');
         expect(exception.statusCode, 403);
       });
 
       test('NotFoundException should have status code 404', () {
-        final exception = NotFoundException('Not found');
+        const exception = NotFoundException('Not found');
         expect(exception.statusCode, 404);
       });
 
       test('RateLimitException should have status code 429', () {
-        final exception = RateLimitException('Rate limit exceeded');
+        const exception = RateLimitException('Rate limit exceeded');
         expect(exception.statusCode, 429);
       });
 
       test('ServerException should have status code 500', () {
-        final exception = ServerException('Server error');
+        const exception = ServerException('Server error');
         expect(exception.statusCode, 500);
       });
 
       test('TimeoutException should extend ApiException', () {
-        final exception = TimeoutException('Timeout');
+        const exception = TimeoutException('Timeout');
         expect(exception, isA<ApiException>());
         expect(exception.message, 'Timeout');
       });
 
       test('NetworkException should extend ApiException', () {
-        final exception = NetworkException('Network error');
+        const exception = NetworkException('Network error');
         expect(exception, isA<ApiException>());
         expect(exception.message, 'Network error');
       });
 
       test('UnknownException should extend ApiException', () {
-        final exception = UnknownException('Unknown error');
+        const exception = UnknownException('Unknown error');
         expect(exception, isA<ApiException>());
         expect(exception.message, 'Unknown error');
       });

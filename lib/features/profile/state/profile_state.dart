@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../data/profile_models.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
 
 part 'profile_state.freezed.dart';
 

@@ -164,10 +164,12 @@ void main() {
         expect(json['following_count'], 50);
         expect(json['statuses_count'], 25);
         expect(json['domain'], testDomain);
-        expect(json['is_pixelfed'], true);
+        expect(json['isPixelfed'], true);
         expect(json['fields'], isA<List>());
-        expect(json['fields'][0]['name'], 'Website');
-        expect(json['fields'][0]['value'], 'https://example.com');
+        // Freezed toJson() returns Field objects that need to be converted to maps
+        final fieldsJson = (json['fields'] as List).map((f) => f is Field ? f.toJson() : f).toList();
+        expect(fieldsJson[0]['name'], 'Website');
+        expect(fieldsJson[0]['value'], 'https://example.com');
         expect(json['created_at'], testCreatedAt.toIso8601String());
         expect(json['last_status_at'], testLastStatusAt.toIso8601String());
       });
@@ -192,9 +194,10 @@ void main() {
         expect(json['followers_count'], 0);
         expect(json['following_count'], 0);
         expect(json['statuses_count'], 0);
-        expect(json['is_pixelfed'], false);
-        expect(json.containsKey('created_at'), false);
-        expect(json.containsKey('domain'), false);
+        expect(json['isPixelfed'], false);
+        // Freezed includes all keys in toJson(), nullable fields are null
+        expect(json['created_at'], isNull);
+        expect(json['domain'], isNull);
       });
     });
 
@@ -228,7 +231,7 @@ void main() {
           'blocked': false,
           'requested': false,
           'domain': testDomain,
-          'is_pixelfed': true,
+          'isPixelfed': true,
         };
 
         final account = Account.fromJson(json);

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/profile_models.dart';
-import 'profile_action_button.dart';
-import 'shimmer_placeholders.dart';
-import '../../../../utils/account_utils.dart';
-import '../../../../utils/link_tap_handler.dart';
-import '../../../../providers/auth_provider.dart';
-import '../../../../widgets/common/safe_html_widget.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/profile_action_button.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/shimmer_placeholders.dart';
+import 'package:pixelodon/utils/account_utils.dart';
+import 'package:pixelodon/utils/link_tap_handler.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 
 /// Profile header widget with cover image and overlapping avatar
 class ProfileHeader extends ConsumerWidget {
@@ -107,26 +107,26 @@ class ProfileHeader extends ConsumerWidget {
                   htmlContent: profile!.bio,
                   onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
                   customStyles: {
-                    "body": Style(
+                    'body': Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
                       fontSize: FontSize(theme.textTheme.bodyMedium?.fontSize ?? 14),
                       color: theme.colorScheme.onSurfaceVariant,
                       textAlign: TextAlign.center,
                     ),
-                    "p": Style(
+                    'p': Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
                       textAlign: TextAlign.center,
                     ),
-                    "a": Style(
+                    'a': Style(
                       color: theme.colorScheme.primary,
                       textDecoration: TextDecoration.underline,
                     ),
-                    "strong, b": Style(
+                    'strong, b': Style(
                       fontWeight: FontWeight.bold,
                     ),
-                    "em, i": Style(
+                    'em, i': Style(
                       fontStyle: FontStyle.italic,
                     ),
                   },
@@ -186,13 +186,13 @@ class ProfileHeader extends ConsumerWidget {
         return Container(
           color: const Color(0xFF6366F1), // Purple gradient fallback
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF6366F1),
-                  const Color(0xFF8B5CF6),
+                  Color(0xFF6366F1),
+                  Color(0xFF8B5CF6),
                 ],
               ),
             ),
@@ -412,11 +412,11 @@ class SliverProfileContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (isLoading || profile == null) {
-      return SliverToBoxAdapter(
+      return const SliverToBoxAdapter(
         child: Column(
           children: [
-            const ProfileInfoShimmer(),
-            const SizedBox(height: 16),
+            ProfileInfoShimmer(),
+            SizedBox(height: 16),
           ],
         ),
       );
@@ -458,26 +458,26 @@ class SliverProfileContent extends ConsumerWidget {
                   htmlContent: profile!.bio,
                   onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
                   customStyles: {
-                    "body": Style(
+                    'body': Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
                       fontSize: FontSize(theme.textTheme.bodyMedium?.fontSize ?? 14),
                       color: theme.colorScheme.onSurfaceVariant,
                       textAlign: TextAlign.center,
                     ),
-                    "p": Style(
+                    'p': Style(
                       margin: Margins.zero,
                       padding: HtmlPaddings.zero,
                       textAlign: TextAlign.center,
                     ),
-                    "a": Style(
+                    'a': Style(
                       color: theme.colorScheme.primary,
                       textDecoration: TextDecoration.underline,
                     ),
-                    "strong, b": Style(
+                    'strong, b': Style(
                       fontWeight: FontWeight.bold,
                     ),
-                    "em, i": Style(
+                    'em, i': Style(
                       fontStyle: FontStyle.italic,
                     ),
                   },

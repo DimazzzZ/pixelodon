@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 
@@ -10,11 +11,14 @@ import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
 
+part 'guest_screen.g.dart';
+
 /// Default instance for guest mode
 const String _defaultGuestInstance = 'mastodon.social';
 
 /// Simple guest API service that doesn't require authentication
-final guestApiServiceProvider = Provider<Dio>((ref) {
+@Riverpod(keepAlive: true)
+Dio guestApiService(GuestApiServiceRef ref) {
   final dio = Dio();
   dio.options.connectTimeout = const Duration(seconds: 30);
   dio.options.receiveTimeout = const Duration(seconds: 30);
@@ -23,19 +27,181 @@ final guestApiServiceProvider = Provider<Dio>((ref) {
     'Accept': 'application/json',
   };
   return dio;
-});
+}
 
 /// Provider for guest mode public timeline with dynamic instance
-final guestPublicTimelineProvider = StateNotifierProvider.family<GuestTimelineNotifier, GuestTimelineState, String>((ref, domain) {
-  final dio = ref.watch(guestApiServiceProvider);
-  return GuestTimelineNotifier(dio, domain, isLocal: false);
-});
+@Riverpod(keepAlive: true)
+class GuestPublicTimeline extends _$GuestPublicTimeline {
+  @override
+  GuestTimelineState build(String domain) {
+    Future.microtask(() => loadTimeline());
+    return const GuestTimelineState();
+  }
+
+  Future<void> loadTimeline() async {
+    final dio = ref.read(guestApiServiceProvider);
+    if (state.isLoading) return;
+
+    state = state.copyWith(isLoading: true, hasError: false, errorMessage: null);
+
+    try {
+      final response = await dio.get(
+        'https://$domain/api/v1/timelines/public',
+        queryParameters: {
+          'limit': 20,
+          'local': false,
+        },
+      );
+
+      final statuses = (response.data as List)
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      String? maxId;
+      if (statuses.isNotEmpty) {
+        maxId = statuses.last.id;
+      }
+
+      state = state.copyWith(
+        statuses: statuses,
+        isLoading: false,
+        hasMore: statuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Failed to load timeline: $e',
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final dio = ref.read(guestApiServiceProvider);
+    if (state.isLoading || !state.hasMore || state.maxId == null) return;
+
+    try {
+      final response = await dio.get(
+        'https://$domain/api/v1/timelines/public',
+        queryParameters: {
+          'limit': 20,
+          'max_id': state.maxId,
+          'local': false,
+        },
+      );
+
+      final newStatuses = (response.data as List)
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      String? maxId = state.maxId;
+      if (newStatuses.isNotEmpty) {
+        maxId = newStatuses.last.id;
+      }
+
+      state = state.copyWith(
+        statuses: [...state.statuses, ...newStatuses],
+        hasMore: newStatuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      // Silently fail for load more
+    }
+  }
+
+  Future<void> refresh() async {
+    state = const GuestTimelineState();
+    await loadTimeline();
+  }
+}
 
 /// Provider for guest mode local timeline with dynamic instance
-final guestLocalTimelineProvider = StateNotifierProvider.family<GuestTimelineNotifier, GuestTimelineState, String>((ref, domain) {
-  final dio = ref.watch(guestApiServiceProvider);
-  return GuestTimelineNotifier(dio, domain, isLocal: true);
-});
+@Riverpod(keepAlive: true)
+class GuestLocalTimeline extends _$GuestLocalTimeline {
+  @override
+  GuestTimelineState build(String domain) {
+    Future.microtask(() => loadTimeline());
+    return const GuestTimelineState();
+  }
+
+  Future<void> loadTimeline() async {
+    final dio = ref.read(guestApiServiceProvider);
+    if (state.isLoading) return;
+
+    state = state.copyWith(isLoading: true, hasError: false, errorMessage: null);
+
+    try {
+      final response = await dio.get(
+        'https://$domain/api/v1/timelines/public',
+        queryParameters: {
+          'limit': 20,
+          'local': true,
+        },
+      );
+
+      final statuses = (response.data as List)
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      String? maxId;
+      if (statuses.isNotEmpty) {
+        maxId = statuses.last.id;
+      }
+
+      state = state.copyWith(
+        statuses: statuses,
+        isLoading: false,
+        hasMore: statuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Failed to load timeline: $e',
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final dio = ref.read(guestApiServiceProvider);
+    if (state.isLoading || !state.hasMore || state.maxId == null) return;
+
+    try {
+      final response = await dio.get(
+        'https://$domain/api/v1/timelines/public',
+        queryParameters: {
+          'limit': 20,
+          'max_id': state.maxId,
+          'local': true,
+        },
+      );
+
+      final newStatuses = (response.data as List)
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      String? maxId = state.maxId;
+      if (newStatuses.isNotEmpty) {
+        maxId = newStatuses.last.id;
+      }
+
+      state = state.copyWith(
+        statuses: [...state.statuses, ...newStatuses],
+        hasMore: newStatuses.length >= 20,
+        maxId: maxId,
+      );
+    } catch (e) {
+      // Silently fail for load more
+    }
+  }
+
+  Future<void> refresh() async {
+    state = const GuestTimelineState();
+    await loadTimeline();
+  }
+}
 
 /// State for guest timeline
 class GuestTimelineState {
@@ -74,101 +240,6 @@ class GuestTimelineState {
   }
 }
 
-/// Notifier for guest timeline
-class GuestTimelineNotifier extends StateNotifier<GuestTimelineState> {
-  final Dio _dio;
-  final String _domain;
-  final bool _isLocal;
-
-  GuestTimelineNotifier(this._dio, this._domain, {required bool isLocal})
-      : _isLocal = isLocal,
-        super(const GuestTimelineState()) {
-    loadTimeline();
-  }
-
-  Future<void> loadTimeline() async {
-    if (state.isLoading) return;
-
-    state = state.copyWith(isLoading: true, hasError: false, errorMessage: null);
-
-    try {
-      print('Guest mode: Loading timeline from https://$_domain/api/v1/timelines/public?local=$_isLocal');
-
-      final response = await _dio.get(
-        'https://$_domain/api/v1/timelines/public',
-        queryParameters: {
-          'limit': 20,
-          'local': _isLocal,
-        },
-      );
-
-      print('Guest mode: Received ${response.data?.length ?? 0} statuses');
-
-      final statuses = (response.data as List)
-          .map((json) => Status.fromJson(json))
-          .toList();
-
-      String? maxId;
-      if (statuses.isNotEmpty) {
-        maxId = statuses.last.id;
-      }
-
-      print('Guest mode: Successfully loaded ${statuses.length} statuses');
-
-      state = state.copyWith(
-        statuses: statuses,
-        isLoading: false,
-        hasMore: statuses.length >= 20,
-        maxId: maxId,
-      );
-    } catch (e) {
-      print('Guest mode: Error loading timeline: $e');
-      state = state.copyWith(
-        isLoading: false,
-        hasError: true,
-        errorMessage: 'Failed to load timeline: $e',
-      );
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (state.isLoading || !state.hasMore || state.maxId == null) return;
-
-    try {
-      final response = await _dio.get(
-        'https://$_domain/api/v1/timelines/public',
-        queryParameters: {
-          'limit': 20,
-          'max_id': state.maxId,
-          'local': _isLocal,
-        },
-      );
-
-      final newStatuses = (response.data as List)
-          .map((json) => Status.fromJson(json))
-          .toList();
-
-      String? maxId = state.maxId;
-      if (newStatuses.isNotEmpty) {
-        maxId = newStatuses.last.id;
-      }
-
-      state = state.copyWith(
-        statuses: [...state.statuses, ...newStatuses],
-        hasMore: newStatuses.length >= 20,
-        maxId: maxId,
-      );
-    } catch (e) {
-      // Silently fail for load more
-    }
-  }
-
-  Future<void> refresh() async {
-    state = const GuestTimelineState();
-    await loadTimeline();
-  }
-}
-
 /// Guest mode screen that allows browsing public timelines without authentication
 class GuestScreen extends ConsumerStatefulWidget {
   final String? instance;
@@ -187,7 +258,6 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
   void initState() {
     super.initState();
     _instanceDomain = widget.instance ?? _defaultGuestInstance;
-    // Guest mode timelines will be loaded automatically by the providers
   }
 
   @override
@@ -200,7 +270,6 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.go('/onboarding'),
       ),
-      // Removed profile action from top right corner
       sliverBodyBuilder: () => CustomScrollView(
         slivers: [
           _buildInfoBannerSliver(context, theme),
@@ -249,133 +318,6 @@ class _GuestScreenState extends ConsumerState<GuestScreen> {
     );
   }
   
-
-
-
-
-  Widget _buildGuestFeedList({
-    required GuestTimelineState timelineState,
-    required VoidCallback onLoadMore,
-    required Future<void> Function() onRefresh,
-  }) {
-    if (timelineState.hasError) {
-      return RefreshIndicator(
-        onRefresh: onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    timelineState.errorMessage ?? 'Failed to load timeline',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: onRefresh,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (timelineState.statuses.isEmpty) {
-      if (timelineState.isLoading) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      }
-
-      return RefreshIndicator(
-        onRefresh: onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inbox,
-                    size: 48,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No posts to display',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Pull to refresh or check back later',
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: timelineState.statuses.length + (timelineState.isLoading && timelineState.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == timelineState.statuses.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 8),
-                    Text('Loading more...'),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final status = timelineState.statuses[index];
-
-          // Load more when approaching the end
-          if (index == timelineState.statuses.length - 3 &&
-              timelineState.hasMore &&
-              !timelineState.isLoading) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              onLoadMore();
-            });
-          }
-
-          return _buildGuestPostCard(status);
-        },
-      ),
-    );
-  }
-
   Widget _buildGuestPostCard(Status status) {
     return _GuestPostCard(
       key: Key('guest_status_card_${status.id}'),
@@ -861,5 +803,3 @@ class _InteractionOverlay extends StatelessWidget {
     );
   }
 }
-
-

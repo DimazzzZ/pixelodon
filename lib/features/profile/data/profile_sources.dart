@@ -1,10 +1,12 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../services/account_service.dart';
-import '../../../services/timeline_service.dart';
-import '../../../providers/service_providers.dart';
-import '../../../providers/auth_provider.dart';
-import 'profile_models.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:pixelodon/services/account_service.dart';
+import 'package:pixelodon/services/timeline_service.dart';
+import 'package:pixelodon/providers/service_providers.dart';
+import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+
+part 'profile_sources.g.dart';
 
 /// Remote data source for profile-related data
 abstract class ProfileRemoteDataSource {
@@ -226,7 +228,8 @@ class InMemoryProfileLocalDataSource implements ProfileLocalDataSource {
 }
 
 /// Providers for data sources
-final profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>((ref) {
+@Riverpod(keepAlive: true)
+ProfileRemoteDataSource profileRemoteDataSource(ProfileRemoteDataSourceRef ref) {
   final accountService = ref.watch(accountServiceProvider);
   final timelineService = ref.watch(timelineServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
@@ -238,8 +241,9 @@ final profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>((ref) 
     domain: activeInstance?.domain ?? 'mastodon.social',
     currentUserId: activeAccount?.id,
   );
-});
+}
 
-final profileLocalDataSourceProvider = Provider<ProfileLocalDataSource>((ref) {
+@Riverpod(keepAlive: true)
+ProfileLocalDataSource profileLocalDataSource(ProfileLocalDataSourceRef ref) {
   return InMemoryProfileLocalDataSource();
-});
+}

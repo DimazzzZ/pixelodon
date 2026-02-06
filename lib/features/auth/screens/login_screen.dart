@@ -10,6 +10,7 @@ import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
 import 'package:pixelodon/models/instance.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/services/browser_service.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
@@ -268,7 +269,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Get featured instances (flagship servers)
   List<InstanceCaps> _getFeaturedInstances() {
     return [
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'mastodon.social',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -280,7 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 850000,
         languages: ['en'],
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'pixelfed.social',
         platform: InstancePlatform.pixelfed,
         openRegistration: true,
@@ -301,7 +302,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   List<InstanceCaps> _getOtherPopularServers() {
     return [
       // Other popular Mastodon instances
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'mastodon.world',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -313,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 180000,
         languages: ['en'],
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'mas.to',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -325,7 +326,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 95000,
         languages: ['en'],
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'fosstodon.org',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -337,7 +338,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 45000,
         languages: ['en'],
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'hachyderm.io',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -349,7 +350,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         activeUsers: 35000,
         languages: ['en'],
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'mastodon.online',
         platform: InstancePlatform.mastodon,
         openRegistration: true,
@@ -363,7 +364,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
 
       // Other Pixelfed instances (flagship already included above)
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'pixelfed.art',
         platform: InstancePlatform.pixelfed,
         openRegistration: true,
@@ -377,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         photoFocused: true,
         supportsStories: true,
       ),
-      InstanceCaps(
+      const InstanceCaps(
         domain: 'pixelfed.de',
         platform: InstancePlatform.pixelfed,
         openRegistration: true,
@@ -422,7 +423,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     
     try {
       final domain = _instanceController.text.trim();
-      final instance = await ref.read(authRepositoryProvider).discoverInstance(domain);
+      final instance = await ref.read(authRepositoryProvider.notifier).discoverInstance(domain);
       
       setState(() {
         _discoveredInstance = instance;
@@ -447,7 +448,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final domain = _discoveredInstance!.domain;
-      final authInfo = await ref.read(authRepositoryProvider).startOAuthFlow(domain);
+      final authInfo = await ref.read(authRepositoryProvider.notifier).startOAuthFlow(domain);
 
       // Launch the authorization URL via centralized BrowserService
       final browser = BrowserService();
@@ -751,8 +752,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authRepository = ref.watch(authRepositoryProvider);
-    final isLoggedIn = authRepository.instances.isNotEmpty;
+    final authState = ref.watch(authRepositoryProvider);
+    final isLoggedIn = authState.instances.isNotEmpty;
 
     return AppPageScaffold.standard(
       title: 'Login',
@@ -929,7 +930,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       subtitle: Text(instance.domain),
                       trailing: const Icon(Icons.login),
                       onTap: () {
-                        ref.read(authRepositoryProvider).setActiveInstance(instance.domain);
+                        ref.read(authRepositoryProvider.notifier).setActiveInstance(instance.domain);
                         context.go('/home');
                       },
                     )),

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/services.dart';
+import 'package:pixelodon/core/domain/asset_loader.dart';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
@@ -18,6 +18,7 @@ RecommendationEngine recommendationEngine(RecommendationEngineRef ref) {
 
 class RecommendationEngine {
   final DiscoveryRepository discoveryRepository;
+  final AssetLoader assetLoader;
   
   List<InstanceCaps>? _curatedInstances;
   DateTime? _lastLoaded;
@@ -27,7 +28,8 @@ class RecommendationEngine {
 
   RecommendationEngine({
     required this.discoveryRepository,
-  });
+    AssetLoader? assetLoader,
+  }) : assetLoader = assetLoader ?? const DefaultAssetLoader();
 
   /// Load curated instances from assets
   Future<List<InstanceCaps>> _loadCuratedInstances() async {
@@ -42,7 +44,7 @@ class RecommendationEngine {
     }
 
     try {
-      final jsonString = await rootBundle.loadString('assets/instances/curated.json');
+      final jsonString = await assetLoader.loadString('assets/instances/curated.json');
       final jsonData = json.decode(jsonString) as Map<String, dynamic>;
       final instancesData = jsonData['instances'] as List;
       
@@ -279,7 +281,7 @@ class RecommendationEngine {
     switch (preferences.focus) {
       case InstanceFocus.photos:
         if (instance.photoFocused || instance.platform == InstancePlatform.pixelfed) {
-          reasons.add(RecommendationReason(
+          reasons.add(const RecommendationReason(
             type: RecommendationReasonType.photoFocused,
             description: 'Perfect for photo sharing and visual content',
             weight: 9,
@@ -288,7 +290,7 @@ class RecommendationEngine {
         break;
       case InstanceFocus.text:
         if (!instance.photoFocused && instance.platform == InstancePlatform.mastodon) {
-          reasons.add(RecommendationReason(
+          reasons.add(const RecommendationReason(
             type: RecommendationReasonType.focusMatch,
             description: 'Great for text-based discussions and microblogging',
             weight: 7,
@@ -296,7 +298,7 @@ class RecommendationEngine {
         }
         break;
       case InstanceFocus.both:
-        reasons.add(RecommendationReason(
+        reasons.add(const RecommendationReason(
           type: RecommendationReasonType.focusMatch,
           description: 'Supports both text and media content',
           weight: 6,
@@ -328,7 +330,7 @@ class RecommendationEngine {
 
     // Open registration
     if (instance.openRegistration && preferences.preferOpenRegistration) {
-      reasons.add(RecommendationReason(
+      reasons.add(const RecommendationReason(
         type: RecommendationReasonType.openRegistration,
         description: 'Open for new registrations - join immediately',
         weight: 8,
@@ -337,7 +339,7 @@ class RecommendationEngine {
 
     // Low load/good performance
     if (instance.loadScore < 30) {
-      reasons.add(RecommendationReason(
+      reasons.add(const RecommendationReason(
         type: RecommendationReasonType.lowLoad,
         description: 'Fast and reliable performance',
         weight: 6,
@@ -355,13 +357,13 @@ class RecommendationEngine {
 
     // Platform-specific reasons
     if (instance.platform == InstancePlatform.mastodon) {
-      reasons.add(RecommendationReason(
+      reasons.add(const RecommendationReason(
         type: RecommendationReasonType.platformPreference,
         description: 'Mastodon - the original fediverse microblogging platform',
         weight: 4,
       ));
     } else if (instance.platform == InstancePlatform.pixelfed) {
-      reasons.add(RecommendationReason(
+      reasons.add(const RecommendationReason(
         type: RecommendationReasonType.platformPreference,
         description: 'Pixelfed - Instagram-like photo sharing experience',
         weight: 4,

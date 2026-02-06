@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'instance_caps.dart';
+import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 
 part 'recommendation_models.freezed.dart';
 part 'recommendation_models.g.dart';

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:pixelodon/features/onboarding/domain/instance_caps.dart';
 import 'package:pixelodon/features/onboarding/domain/recommendation_models.dart';
 import 'package:pixelodon/features/onboarding/data/recommendation_engine.dart';
-import 'package:pixelodon/providers/settings_provider.dart';
+import 'package:pixelodon/providers/service_providers.dart';
 import 'package:pixelodon/infra/api/discovery/discovery_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

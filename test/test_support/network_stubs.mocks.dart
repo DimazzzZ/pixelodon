@@ -7,6 +7,7 @@ import 'dart:async' as _i4;
 
 import 'package:dio/dio.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:pixelodon/models/account.dart' as _i6;
 import 'package:pixelodon/models/status.dart' as _i2;
 import 'package:pixelodon/services/timeline_service.dart' as _i3;
 
@@ -454,6 +455,50 @@ class MockTimelineService extends _i1.Mock implements _i3.TimelineService {
           ),
         )),
       ) as _i4.Future<_i2.Status>);
+
+  @override
+  _i4.Future<List<_i6.Account>> getStatusRebloggedBy(
+    String? domain,
+    String? id, {
+    int? limit,
+    String? maxId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getStatusRebloggedBy,
+          [
+            domain,
+            id,
+          ],
+          {
+            #limit: limit,
+            #maxId: maxId,
+          },
+        ),
+        returnValue: _i4.Future<List<_i6.Account>>.value(<_i6.Account>[]),
+      ) as _i4.Future<List<_i6.Account>>);
+
+  @override
+  _i4.Future<List<_i6.Account>> getStatusFavouritedBy(
+    String? domain,
+    String? id, {
+    int? limit,
+    String? maxId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getStatusFavouritedBy,
+          [
+            domain,
+            id,
+          ],
+          {
+            #limit: limit,
+            #maxId: maxId,
+          },
+        ),
+        returnValue: _i4.Future<List<_i6.Account>>.value(<_i6.Account>[]),
+      ) as _i4.Future<List<_i6.Account>>);
 
   @override
   _i4.Future<_i2.Status> bookmarkStatus(

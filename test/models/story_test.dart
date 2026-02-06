@@ -180,26 +180,27 @@ void main() {
         final json = story.toJson();
 
         expect(json['id'], testStoryId);
-        expect(json['account'], isA<Map<String, dynamic>>());
-        expect(json['created_at'], testCreatedAt.toIso8601String());
-        expect(json['expires_at'], testExpiresAt.toIso8601String());
+        // Freezed toJson() returns nested objects, not maps
+        expect(json['account'], isA<Account>());
+        expect(json['createdAt'], testCreatedAt.toIso8601String());
+        expect(json['expiresAt'], testExpiresAt.toIso8601String());
         expect(json['url'], testUrl);
-        expect(json['preview_url'], testPreviewUrl);
+        expect(json['previewUrl'], testPreviewUrl);
         expect(json['blurhash'], testBlurhash);
-        expect(json['media_type'], 'video');
+        expect(json['mediaType'], 'video');
         expect(json['width'], 1080);
         expect(json['height'], 1920);
         expect(json['duration'], 30.0);
         expect(json['text'], testText);
-        expect(json['font_family'], 'Arial');
-        expect(json['font_size'], 24);
-        expect(json['font_color'], '#FFFFFF');
-        expect(json['text_alignment'], 'center');
-        expect(json['text_position'], 'top');
+        expect(json['fontFamily'], 'Arial');
+        expect(json['fontSize'], 24);
+        expect(json['fontColor'], '#FFFFFF');
+        expect(json['textAlignment'], 'center');
+        expect(json['textPosition'], 'top');
         expect(json['hashtags'], ['test']);
         expect(json['seen'], true);
-        expect(json['can_reply'], true);
-        expect(json['can_react'], true);
+        expect(json['canReply'], true);
+        expect(json['canReact'], true);
         expect(json['domain'], testDomain);
       });
 
@@ -217,10 +218,10 @@ void main() {
 
         expect(json['id'], testStoryId);
         expect(json['url'], testUrl);
-        expect(json['media_type'], 'image');
+        expect(json['mediaType'], 'image');
         expect(json['seen'], false);
-        expect(json['can_reply'], false);
-        expect(json['can_react'], false);
+        expect(json['canReply'], false);
+        expect(json['canReact'], false);
         expect(json['mentions'], isEmpty);
         expect(json['hashtags'], isEmpty);
         expect(json['locations'], isEmpty);
@@ -233,29 +234,29 @@ void main() {
         final json = {
           'id': testStoryId,
           'account': testAccount.toJson(),
-          'created_at': testCreatedAt.toIso8601String(),
-          'expires_at': testExpiresAt.toIso8601String(),
+          'createdAt': testCreatedAt.toIso8601String(),
+          'expiresAt': testExpiresAt.toIso8601String(),
           'url': testUrl,
-          'preview_url': testPreviewUrl,
+          'previewUrl': testPreviewUrl,
           'blurhash': testBlurhash,
-          'media_type': 'video',
+          'mediaType': 'video',
           'width': 1080,
           'height': 1920,
           'duration': 25.0,
           'text': testText,
-          'font_family': 'Helvetica',
-          'font_size': 20,
-          'font_color': '#FF0000',
-          'text_background_color': '#000000',
-          'text_alignment': 'right',
-          'text_position': 'bottom',
+          'fontFamily': 'Helvetica',
+          'fontSize': 20,
+          'fontColor': '#FF0000',
+          'textBackgroundColor': '#000000',
+          'textAlignment': 'right',
+          'textPosition': 'bottom',
           'mentions': [],
           'hashtags': ['story', 'test'],
           'locations': [],
           'reactions': [],
           'seen': true,
-          'can_reply': false,
-          'can_react': true,
+          'canReply': false,
+          'canReact': true,
           'domain': testDomain,
         };
 
@@ -290,10 +291,10 @@ void main() {
         final json = {
           'id': testStoryId,
           'account': testAccount.toJson(),
-          'created_at': testCreatedAt.toIso8601String(),
-          'expires_at': testExpiresAt.toIso8601String(),
+          'createdAt': testCreatedAt.toIso8601String(),
+          'expiresAt': testExpiresAt.toIso8601String(),
           'url': testUrl,
-          'media_type': 'image',
+          'mediaType': 'image',
         };
 
         final story = Story.fromJson(json);
@@ -310,10 +311,10 @@ void main() {
         final jsonString = jsonEncode({
           'id': testStoryId,
           'account': testAccount.toJson(),
-          'created_at': testCreatedAt.toIso8601String(),
-          'expires_at': testExpiresAt.toIso8601String(),
+          'createdAt': testCreatedAt.toIso8601String(),
+          'expiresAt': testExpiresAt.toIso8601String(),
           'url': testUrl,
-          'media_type': 'video',
+          'mediaType': 'video',
           'seen': true,
         });
 
@@ -534,8 +535,8 @@ void main() {
 
       expect(json['id'], testMentionId);
       expect(json['username'], testMentionUsername);
-      expect(json['display_name'], testMentionDisplayName);
-      expect(json['avatar_url'], testAvatarUrl);
+      expect(json['displayName'], testMentionDisplayName);
+      expect(json['avatarUrl'], testAvatarUrl);
       expect(json['x'], 10.0);
       expect(json['y'], 90.0);
       expect(json['width'], 20);
@@ -546,8 +547,8 @@ void main() {
       final json = {
         'id': testMentionId,
         'username': testMentionUsername,
-        'display_name': testMentionDisplayName,
-        'avatar_url': testAvatarUrl,
+        'displayName': testMentionDisplayName,
+        'avatarUrl': testAvatarUrl,
         'x': 15.5,
         'y': 85.5,
         'width': 25.0,
@@ -700,9 +701,10 @@ void main() {
       final json = reaction.toJson();
 
       expect(json['id'], testReactionId);
-      expect(json['account'], isA<Map<String, dynamic>>());
+      // Freezed toJson() returns nested objects, not maps
+      expect(json['account'], isA<Account>());
       expect(json['emoji'], testEmoji);
-      expect(json['created_at'], testReactionCreatedAt.toIso8601String());
+      expect(json['createdAt'], testReactionCreatedAt.toIso8601String());
     });
 
     test('should deserialize StoryReaction from JSON correctly', () {
@@ -710,7 +712,7 @@ void main() {
         'id': testReactionId,
         'account': testReactionAccount.toJson(),
         'emoji': testEmoji,
-        'created_at': testReactionCreatedAt.toIso8601String(),
+        'createdAt': testReactionCreatedAt.toIso8601String(),
       };
 
       final reaction = StoryReaction.fromJson(json);

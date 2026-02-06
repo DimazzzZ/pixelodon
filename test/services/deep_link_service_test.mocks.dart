@@ -42,48 +42,36 @@ class MockAppLinks extends _i1.Mock implements _i2.AppLinks {
       ) as _i3.Stream<Uri>);
 
   @override
-  _i3.Stream<String> get allStringLinkStream => (super.noSuchMethod(
-        Invocation.getter(#allStringLinkStream),
-        returnValue: _i3.Stream<String>.empty(),
-      ) as _i3.Stream<String>);
-
-  @override
-  _i3.Stream<Uri> get allUriLinkStream => (super.noSuchMethod(
-        Invocation.getter(#allUriLinkStream),
-        returnValue: _i3.Stream<Uri>.empty(),
-      ) as _i3.Stream<Uri>);
-
-  @override
-  _i3.Future<Uri?> getInitialAppLink() => (super.noSuchMethod(
+  _i3.Future<Uri?> getInitialLink() => (super.noSuchMethod(
         Invocation.method(
-          #getInitialAppLink,
+          #getInitialLink,
           [],
         ),
         returnValue: _i3.Future<Uri?>.value(),
       ) as _i3.Future<Uri?>);
 
   @override
-  _i3.Future<String?> getInitialAppLinkString() => (super.noSuchMethod(
+  _i3.Future<String?> getInitialLinkString() => (super.noSuchMethod(
         Invocation.method(
-          #getInitialAppLinkString,
+          #getInitialLinkString,
           [],
         ),
         returnValue: _i3.Future<String?>.value(),
       ) as _i3.Future<String?>);
 
   @override
-  _i3.Future<Uri?> getLatestAppLink() => (super.noSuchMethod(
+  _i3.Future<Uri?> getLatestLink() => (super.noSuchMethod(
         Invocation.method(
-          #getLatestAppLink,
+          #getLatestLink,
           [],
         ),
         returnValue: _i3.Future<Uri?>.value(),
       ) as _i3.Future<Uri?>);
 
   @override
-  _i3.Future<String?> getLatestAppLinkString() => (super.noSuchMethod(
+  _i3.Future<String?> getLatestLinkString() => (super.noSuchMethod(
         Invocation.method(
-          #getLatestAppLinkString,
+          #getLatestLinkString,
           [],
         ),
         returnValue: _i3.Future<String?>.value(),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../data/profile_models.dart';
-import 'shimmer_placeholders.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/presentation/widgets/shimmer_placeholders.dart';
 import 'dart:io';
 
 /// Media grid sliver for displaying user's media posts in 3-column grid
@@ -419,8 +419,8 @@ class MediaGridConfig {
 extension MediaGridSliverExtensions on MediaGridSliver {
   /// Create a loading version
   MediaGridSliver asLoading() {
-    return MediaGridSliver(
-      items: const [],
+    return const MediaGridSliver(
+      items: [],
       isLoading: true,
     );
   }

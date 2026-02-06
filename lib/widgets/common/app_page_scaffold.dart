@@ -170,8 +170,8 @@ class AppPageScaffold extends StatelessWidget {
                       return CupertinoButton(
                         padding: EdgeInsets.zero,
                         minSize: 44.0,
-                        child: action.icon,
                         onPressed: action.onPressed,
+                        child: action.icon,
                       );
                     }
                     return action;
@@ -224,8 +224,8 @@ class AppPageScaffold extends StatelessWidget {
                     return CupertinoButton(
                       padding: EdgeInsets.zero,
                       minSize: 44.0,
-                      child: action.icon,
                       onPressed: action.onPressed,
+                      child: action.icon,
                     );
                   }
                   return action;
@@ -305,7 +305,7 @@ class AppPageScaffold extends StatelessWidget {
 
               // Add overlap injector for nested scroll
               if (bodyWidget is CustomScrollView) {
-                final customScrollView = bodyWidget as CustomScrollView;
+                final customScrollView = bodyWidget;
                 final slivers = [
                   SliverOverlapInjector(
                     handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),

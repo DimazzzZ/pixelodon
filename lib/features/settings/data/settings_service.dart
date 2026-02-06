@@ -2,10 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pixelodon/models/instance.dart';
+import 'package:pixelodon/utils/logger.dart';
 
 /// Service for managing app settings persistence
 class SettingsService {
-  static const _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage;
+  
+  /// Constructor
+  SettingsService({
+    FlutterSecureStorage? storage,
+  }) : _storage = storage ?? const FlutterSecureStorage();
   
   // Storage keys
   static const _themeModeKey = 'theme_mode';
@@ -21,17 +27,14 @@ class SettingsService {
     try {
       final themeModeString = await _storage.read(key: _themeModeKey);
       if (themeModeString == null) return ThemeMode.system;
-      
-      switch (themeModeString) {
-        case 'light':
-          return ThemeMode.light;
-        case 'dark':
-          return ThemeMode.dark;
-        case 'system':
-        default:
-          return ThemeMode.system;
-      }
+
+      return switch (themeModeString) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        'system' || _ => ThemeMode.system,
+      };
     } catch (e) {
+      logger.e('Failed to get theme mode', error: e);
       return ThemeMode.system;
     }
   }
@@ -39,21 +42,14 @@ class SettingsService {
   /// Set the theme mode
   Future<void> setThemeMode(ThemeMode themeMode) async {
     try {
-      String themeModeString;
-      switch (themeMode) {
-        case ThemeMode.light:
-          themeModeString = 'light';
-          break;
-        case ThemeMode.dark:
-          themeModeString = 'dark';
-          break;
-        case ThemeMode.system:
-          themeModeString = 'system';
-          break;
-      }
+      final themeModeString = switch (themeMode) {
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+        ThemeMode.system => 'system',
+      };
       await _storage.write(key: _themeModeKey, value: themeModeString);
     } catch (e) {
-      // Handle error silently - settings will default to system
+      logger.e('Failed to set theme mode', error: e);
     }
   }
 
@@ -69,6 +65,7 @@ class SettingsService {
       }
       return Locale(parts[0]);
     } catch (e) {
+      logger.e('Failed to get language', error: e);
       return const Locale('en', 'US');
     }
   }
@@ -81,7 +78,7 @@ class SettingsService {
           : locale.languageCode;
       await _storage.write(key: _languageKey, value: languageString);
     } catch (e) {
-      // Handle error silently - language will default to English
+      logger.e('Failed to set language', error: e);
     }
   }
 
@@ -99,9 +96,19 @@ class SettingsService {
         };
       }
       
-      final Map<String, dynamic> decoded = jsonDecode(settingsString);
-      return decoded.map((key, value) => MapEntry(key, value as bool));
+      final dynamic decoded = jsonDecode(settingsString);
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry(key.toString(), value as bool));
+      }
+      return {
+        'mentions': true,
+        'follows': true,
+        'likes': true,
+        'reposts': true,
+        'posts': true,
+      };
     } catch (e) {
+      logger.e('Failed to get notification settings', error: e);
       return {
         'mentions': true,
         'follows': true,
@@ -118,7 +125,7 @@ class SettingsService {
       final settingsString = jsonEncode(settings);
       await _storage.write(key: _notificationSettingsKey, value: settingsString);
     } catch (e) {
-      // Handle error silently - settings will use defaults
+      logger.e('Failed to set notification settings', error: e);
     }
   }
 
@@ -128,6 +135,7 @@ class SettingsService {
       final completedString = await _storage.read(key: _onboardingCompletedKey);
       return completedString == 'true';
     } catch (e) {
+      logger.e('Failed to get onboarding completion status', error: e);
       return false;
     }
   }
@@ -137,7 +145,7 @@ class SettingsService {
     try {
       await _storage.write(key: _onboardingCompletedKey, value: completed.toString());
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to set onboarding completion status', error: e);
     }
   }
 
@@ -148,6 +156,7 @@ class SettingsService {
       if (preferencesString == null) return null;
       return jsonDecode(preferencesString) as Map<String, dynamic>;
     } catch (e) {
+      logger.e('Failed to get onboarding preferences', error: e);
       return null;
     }
   }
@@ -158,7 +167,7 @@ class SettingsService {
       final preferencesString = jsonEncode(preferences);
       await _storage.write(key: _onboardingPreferencesKey, value: preferencesString);
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to set onboarding preferences', error: e);
     }
   }
 
@@ -168,7 +177,7 @@ class SettingsService {
       await _storage.delete(key: _onboardingCompletedKey);
       await _storage.delete(key: _onboardingPreferencesKey);
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to reset onboarding', error: e);
     }
   }
 
@@ -181,7 +190,7 @@ class SettingsService {
       await _storage.delete(key: _onboardingCompletedKey);
       await _storage.delete(key: _onboardingPreferencesKey);
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to clear all settings', error: e);
     }
   }
 
@@ -201,32 +210,20 @@ class SettingsService {
   }
 
   /// Get display name for a locale
-  String getLanguageDisplayName(Locale locale) {
-    switch (locale.languageCode) {
-      case 'en':
-        return 'English';
-      case 'es':
-        return 'Español';
-      case 'fr':
-        return 'Français';
-      case 'de':
-        return 'Deutsch';
-      default:
-        return 'English';
-    }
-  }
+  String getLanguageDisplayName(Locale locale) => switch (locale.languageCode) {
+        'en' => 'English',
+        'es' => 'Español',
+        'fr' => 'Français',
+        'de' => 'Deutsch',
+        _ => 'English',
+      };
 
   /// Get display name for theme mode
-  String getThemeModeDisplayName(ThemeMode themeMode) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return 'Light';
-      case ThemeMode.dark:
-        return 'Dark';
-      case ThemeMode.system:
-        return 'System';
-    }
-  }
+  String getThemeModeDisplayName(ThemeMode themeMode) => switch (themeMode) {
+        ThemeMode.light => 'Light',
+        ThemeMode.dark => 'Dark',
+        ThemeMode.system => 'System',
+      };
 
   /// Get the current home view mode with instance-based defaults
   Future<String> getHomeViewMode([Instance? activeInstance]) async {
@@ -244,6 +241,7 @@ class SettingsService {
 
       return 'list'; // Fallback default
     } catch (e) {
+      logger.e('Failed to get home view mode', error: e);
       return 'list';
     }
   }
@@ -253,7 +251,7 @@ class SettingsService {
     try {
       await _storage.write(key: _homeViewModeKey, value: viewMode);
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to set home view mode', error: e);
     }
   }
 
@@ -263,6 +261,7 @@ class SettingsService {
       final filter = await _storage.read(key: _homeContentFilterKey);
       return filter ?? 'all'; // Default to all content
     } catch (e) {
+      logger.e('Failed to get home content filter', error: e);
       return 'all';
     }
   }
@@ -272,7 +271,7 @@ class SettingsService {
     try {
       await _storage.write(key: _homeContentFilterKey, value: filter);
     } catch (e) {
-      // Handle error silently
+      logger.e('Failed to set home content filter', error: e);
     }
   }
 
@@ -287,28 +286,17 @@ class SettingsService {
   }
 
   /// Get display name for home view mode
-  String getHomeViewModeDisplayName(String viewMode) {
-    switch (viewMode) {
-      case 'list':
-        return 'Posts List';
-      case 'images':
-        return 'Images List';
-      case 'grid':
-        return 'Images Grid';
-      default:
-        return 'Classic Posts';
-    }
-  }
+  String getHomeViewModeDisplayName(String viewMode) => switch (viewMode) {
+        'list' => 'Posts List',
+        'images' => 'Images List',
+        'grid' => 'Images Grid',
+        _ => 'Classic Posts',
+      };
 
   /// Get display name for home content filter
-  String getHomeContentFilterDisplayName(String filter) {
-    switch (filter) {
-      case 'all':
-        return 'All Posts';
-      case 'images':
-        return 'Images Only';
-      default:
-        return 'All Posts';
-    }
-  }
+  String getHomeContentFilterDisplayName(String filter) => switch (filter) {
+        'all' => 'All Posts',
+        'images' => 'Images Only',
+        _ => 'All Posts',
+      };
 }

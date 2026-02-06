@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pixelodon/features/onboarding/application/onboarding_controller.dart';
 import 'package:pixelodon/features/onboarding/presentation/quick_quiz_sheet.dart';
 import 'package:pixelodon/features/onboarding/presentation/fediverse_education_sheet.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
 
 /// Main onboarding/welcome screen with platform-appropriate design
 class OnboardingScreen extends ConsumerWidget {
@@ -20,7 +21,7 @@ class OnboardingScreen extends ConsumerWidget {
     final isLoading = ref.watch(isOnboardingLoadingProvider);
     final error = ref.watch(onboardingErrorProvider);
     final mediaQuery = MediaQuery.of(context);
-    final isIOS = Platform.isIOS;
+    final isIOS = currentPlatform(context) == AppPlatform.iOS;
 
     // Platform-specific padding
     final horizontalPadding = isIOS ? 24.0 : 16.0;
@@ -33,7 +34,7 @@ class OnboardingScreen extends ConsumerWidget {
           builder: (context, constraints) {
             // Calculate spacing for true vertical centering
             final screenHeight = constraints.maxHeight;
-            final footerHeight = 120.0; // Approximate footer height including padding
+            const footerHeight = 120.0; // Approximate footer height including padding
             final availableHeight = screenHeight - footerHeight;
 
             // Estimate content height more accurately
@@ -249,7 +250,7 @@ class OnboardingScreen extends ConsumerWidget {
   double _getLogoSize(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final textScaleFactor = mediaQuery.textScaler.scale(1.0);
-    final baseSize = 96.0;
+    const baseSize = 96.0;
     final scaledSize = baseSize * textScaleFactor;
     return scaledSize.clamp(72.0, 144.0); // Min 72, max 144
   }
@@ -375,7 +376,7 @@ class OnboardingScreen extends ConsumerWidget {
           child: CupertinoButton.filled(
             onPressed: onPressed,
             borderRadius: BorderRadius.circular(12),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
@@ -383,7 +384,7 @@ class OnboardingScreen extends ConsumerWidget {
                   size: 20,
                   color: CupertinoColors.white,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'Start in One Step', // TODO: Localize (iOS Title Case)
                   style: TextStyle(
@@ -413,11 +414,11 @@ class OnboardingScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            icon: Icon(
+            icon: const Icon(
               Icons.rocket_launch,
               size: 20,
             ),
-            label: Text(
+            label: const Text(
               'Start in one step', // TODO: Localize (Android sentence case)
               style: TextStyle(
                 fontSize: 16,
@@ -450,7 +451,7 @@ class OnboardingScreen extends ConsumerWidget {
                 border: Border.all(color: CupertinoColors.systemBlue),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
+              child: const Center(
                 child: Text(
                   'I Already Have an Account', // TODO: Localize (iOS Title Case)
                   style: TextStyle(
@@ -480,11 +481,11 @@ class OnboardingScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            icon: Icon(
+            icon: const Icon(
               Icons.account_circle,
               size: 20,
             ),
-            label: Text(
+            label: const Text(
               'I already have an account', // TODO: Localize (Android sentence case)
               style: TextStyle(
                 fontSize: 16,
@@ -527,7 +528,7 @@ class OnboardingScreen extends ConsumerWidget {
             foregroundColor: theme.colorScheme.primary,
             minimumSize: const Size(0, 48),
           ),
-          child: Text(
+          child: const Text(
             'Browse as guest', // TODO: Localize
             style: TextStyle(
               fontSize: 16,
@@ -586,9 +587,14 @@ class OnboardingScreen extends ConsumerWidget {
   }
 
   void _triggerHapticFeedback() {
-    if (Platform.isIOS) {
-      HapticFeedback.selectionClick();
-    } else {
+    try {
+      if (Platform.isIOS) {
+        HapticFeedback.selectionClick();
+      } else {
+        HapticFeedback.lightImpact();
+      }
+    } catch (e) {
+      // Platform detection failed, use default haptic feedback
       HapticFeedback.lightImpact();
     }
   }

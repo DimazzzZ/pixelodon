@@ -3,25 +3,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 
 void main() {
-  debugPrint('[DEBUG_LOG] Testing HTML rendering...');
-  
   group('SafeHtmlWidget Tests', () {
     testWidgets('should render basic HTML content', (WidgetTester tester) async {
       const htmlContent = '<p>Hello <b>world</b>!</p>';
       
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SafeHtmlWidget(htmlContent: htmlContent),
           ),
         ),
       );
       
-      debugPrint('[DEBUG_LOG] Basic HTML test completed');
+      expect(find.byType(SafeHtmlWidget), findsOneWidget);
     });
 
     testWidgets('should render HTML with links', (WidgetTester tester) async {
       const htmlContent = '<p>Check out <a href="https://example.com">this link</a>!</p>';
+      String? tappedUrl;
       
       await tester.pumpWidget(
         MaterialApp(
@@ -29,14 +28,14 @@ void main() {
             body: SafeHtmlWidget(
               htmlContent: htmlContent,
               onLinkTap: (url) {
-                debugPrint('[DEBUG_LOG] Link tapped: $url');
+                tappedUrl = url;
               },
             ),
           ),
         ),
       );
       
-      debugPrint('[DEBUG_LOG] HTML with links test completed');
+      expect(find.byType(SafeHtmlWidget), findsOneWidget);
     });
 
     testWidgets('should block dangerous tags', (WidgetTester tester) async {
@@ -50,30 +49,28 @@ void main() {
       ''';
       
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SafeHtmlWidget(htmlContent: htmlContent),
           ),
         ),
       );
       
-      debugPrint('[DEBUG_LOG] Security test completed - dangerous tags should be blocked');
+      expect(find.byType(SafeHtmlWidget), findsOneWidget);
     });
 
     testWidgets('should handle empty content', (WidgetTester tester) async {
       const htmlContent = '';
       
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SafeHtmlWidget(htmlContent: htmlContent),
           ),
         ),
       );
       
-      debugPrint('[DEBUG_LOG] Empty content test completed');
+      expect(find.byType(SafeHtmlWidget), findsOneWidget);
     });
   });
-  
-  debugPrint('[DEBUG_LOG] All HTML rendering tests completed successfully');
 }

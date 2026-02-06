@@ -3,21 +3,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:pixelodon/services/settings_service.dart';
+import 'package:pixelodon/features/settings/data/settings_service.dart';
 
+import '../test_support/test_logger.dart';
 import 'settings_service_test.mocks.dart';
 
 @GenerateMocks([FlutterSecureStorage])
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  
+  // Suppress logger output during tests to keep test output clean
+  setUpAll(() {
+    suppressLoggerOutput();
+  });
+
   group('SettingsService Tests', () {
     late SettingsService settingsService;
     late MockFlutterSecureStorage mockStorage;
 
     setUp(() {
       mockStorage = MockFlutterSecureStorage();
-      settingsService = SettingsService();
-      // Note: We can't easily inject the storage dependency in the current implementation
-      // This is a limitation of the current design
+      settingsService = SettingsService(storage: mockStorage);
     });
 
     group('Theme Mode Management', () {

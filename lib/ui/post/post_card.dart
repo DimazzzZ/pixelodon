@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'package:timeago/timeago.dart' as timeago;
 
-import 'adapters_masto_pixelfed.dart';
-import 'html_sanitizer.dart';
-import 'platform_adaptive.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/html_sanitizer.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
 
 class PostCard extends StatelessWidget {
   final SocialPost post;

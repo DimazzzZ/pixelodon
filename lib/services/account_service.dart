@@ -19,7 +19,7 @@ class AccountService {
         'https://$domain/api/v1/accounts/verify_credentials',
       );
       
-      return Account.fromJson(response.data);
+      return Account.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -32,7 +32,7 @@ class AccountService {
         'https://$domain/api/v1/accounts/$id',
       );
       
-      return Account.fromJson(response.data);
+      return Account.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -58,7 +58,7 @@ class AccountService {
       );
       
       return (response.data as List)
-          .map((json) => Account.fromJson(json))
+          .map((json) => Account.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw _handleError(e);
@@ -84,7 +84,7 @@ class AccountService {
       );
       
       final accounts = (response.data as List)
-          .map((json) => Account.fromJson(json))
+          .map((json) => Account.fromJson(json as Map<String, dynamic>))
           .toList();
       
       return PaginatedResult.fromResponse(accounts, response.headers.map);
@@ -112,7 +112,7 @@ class AccountService {
       );
       
       final accounts = (response.data as List)
-          .map((json) => Account.fromJson(json))
+          .map((json) => Account.fromJson(json as Map<String, dynamic>))
           .toList();
       
       return PaginatedResult.fromResponse(accounts, response.headers.map);
@@ -242,7 +242,7 @@ class AccountService {
         data: formData,
       );
       
-      return Account.fromJson(response.data);
+      return Account.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }

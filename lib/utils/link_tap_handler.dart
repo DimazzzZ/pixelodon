@@ -11,8 +11,8 @@ import 'package:pixelodon/providers/service_providers.dart';
 /// - Mention links: prefer resolving via provided mentions list when available
 /// - Fallback mention resolution: parse /@username and resolve via search
 class LinkTapHandler {
-  static final RegExp _tagPattern = RegExp(r"/tags/([^/?#]+)");
-  static final RegExp _atUserPattern = RegExp(r"/@([A-Za-z0-9_\.]+)");
+  static final RegExp _tagPattern = RegExp(r'/tags/([^/?#]+)');
+  static final RegExp _atUserPattern = RegExp(r'/@([A-Za-z0-9_\.]+)');
 
   /// Handle a tapped URL from rich text/HTML.
   ///

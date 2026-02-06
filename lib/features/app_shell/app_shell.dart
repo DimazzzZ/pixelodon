@@ -3,10 +3,20 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'app_shell.g.dart';
 
 /// Provider for the current navigation index
-final currentIndexProvider = StateProvider<int>((ref) => 0);
+@Riverpod(keepAlive: true)
+class CurrentIndex extends _$CurrentIndex {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) {
+    state = index;
+  }
+}
 
 /// The main app shell with bottom navigation
 class AppShell extends ConsumerStatefulWidget {
@@ -113,7 +123,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (index == 2) {
       context.push(_destinations[index].path);
     } else {
-      ref.read(currentIndexProvider.notifier).state = index;
+      ref.read(currentIndexProvider.notifier).setIndex(index);
       context.go(_destinations[index].path);
     }
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import 'adapters_masto_pixelfed.dart';
-import 'tree_builder.dart';
-import 'reply_thread.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/tree_builder.dart';
+import 'package:pixelodon/ui/post/reply_thread.dart';
 
 /// A simple in-memory demo controller implementation
 class InMemoryThreadController implements ThreadController {

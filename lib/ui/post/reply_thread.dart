@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'platform_adaptive.dart';
-import 'reply_node_tile.dart';
-import 'tree_builder.dart';
-import 'adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
+import 'package:pixelodon/ui/post/reply_node_tile.dart';
+import 'package:pixelodon/ui/post/tree_builder.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
 
 abstract class ThreadController {
   Future<void> loadInitial(String postId);

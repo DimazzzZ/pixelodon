@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:pixelodon/models/notification.dart' as model;
@@ -12,8 +13,11 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:pixelodon/widgets/common/safe_html_widget.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 
+part 'notifications_screen.g.dart';
+
 /// Provider for notifications
-final notificationsProvider = StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
+@Riverpod(keepAlive: true)
+NotificationsNotifier notifications(NotificationsRef ref) {
   final notificationService = ref.watch(notificationServiceProvider);
   final activeInstance = ref.watch(activeInstanceProvider);
   
@@ -21,7 +25,7 @@ final notificationsProvider = StateNotifierProvider<NotificationsNotifier, Notif
     notificationService: notificationService,
     domain: activeInstance?.domain,
   );
-});
+}
 
 /// State for notifications
 class NotificationsState {
@@ -246,8 +250,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   
   /// Handle scroll events to load more notifications
   void _onScroll() {
-    final notificationsState = ref.read(notificationsProvider);
-    final notificationsNotifier = ref.read(notificationsProvider.notifier);
+    final NotificationsNotifier notificationsNotifier = ref.read(notificationsProvider);
+    final NotificationsState notificationsState = notificationsNotifier.state;
     
     if (notificationsState.hasMore && !notificationsState.isLoading) {
       final maxScroll = _scrollController.position.maxScrollExtent;
@@ -262,8 +266,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   
   @override
   Widget build(BuildContext context) {
-    final notificationsState = ref.watch(notificationsProvider);
-    final notificationsNotifier = ref.read(notificationsProvider.notifier);
+    final NotificationsNotifier notificationsNotifier = ref.watch(notificationsProvider);
+    final NotificationsState notificationsState = notificationsNotifier.state;
     final activeInstance = ref.watch(activeInstanceProvider);
 
     if (activeInstance == null) {

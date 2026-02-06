@@ -3,7 +3,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 import 'package:pixelodon/features/profile/data/profile_sources.dart';
-import 'package:pixelodon/features/profile/data/profile_models.dart';
 import 'package:pixelodon/services/account_service.dart';
 import 'package:pixelodon/services/timeline_service.dart';
 import 'package:pixelodon/models/status.dart';
@@ -43,7 +42,7 @@ void main() {
             id: '1',
             content: 'This is a reply',
             inReplyToId: '100', // This makes it a reply
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -63,7 +62,7 @@ void main() {
             id: '2',
             content: 'This is not a reply',
             inReplyToId: null, // This is not a reply
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -111,7 +110,7 @@ void main() {
             id: '1',
             content: 'This is a reply',
             inReplyToId: '100', // This makes it a reply
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -131,7 +130,7 @@ void main() {
             id: '2',
             content: 'This is not a reply',
             inReplyToId: null, // This is not a reply
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -151,7 +150,7 @@ void main() {
             id: '3',
             content: 'Another reply',
             inReplyToId: '200', // This makes it a reply
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -247,7 +246,7 @@ void main() {
             rebloggedStatus: Status(
               id: '100',
               content: 'This is the original post that was boosted',
-              account: Account(
+              account: const Account(
                 id: '999',
                 username: 'originaluser',
                 displayName: 'Original User',
@@ -263,7 +262,7 @@ void main() {
               reblogsCount: 2,
               repliesCount: 1,
             ),
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -283,7 +282,7 @@ void main() {
             id: '2',
             content: 'Regular post, not a boost',
             rebloggedStatus: null, // This is not a boost
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -333,7 +332,7 @@ void main() {
             rebloggedStatus: Status(
               id: '100',
               content: 'This is the original post that was boosted',
-              account: Account(
+              account: const Account(
                 id: '999',
                 username: 'originaluser',
                 displayName: 'Original User',
@@ -349,7 +348,7 @@ void main() {
               reblogsCount: 2,
               repliesCount: 1,
             ),
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -369,7 +368,7 @@ void main() {
             id: '2',
             content: 'Regular post, not a boost',
             rebloggedStatus: null, // This is not a boost
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',
@@ -391,7 +390,7 @@ void main() {
             rebloggedStatus: Status(
               id: '200',
               content: 'Another original post',
-              account: Account(
+              account: const Account(
                 id: '888',
                 username: 'anotheruser',
                 displayName: 'Another User',
@@ -407,7 +406,7 @@ void main() {
               reblogsCount: 1,
               repliesCount: 0,
             ),
-            account: Account(
+            account: const Account(
               id: testUserId,
               username: 'testuser',
               displayName: 'Test User',

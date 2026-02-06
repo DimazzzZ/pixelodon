@@ -178,10 +178,11 @@ void main() {
         expect(json['id'], testStatusId);
         expect(json['uri'], testUri);
         expect(json['created_at'], testCreatedAt.toIso8601String());
-        expect(json['account'], isA<Map<String, dynamic>>());
+        // Freezed toJson() returns nested objects, not maps
+        expect(json['account'], isA<Account>());
         expect(json['content'], testContent);
         expect(json['visibility'], 'unlisted');
-        expect(json['is_reply'], true);
+        expect(json['isReply'], true);
         expect(json['reblogs_count'], 5);
         expect(json['favourites_count'], 10);
         expect(json['replies_count'], 3);
@@ -191,7 +192,7 @@ void main() {
         expect(json['spoiler_text'], testSpoilerText);
         expect(json['sensitive'], true);
         expect(json['language'], testLanguage);
-        expect(json['is_pixelfed'], true);
+        expect(json['isPixelfed'], true);
       });
 
       test('should serialize to JSON correctly with minimal fields', () {
@@ -210,13 +211,13 @@ void main() {
         expect(json['uri'], testUri);
         expect(json['content'], testContent);
         expect(json['visibility'], 'public');
-        expect(json['is_reply'], false);
-        expect(json['is_reblog'], false);
-        expect(json['is_quote'], false);
+        expect(json['isReply'], false);
+        expect(json['isReblog'], false);
+        expect(json['isQuote'], false);
         expect(json['reblogs_count'], 0);
         expect(json['favourites_count'], 0);
         expect(json['replies_count'], 0);
-        expect(json['is_pixelfed'], false);
+        expect(json['isPixelfed'], false);
       });
     });
 
@@ -229,9 +230,9 @@ void main() {
           'account': testAccount.toJson(),
           'content': testContent,
           'visibility': 'direct',
-          'is_reply': true,
-          'is_reblog': false,
-          'is_quote': true,
+          'isReply': true,
+          'isReblog': false,
+          'isQuote': true,
           'in_reply_to_id': 'reply123',
           'in_reply_to_account_id': 'account456',
           'url': testUrl,
@@ -247,7 +248,7 @@ void main() {
           'sensitive': true,
           'language': testLanguage,
           'text': 'Plain text',
-          'is_pixelfed': true,
+          'isPixelfed': true,
           'media_attachments': [],
           'mentions': [],
           'tags': ['test', 'status'],
@@ -562,7 +563,7 @@ void main() {
         'id': testAttachmentId,
         'type': 'audio',
         'url': testAttachmentUrl,
-        'preview_url': testPreviewUrl,
+        'previewUrl': testPreviewUrl,
         'description': testDescription,
         'duration': 180.0,
       };

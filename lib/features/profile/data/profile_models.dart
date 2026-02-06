@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../../../models/account.dart';
-import '../../../models/status.dart';
+import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/models/status.dart';
 
 part 'profile_models.freezed.dart';
 part 'profile_models.g.dart';
@@ -77,7 +77,7 @@ class UserProfile with _$UserProfile {
       (field) => field.name.toLowerCase().contains('interest') ||
                  field.name.toLowerCase().contains('hobby') ||
                  field.name.toLowerCase().contains('tag'),
-      orElse: () => Field(name: '', value: ''),
+      orElse: () => const Field(name: '', value: ''),
     );
     
     if (interestsField.value.isEmpty) return [];

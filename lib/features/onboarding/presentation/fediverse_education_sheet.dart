@@ -215,6 +215,9 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
       children: blocks.asMap().entries.map((entry) {
         final index = entry.key;
         final block = entry.value;
+        final icon = block['icon'] as IconData;
+        final title = block['title'] as String;
+        final subtitle = block['subtitle'] as String;
         
         return Padding(
           padding: EdgeInsets.only(bottom: index < blocks.length - 1 ? 12 : 0),
@@ -222,7 +225,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                block['icon'] as IconData,
+                icon,
                 size: iconSize,
                 color: theme.colorScheme.primary,
               ),
@@ -232,14 +235,14 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      block['title'] as String,
+                      title,
                       style: isIOS 
                           ? theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)
                           : theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      block['subtitle'] as String,
+                      subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -291,11 +294,14 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
   }
 
   Widget _buildIOSFaqItem(BuildContext context, ThemeData theme, int index, Map<String, dynamic> item) {
+    final question = item['question'] as String;
+    final answer = item['answer'] as String;
+    
     return Padding(
       padding: EdgeInsets.only(bottom: index < 2 ? 8 : 0),
       child: Semantics(
         button: true,
-        label: '${item['question']}, ${_faqExpanded[index] ? 'expanded' : 'collapsed'}',
+        label: '$question, ${_faqExpanded[index] ? 'expanded' : 'collapsed'}',
         child: GestureDetector(
           onTap: () => _toggleFaqItem(index),
           child: Container(
@@ -311,7 +317,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
                   children: [
                     Expanded(
                       child: Text(
-                        item['question']!,
+                        question,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -335,7 +341,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
                       ? Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            item['answer']!,
+                            answer,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -352,6 +358,9 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
   }
 
   Widget _buildAndroidFaqItem(BuildContext context, ThemeData theme, int index, Map<String, dynamic> item) {
+    final question = item['question'] as String;
+    final answer = item['answer'] as String;
+    
     return Padding(
       padding: EdgeInsets.only(bottom: index < 2 ? 8 : 0),
       child: Theme(
@@ -360,7 +369,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
         ),
         child: ExpansionTile(
           title: Text(
-            item['question']!,
+            question,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -371,7 +380,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  item['answer']!,
+                  answer,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -404,7 +413,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
                   borderRadius: BorderRadius.circular(12),
                   child: Text(
                     l10n?.fediverseEducationContinueButton ?? 'Continue',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       color: CupertinoColors.white,
@@ -420,7 +429,7 @@ class _FediverseEducationSheetState extends ConsumerState<FediverseEducationShee
                   ),
                   child: Text(
                     l10n?.fediverseEducationContinueButton ?? 'Continue',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

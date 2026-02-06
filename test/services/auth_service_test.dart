@@ -4,8 +4,6 @@ import 'package:mockito/mockito.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pixelodon/services/auth_service.dart';
-import 'package:pixelodon/models/instance.dart';
-import 'package:pixelodon/models/account.dart';
 
 import 'auth_service_test.mocks.dart';
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'platform_adaptive.dart';
-import 'reply_thread.dart';
-import 'post_card.dart';
-import 'adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
+import 'package:pixelodon/ui/post/reply_thread.dart';
+import 'package:pixelodon/ui/post/post_card.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
 
 /// Facade wrapper (API-compatible placeholder with common props)
 /// Migration notes:
@@ -19,7 +19,7 @@ class PostWithReplies extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AdaptiveScaffold(
-      navBarTitle: Text('Post'),
+      navBarTitle: const Text('Post'),
       body: Column(
         children: [
           PostCard(post: post),

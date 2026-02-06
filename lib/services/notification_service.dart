@@ -45,7 +45,7 @@ class NotificationService {
       );
       
       return (response.data as List)
-          .map((json) => model.Notification.fromJson(json))
+          .map((json) => model.Notification.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw _handleError(e);
@@ -62,7 +62,7 @@ class NotificationService {
         'https://$domain/api/v1/notifications/$notificationId',
       );
       
-      return model.Notification.fromJson(response.data);
+      return model.Notification.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }

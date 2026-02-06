@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:pixelodon/core/theme/app_theme.dart';
 import 'dart:io';
 
@@ -111,9 +110,9 @@ class PlatformAppBar extends StatelessWidget implements PreferredSizeWidget {
                 if (action is IconButton) {
                   return CupertinoButton(
                     padding: EdgeInsets.zero,
-                    minSize: 44.0, // iOS minimum hit target
+                    minSize: 44.0,
+                    onPressed: action.onPressed, // iOS minimum hit target
                     child: action.icon,
-                    onPressed: action.onPressed,
                   );
                 } else if (action is CupertinoButton) {
                   return action;
@@ -171,8 +170,8 @@ class PlatformAppBar extends StatelessWidget implements PreferredSizeWidget {
                   return CupertinoButton(
                     padding: EdgeInsets.zero,
                     minSize: 44.0,
-                    child: action.icon,
                     onPressed: action.onPressed,
+                    child: action.icon,
                   );
                 } else if (action is CupertinoButton) {
                   return action;

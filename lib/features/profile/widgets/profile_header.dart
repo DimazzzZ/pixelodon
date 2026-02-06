@@ -122,7 +122,7 @@ class ProfileHeader extends StatelessWidget {
                           htmlContent: account.note!,
                           onLinkTap: (url) => LinkTapHandler.handleLinkTap(context, url),
                           customStyles: {
-                            "body": Style(
+                            'body': Style(
                               margin: Margins.zero,
                               padding: HtmlPaddings.zero,
                               textAlign: TextAlign.center,
@@ -131,13 +131,13 @@ class ProfileHeader extends StatelessWidget {
                               maxLines: 3,
                               textOverflow: TextOverflow.ellipsis,
                             ),
-                            "p": Style(
+                            'p': Style(
                               margin: Margins.zero,
                               textAlign: TextAlign.center,
                               color: theme.colorScheme.onSurface.withOpacity(0.7),
                               fontSize: FontSize(theme.textTheme.bodySmall?.fontSize ?? 12),
                             ),
-                            "a": Style(
+                            'a': Style(
                               color: theme.colorScheme.primary,
                               textDecoration: TextDecoration.none,
                             ),

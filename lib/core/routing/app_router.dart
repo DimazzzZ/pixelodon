@@ -16,6 +16,7 @@ import 'package:pixelodon/features/profile/domain/profile_usecases.dart';
 import 'package:pixelodon/features/profile/screens/follow_list_screen.dart';
 import 'package:pixelodon/features/settings/screens/settings_screen.dart';
 import 'package:pixelodon/features/splash/screens/splash_screen.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
 
 import 'package:pixelodon/features/status/screens/status_detail_screen.dart';
@@ -349,7 +350,7 @@ void _setupDeepLinkHandling(GoRouter router) {
   final appLinks = AppLinks();
 
   // Handle initial link if app was launched from a deep link
-  appLinks.getInitialAppLink().then((uri) {
+  appLinks.getInitialLink().then((uri) {
     if (uri != null) {
       _handleDeepLink(router, uri);
     }
@@ -406,19 +407,14 @@ void _handleDeepLink(GoRouter router, Uri uri) async {
 
 /// Helper function to build the OAuth callback screen
 Widget _buildOAuthCallbackScreen(GoRouterState state) {
-  debugPrint('OAuth callback route - URI: ${state.uri}');
-  
   // Get parameters from query string
   final queryParams = state.uri.queryParameters;
   final domain = queryParams['domain'];
   final oauthState = queryParams['state'];
   final code = queryParams['code'];
   
-  debugPrint('OAuth callback route - Query parameters: $queryParams');
-  
   // Check fragment for parameters if they're not in query string
   if ((domain == null || oauthState == null || code == null) && state.uri.fragment.isNotEmpty) {
-    debugPrint('OAuth callback route - Checking fragment: ${state.uri.fragment}');
     final fragmentParams = Uri.splitQueryString(state.uri.fragment);
     final fragmentDomain = fragmentParams['domain'];
     final fragmentState = fragmentParams['state'];
@@ -437,9 +433,9 @@ Widget _buildOAuthCallbackScreen(GoRouterState state) {
   final extra = state.extra as Map<String, dynamic>?;
   if (extra != null && extra.containsKey('domain') && extra.containsKey('state')) {
     return OAuthCallbackScreen(
-      domain: extra['domain']!,
-      state: extra['state']!,
-      code: extra['code'],
+      domain: extra['domain'] as String,
+      state: extra['state'] as String,
+      code: extra['code'] as String?,
     );
   }
   

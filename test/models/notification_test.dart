@@ -117,13 +117,14 @@ void main() {
         expect(json['id'], testNotificationId);
         expect(json['type'], 'mention');
         expect(json['created_at'], testCreatedAt.toIso8601String());
-        expect(json['account'], isA<Map<String, dynamic>>());
-        expect(json['status'], isA<Map<String, dynamic>>());
+        // Freezed toJson() returns nested objects, not maps
+        expect(json['account'], isA<Account>());
+        expect(json['status'], isA<Status>());
         expect(json['status_id'], testStatusId);
         expect(json['report_id'], testReportId);
         expect(json['read'], true);
         expect(json['domain'], testDomain);
-        expect(json['is_pixelfed'], true);
+        expect(json['isPixelfed'], true);
       });
 
       test('should serialize to JSON correctly with minimal fields', () {
@@ -139,25 +140,43 @@ void main() {
         expect(json['id'], testNotificationId);
         expect(json['type'], 'follow');
         expect(json['created_at'], testCreatedAt.toIso8601String());
-        expect(json['account'], isA<Map<String, dynamic>>());
+        // Freezed toJson() returns nested objects, not maps
+        expect(json['account'], isA<Account>());
         expect(json['read'], false);
-        expect(json['is_pixelfed'], false);
+        expect(json['isPixelfed'], false);
       });
     });
 
     group('JSON Deserialization Tests', () {
       test('should deserialize from JSON correctly with all fields', () {
+        // Build proper JSON maps for fromJson (not using toJson which returns objects)
+        final accountJson = {
+          'id': 'account123',
+          'username': 'testuser',
+          'acct': 'testuser@example.com',
+          'display_name': 'Test User',
+        };
+        
+        final statusJson = {
+          'id': testStatusId,
+          'uri': 'https://example.com/status/123',
+          'created_at': testCreatedAt.toIso8601String(),
+          'account': accountJson,
+          'content': 'Test status content',
+          'visibility': 'public',
+        };
+        
         final json = {
           'id': testNotificationId,
           'type': 'favourite',
           'created_at': testCreatedAt.toIso8601String(),
-          'account': testAccount.toJson(),
-          'status': testStatus.toJson(),
+          'account': accountJson,
+          'status': statusJson,
           'status_id': testStatusId,
           'report_id': testReportId,
           'read': true,
           'domain': testDomain,
-          'is_pixelfed': true,
+          'isPixelfed': true,
         };
 
         final notification = Notification.fromJson(json);
@@ -175,11 +194,18 @@ void main() {
       });
 
       test('should deserialize from JSON correctly with minimal fields', () {
+        final accountJson = {
+          'id': 'account123',
+          'username': 'testuser',
+          'acct': 'testuser@example.com',
+          'display_name': 'Test User',
+        };
+        
         final json = {
           'id': testNotificationId,
           'type': 'follow_request',
           'created_at': testCreatedAt.toIso8601String(),
-          'account': testAccount.toJson(),
+          'account': accountJson,
         };
 
         final notification = Notification.fromJson(json);
@@ -197,11 +223,18 @@ void main() {
       });
 
       test('should handle JSON string input', () {
+        final accountJson = {
+          'id': 'account123',
+          'username': 'testuser',
+          'acct': 'testuser@example.com',
+          'display_name': 'Test User',
+        };
+        
         final jsonString = jsonEncode({
           'id': testNotificationId,
           'type': 'reblog',
           'created_at': testCreatedAt.toIso8601String(),
-          'account': testAccount.toJson(),
+          'account': accountJson,
           'read': true,
         });
 
@@ -214,11 +247,18 @@ void main() {
       });
 
       test('should handle null values correctly', () {
+        final accountJson = {
+          'id': 'account123',
+          'username': 'testuser',
+          'acct': 'testuser@example.com',
+          'display_name': 'Test User',
+        };
+        
         final json = {
           'id': testNotificationId,
           'type': 'follow',
           'created_at': testCreatedAt.toIso8601String(),
-          'account': testAccount.toJson(),
+          'account': accountJson,
           'status': null,
           'status_id': null,
           'report_id': null,

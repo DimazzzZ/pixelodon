@@ -837,6 +837,50 @@ class MockTimelineService extends _i1.Mock implements _i7.TimelineService {
       ) as _i6.Future<_i4.Status>);
 
   @override
+  _i6.Future<List<_i2.Account>> getStatusRebloggedBy(
+    String? domain,
+    String? id, {
+    int? limit,
+    String? maxId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getStatusRebloggedBy,
+          [
+            domain,
+            id,
+          ],
+          {
+            #limit: limit,
+            #maxId: maxId,
+          },
+        ),
+        returnValue: _i6.Future<List<_i2.Account>>.value(<_i2.Account>[]),
+      ) as _i6.Future<List<_i2.Account>>);
+
+  @override
+  _i6.Future<List<_i2.Account>> getStatusFavouritedBy(
+    String? domain,
+    String? id, {
+    int? limit,
+    String? maxId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getStatusFavouritedBy,
+          [
+            domain,
+            id,
+          ],
+          {
+            #limit: limit,
+            #maxId: maxId,
+          },
+        ),
+        returnValue: _i6.Future<List<_i2.Account>>.value(<_i2.Account>[]),
+      ) as _i6.Future<List<_i2.Account>>);
+
+  @override
   _i6.Future<_i4.Status> bookmarkStatus(
     String? domain,
     String? id,

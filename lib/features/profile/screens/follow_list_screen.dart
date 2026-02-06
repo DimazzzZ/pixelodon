@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/providers/auth_provider.dart';
@@ -10,7 +8,6 @@ import 'package:pixelodon/features/profile/widgets/compact_account_tile.dart';
 import 'package:pixelodon/features/profile/widgets/skeleton_account_tile.dart';
 import 'package:pixelodon/features/profile/widgets/follow_list_states.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 enum FollowListType { following, followers }
 

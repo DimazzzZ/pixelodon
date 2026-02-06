@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
-import 'platform_adaptive.dart';
-import 'tree_builder.dart';
+import 'package:pixelodon/ui/post/platform_adaptive.dart';
+import 'package:pixelodon/ui/post/tree_builder.dart';
 
 class ReplyActionBar extends StatelessWidget {
   final ReplyNode node;

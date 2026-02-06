@@ -35,7 +35,7 @@ class MediaService {
         data: formData,
       );
       
-      return MediaAttachment.fromJson(response.data);
+      return MediaAttachment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -48,7 +48,7 @@ class MediaService {
         'https://$domain/api/v1/media/$id',
       );
       
-      return MediaAttachment.fromJson(response.data);
+      return MediaAttachment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -70,7 +70,7 @@ class MediaService {
         },
       );
       
-      return MediaAttachment.fromJson(response.data);
+      return MediaAttachment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -97,7 +97,7 @@ class MediaService {
         data: formData,
       );
       
-      return MediaAttachment.fromJson(response.data);
+      return MediaAttachment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -110,7 +110,7 @@ class MediaService {
         'https://$domain/api/v1/media/$id/exif',
       );
       
-      return response.data;
+      return response.data as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
     }
@@ -146,7 +146,7 @@ class MediaService {
         },
       );
       
-      return MediaAttachment.fromJson(response.data);
+      return MediaAttachment.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
     }
@@ -170,7 +170,7 @@ class MediaService {
       );
       
       return (response.data as List)
-          .map((json) => MediaAttachment.fromJson(json))
+          .map((json) => MediaAttachment.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw _handleError(e);
@@ -197,7 +197,7 @@ class MediaService {
       );
       
       return (response.data as List)
-          .map((json) => Status.fromJson(json))
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw _handleError(e);

@@ -1,7 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'account.dart';
-import 'status.dart';
+import 'package:pixelodon/models/account.dart';
+import 'package:pixelodon/models/status.dart';
 
 part 'notification.freezed.dart';
 part 'notification.g.dart';

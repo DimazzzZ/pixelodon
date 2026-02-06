@@ -245,7 +245,7 @@ class AppTheme {
         indicatorColor: primaryColor.withOpacity(0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return TextStyle(
+            return const TextStyle(
               color: primaryColor,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -260,7 +260,7 @@ class AppTheme {
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: primaryColor, size: 24);
+            return const IconThemeData(color: primaryColor, size: 24);
           }
           return IconThemeData(color: secondaryTextColor, size: 24);
         }),
@@ -269,12 +269,12 @@ class AppTheme {
         labelColor: primaryColor,
         unselectedLabelColor: secondaryTextColor,
         indicatorColor: primaryColor,
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
           fontFamily: fontFamily,
         ),
-        unselectedLabelStyle: TextStyle(
+        unselectedLabelStyle: const TextStyle(
           fontSize: 13,
           fontFamily: fontFamily,
         ),

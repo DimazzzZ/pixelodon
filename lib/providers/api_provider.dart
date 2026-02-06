@@ -1,24 +1,19 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:pixelodon/core/network/api_service.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-/// Provider for the API service
-final apiServiceProvider = Provider<ApiService>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
+part 'api_provider.g.dart';
+
+/// Provider for the ApiService
+@Riverpod(keepAlive: true)
+ApiService apiService(ApiServiceRef ref) {
+  final authRepository = ref.watch(authRepositoryProvider.notifier);
   return ApiService(authRepository: authRepository);
-});
+}
 
-/// Provider for building API URLs for a specific instance
-final apiUrlProvider = Provider.family<String, ({String domain, String endpoint})>((ref, params) {
-  return 'https://${params.domain}/api/v1/${params.endpoint}';
-});
-
-/// Provider for checking if an instance is Pixelfed
-final isPixelfedProvider = Provider.family<bool, String>((ref, domain) {
-  final instances = ref.watch(instancesProvider);
-  final instance = instances.firstWhere(
-    (instance) => instance.domain == domain,
-    orElse: () => throw Exception('Instance not found: $domain'),
-  );
-  return instance.isPixelfed;
-});
+/// Provider for a pre-configured Dio instance
+@Riverpod(keepAlive: true)
+Dio dio(DioRef ref) {
+  return Dio();
+}

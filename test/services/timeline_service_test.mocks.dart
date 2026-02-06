@@ -23,7 +23,7 @@ import 'package:pixelodon/core/network/api_service.dart' as _i3;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeResponse_0<T> extends _i1.SmartFake implements _i2.Response<T> {
+class _FakeResponse_0<T1> extends _i1.SmartFake implements _i2.Response<T1> {
   _FakeResponse_0(
     Object parent,
     Invocation parentInvocation,
@@ -42,7 +42,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
   }
 
   @override
-  _i4.Future<_i2.Response<dynamic>> get(
+  _i4.Future<_i2.Response<T>> get<T>(
     String? url, {
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
@@ -60,8 +60,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #onReceiveProgress: onReceiveProgress,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #get,
@@ -74,10 +73,10 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 
   @override
-  _i4.Future<_i2.Response<dynamic>> post(
+  _i4.Future<_i2.Response<T>> post<T>(
     String? url, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
@@ -99,8 +98,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #onReceiveProgress: onReceiveProgress,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #post,
@@ -115,10 +113,10 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 
   @override
-  _i4.Future<_i2.Response<dynamic>> put(
+  _i4.Future<_i2.Response<T>> put<T>(
     String? url, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
@@ -140,8 +138,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #onReceiveProgress: onReceiveProgress,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #put,
@@ -156,10 +153,10 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 
   @override
-  _i4.Future<_i2.Response<dynamic>> delete(
+  _i4.Future<_i2.Response<T>> delete<T>(
     String? url, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
@@ -177,8 +174,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #cancelToken: cancelToken,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #delete,
@@ -191,10 +187,10 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 
   @override
-  _i4.Future<_i2.Response<dynamic>> patch(
+  _i4.Future<_i2.Response<T>> patch<T>(
     String? url, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
@@ -216,8 +212,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #onReceiveProgress: onReceiveProgress,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #patch,
@@ -232,10 +227,10 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 
   @override
-  _i4.Future<_i2.Response<dynamic>> uploadFile(
+  _i4.Future<_i2.Response<T>> uploadFile<T>(
     String? url, {
     required _i5.File? file,
     required String? fieldName,
@@ -261,8 +256,7 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             #onReceiveProgress: onReceiveProgress,
           },
         ),
-        returnValue:
-            _i4.Future<_i2.Response<dynamic>>.value(_FakeResponse_0<dynamic>(
+        returnValue: _i4.Future<_i2.Response<T>>.value(_FakeResponse_0<T>(
           this,
           Invocation.method(
             #uploadFile,
@@ -279,5 +273,5 @@ class MockApiService extends _i1.Mock implements _i3.ApiService {
             },
           ),
         )),
-      ) as _i4.Future<_i2.Response<dynamic>>);
+      ) as _i4.Future<_i2.Response<T>>);
 }

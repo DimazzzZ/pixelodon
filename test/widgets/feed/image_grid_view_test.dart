@@ -51,7 +51,7 @@ void main() {
         spoilerText: '',
         visibility: status_model.Visibility.public,
         mediaAttachments: [
-          status_model.MediaAttachment(
+          const status_model.MediaAttachment(
             id: '1',
             type: status_model.AttachmentType.image,
             url: 'https://example.com/image.jpg',
@@ -97,7 +97,7 @@ void main() {
 
     testWidgets('should handle empty status list', (WidgetTester tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        const ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: ImageGridView(
@@ -118,7 +118,7 @@ void main() {
 
     testWidgets('should handle error state', (WidgetTester tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        const ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: ImageGridView(

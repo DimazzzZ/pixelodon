@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 import 'package:pixelodon/providers/settings_provider.dart';
 import 'package:pixelodon/widgets/common/app_page_scaffold.dart';
-import 'package:pixelodon/widgets/common/platform_app_bar_wrapper.dart';
 
 /// Screen for handling OAuth callback
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
@@ -91,12 +90,12 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
       }
 
       // Exchange the authorization code for tokens
-      final authRepository = ref.read(authRepositoryProvider);
+      final authRepository = ref.read(authRepositoryProvider.notifier);
       await authRepository.completeOAuthFlow(widget.domain, code, state: widget.state);
 
       if (mounted) {
         // Mark onboarding as completed since user successfully logged in
-        await ref.read(onboardingCompletedProvider.notifier).setOnboardingCompleted(true);
+        await ref.read(onboardingCompletedNotifierProvider.notifier).setOnboardingCompleted(true);
 
         // Navigate to home screen on success
         context.go('/');

@@ -12,7 +12,7 @@ class DeepLinkService {
 
   Future<void> init() async {
     // Get initial link if app was launched from link
-    final uri = await _appLinks.getInitialAppLink();
+    final uri = await _appLinks.getInitialLink();
     if (uri != null) {
       _linkStreamController.add(uri);
     }
@@ -20,7 +20,9 @@ class DeepLinkService {
     // Listen for links while app is running
     _appLinks.uriLinkStream.listen(
       (uri) => _linkStreamController.add(uri),
-      onError: (err) => debugPrint('Deep link error: $err'),
+      onError: (err) {
+        // Error logged silently - deep link errors are non-fatal
+      },
     );
   }
 

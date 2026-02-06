@@ -1,11 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
+import 'package:pixelodon/repositories/auth_repository.dart';
 
 /// Splash screen that shows the app logo and loading indicator
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
+
+  /// Set to true in tests to skip the splash delay
+  static bool testMode = false;
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
@@ -26,23 +30,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Just ensure the provider is created by reading it
       ref.read(authRepositoryProvider);
 
-      // Wait at least 2 seconds to show the splash screen
-      await Future.delayed(const Duration(seconds: 2));
+      // Wait at least 2 seconds to show the splash screen (skip in test mode)
+      if (!SplashScreen.testMode) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
 
       if (mounted) {
         // Let the router handle redirection based on auth state and onboarding status
         // Navigate to root and let the router redirect appropriately
-        context.go('/');
+        // Use addPostFrameCallback to avoid calling go() during build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.go('/');
+          }
+        });
       }
     } catch (e) {
       // If initialization fails, still allow navigation to login
       debugPrint('Failed to initialize auth repository: $e');
 
-      await Future.delayed(const Duration(seconds: 2));
+      if (!SplashScreen.testMode) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
 
       if (mounted) {
         // Let the router handle redirection
-        context.go('/');
+        // Use addPostFrameCallback to avoid calling go() during build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.go('/');
+          }
+        });
       }
     }
   }

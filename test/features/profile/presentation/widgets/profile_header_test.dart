@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:pixelodon/features/profile/presentation/widgets/profile_header.dart';
 import 'package:pixelodon/features/profile/data/profile_models.dart';
-import 'package:pixelodon/providers/auth_provider.dart';
 import 'package:pixelodon/models/instance.dart';
 import '../../../../test_support/app_pump.dart';
 

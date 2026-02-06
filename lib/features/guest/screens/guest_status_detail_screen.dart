@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixelodon/models/status.dart';
 import 'package:pixelodon/widgets/feed/post_card.dart';
 
+part 'guest_status_detail_screen.g.dart';
+
 /// Default instance for guest mode
 const String _defaultGuestInstance = 'mastodon.social';
 
 /// Simple guest API service for status details
-final guestStatusApiProvider = Provider<Dio>((ref) {
+@Riverpod(keepAlive: true)
+Dio guestStatusApi(GuestStatusApiRef ref) {
   final dio = Dio();
   dio.options.connectTimeout = const Duration(seconds: 30);
   dio.options.receiveTimeout = const Duration(seconds: 30);
@@ -18,7 +22,7 @@ final guestStatusApiProvider = Provider<Dio>((ref) {
     'Accept': 'application/json',
   };
   return dio;
-});
+}
 
 /// State for guest status detail
 class GuestStatusDetailState {
@@ -58,10 +62,11 @@ class GuestStatusDetailState {
 }
 
 /// Provider for guest status detail
-final guestStatusDetailProvider = StateNotifierProvider.family<GuestStatusDetailNotifier, GuestStatusDetailState, String>((ref, statusId) {
+@Riverpod(keepAlive: true)
+GuestStatusDetailNotifier guestStatusDetail(GuestStatusDetailRef ref, String statusId) {
   final dio = ref.watch(guestStatusApiProvider);
   return GuestStatusDetailNotifier(dio, statusId);
-});
+}
 
 /// Notifier for guest status detail
 class GuestStatusDetailNotifier extends StateNotifier<GuestStatusDetailState> {
@@ -85,7 +90,7 @@ class GuestStatusDetailNotifier extends StateNotifier<GuestStatusDetailState> {
         'https://$_defaultGuestInstance/api/v1/statuses/$_statusId',
       );
 
-      final status = Status.fromJson(statusResponse.data);
+      final status = Status.fromJson(statusResponse.data as Map<String, dynamic>);
 
       // Load the context (ancestors and descendants)
       final contextResponse = await _dio.get(
@@ -93,11 +98,11 @@ class GuestStatusDetailNotifier extends StateNotifier<GuestStatusDetailState> {
       );
 
       final ancestors = (contextResponse.data['ancestors'] as List)
-          .map((json) => Status.fromJson(json))
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
           .toList();
 
       final descendants = (contextResponse.data['descendants'] as List)
-          .map((json) => Status.fromJson(json))
+          .map((json) => Status.fromJson(json as Map<String, dynamic>))
           .toList();
 
       print('Guest mode: Loaded status with ${ancestors.length} ancestors and ${descendants.length} descendants');
@@ -132,8 +137,8 @@ class GuestStatusDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(guestStatusDetailProvider(statusId));
-    final notifier = ref.read(guestStatusDetailProvider(statusId).notifier);
+    final GuestStatusDetailNotifier notifier = ref.watch(guestStatusDetailProvider(statusId));
+    final GuestStatusDetailState state = notifier.state;
 
     return Scaffold(
       appBar: AppBar(

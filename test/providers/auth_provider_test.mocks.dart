@@ -68,6 +68,50 @@ class MockAuthService extends _i1.Mock implements _i3.AuthService {
       ) as _i4.Future<Map<String, String>>);
 
   @override
+  _i4.Future<void> storeCodeVerifier(
+    String? domain,
+    String? state,
+    String? verifier,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #storeCodeVerifier,
+          [
+            domain,
+            state,
+            verifier,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<String?> getDomainFromState(String? state) => (super.noSuchMethod(
+        Invocation.method(
+          #getDomainFromState,
+          [state],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
+  _i4.Future<String?> getAndRemoveCodeVerifier(
+    String? domain,
+    String? state,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAndRemoveCodeVerifier,
+          [
+            domain,
+            state,
+          ],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
   _i4.Future<Map<String, String>> getAuthorizationUrl(
     String? domain, {
     bool? forRegistration = false,

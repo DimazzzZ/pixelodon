@@ -1,6 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/profile_models.dart';
-import '../data/profile_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/data/profile_repository.dart';
+
+part 'profile_usecases.g.dart';
 
 /// Use cases for profile-related operations
 /// Contains business logic and orchestrates repository calls
@@ -98,11 +100,12 @@ class ProfileException implements Exception {
 }
 
 /// Provider for profile use cases
-final profileUseCasesProvider = Provider<ProfileUseCases>((ref) {
+@Riverpod(keepAlive: true)
+ProfileUseCases profileUseCases(ProfileUseCasesRef ref) {
   return ProfileUseCasesImpl(
     repository: ref.watch(profileRepositoryProvider),
   );
-});
+}
 
 /// Route arguments for profile screen
 class ProfileRouteArgs {

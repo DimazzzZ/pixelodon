@@ -3,12 +3,13 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pixelodon/models/instance.dart';
 import 'package:pixelodon/models/account.dart';
 import 'package:pixelodon/core/config/tech_account_config.dart';
+import 'package:pixelodon/core/network/api_service.dart';
+import 'package:pixelodon/utils/logger.dart';
 
 /// Enhanced service for handling authentication with Mastodon and Pixelfed instances
 /// This is a new implementation with improved features and error handling
@@ -64,12 +65,12 @@ class AuthService {
   Future<Instance> discoverInstance(String domain) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       // Check if instance exists and get info
-      final response = await _dio.get('https://$domain/api/v1/instance');
+      final response = await _dio.get<Map<String, dynamic>>('https://$normalizedDomain/api/v1/instance');
       
-      final json = response.data;
+      final Map<String, dynamic> json = response.data!;
       
       // Check if it's a Pixelfed instance
       bool isPixelfed = false;
@@ -82,15 +83,15 @@ class AuthService {
       // Check for stories support (Pixelfed specific)
       if (isPixelfed) {
         try {
-          final nodeInfoResponse = await _dio.get('https://$domain/.well-known/nodeinfo');
-          final nodeInfoLinks = nodeInfoResponse.data['links'] as List;
+          final nodeInfoResponse = await _dio.get<Map<String, dynamic>>('https://$normalizedDomain/.well-known/nodeinfo');
+          final nodeInfoLinks = nodeInfoResponse.data!['links'] as List;
           if (nodeInfoLinks.isNotEmpty) {
-            final nodeInfoUrl = nodeInfoLinks.first['href'];
-            final nodeInfoDetailsResponse = await _dio.get(nodeInfoUrl);
-            final software = nodeInfoDetailsResponse.data['software'];
+            final nodeInfoUrl = nodeInfoLinks.first['href'] as String;
+            final nodeInfoDetailsResponse = await _dio.get<Map<String, dynamic>>(nodeInfoUrl);
+            final software = nodeInfoDetailsResponse.data!['software'] as Map<String, dynamic>?;
             if (software != null && software['name'] == 'pixelfed') {
               // Check for stories support in features
-              final features = nodeInfoDetailsResponse.data['metadata']['features'] as List?;
+              final features = nodeInfoDetailsResponse.data!['metadata']['features'] as List?;
               if (features != null) {
                 supportsStories = features.contains('stories');
               }
@@ -98,40 +99,41 @@ class AuthService {
           }
         } catch (e) {
           // Ignore errors in nodeinfo detection
-          debugPrint('Error detecting nodeinfo: $e');
+          logger.w('Error detecting nodeinfo for $normalizedDomain: $e');
         }
       }
       
       return Instance(
-        domain: domain,
-        name: json['title'] ?? domain,
-        description: json['description'],
-        version: json['version'],
-        thumbnail: json['thumbnail'],
+        domain: normalizedDomain,
+        name: (json['title'] ?? normalizedDomain) as String,
+        description: json['description'] as String?,
+        version: json['version'] as String?,
+        thumbnail: json['thumbnail'] as String?,
         languages: json['languages'] != null 
-            ? List<String>.from(json['languages']) 
+            ? List<String>.from(json['languages'] as Iterable) 
             : null,
-        maxCharsPerPost: json['configuration']?['statuses']?['max_characters'],
-        maxMediaAttachments: json['configuration']?['statuses']?['max_media_attachments'],
+        maxCharsPerPost: json['configuration']?['statuses']?['max_characters'] as int?,
+        maxMediaAttachments: json['configuration']?['statuses']?['max_media_attachments'] as int?,
         isPixelfed: isPixelfed,
         supportsStories: supportsStories,
-        tosUrl: json['urls']?['terms'],
-        privacyPolicyUrl: json['urls']?['privacy'],
-        contactEmail: json['email'],
+        tosUrl: json['urls']?['terms'] as String?,
+        privacyPolicyUrl: json['urls']?['privacy'] as String?,
+        contactEmail: json['email'] as String?,
       );
     } catch (e) {
-      throw Exception('Failed to discover instance: $e');
+      logger.e('Failed to discover instance $domain', error: e);
+      throw AuthDiscoveryException('Failed to discover instance: $e', data: e);
     }
   }
   
   /// Normalizes a domain by removing protocol and trailing slashes
   String _normalizeDomain(String domain) {
-    domain = domain.toLowerCase().trim();
-    if (domain.startsWith('http://') || domain.startsWith('https://')) {
-      final uri = Uri.parse(domain);
-      domain = uri.host;
+    var normalized = domain.toLowerCase().trim();
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      final uri = Uri.parse(normalized);
+      normalized = uri.host;
     }
-    return domain;
+    return normalized;
   }
   
   /// Validates a redirect URI to ensure it's safe
@@ -165,10 +167,10 @@ class AuthService {
     try {
       // Validate redirect URI
       if (!_isRedirectUriSafe(_redirectUri)) {
-        throw Exception('Unsafe redirect URI');
+        throw const AuthRegistrationException('Unsafe redirect URI');
       }
       
-      final response = await _dio.post(
+      final response = await _dio.post<Map<String, dynamic>>(
         'https://$domain/api/v1/apps',
         data: {
           'client_name': _clientName,
@@ -178,12 +180,14 @@ class AuthService {
         },
       );
       
+      final data = response.data!;
       return {
-        'client_id': response.data['client_id'],
-        'client_secret': response.data['client_secret'],
+        'client_id': data['client_id'] as String,
+        'client_secret': data['client_secret'] as String,
       };
     } catch (e) {
-      throw Exception('Failed to register app: $e');
+      logger.e('Failed to register app on $domain', error: e);
+      throw AuthRegistrationException('Failed to register app: $e', data: e);
     }
   }
   
@@ -192,28 +196,29 @@ class AuthService {
   /// Returns a client ID and client secret
   Future<Map<String, String>> getClientCredentials(String domain) async {
     // Normalize domain
-    domain = _normalizeDomain(domain);
+    final normalizedDomain = _normalizeDomain(domain);
     
     // Check if we already have credentials for this domain
     final credentialsJson = await _secureStorage.read(key: _clientCredentialsKey);
     
     if (credentialsJson != null) {
-      final credentials = jsonDecode(credentialsJson) as Map<String, dynamic>;
+      final Map<String, dynamic> credentials = jsonDecode(credentialsJson) as Map<String, dynamic>;
       
-      if (credentials.containsKey(domain)) {
-        return Map<String, String>.from(credentials[domain]);
+      if (credentials.containsKey(normalizedDomain)) {
+        final domainCreds = credentials[normalizedDomain] as Map<String, dynamic>;
+        return domainCreds.map((key, value) => MapEntry(key, value as String));
       }
     }
     
     // Register a new app
-    final appCredentials = await _registerApp(domain);
+    final appCredentials = await _registerApp(normalizedDomain);
     
     // Save the credentials
     final Map<String, dynamic> credentials = credentialsJson != null 
-        ? jsonDecode(credentialsJson) 
+        ? jsonDecode(credentialsJson) as Map<String, dynamic>
         : {};
     
-    credentials[domain] = appCredentials;
+    credentials[normalizedDomain] = appCredentials;
     
     await _secureStorage.write(
       key: _clientCredentialsKey,
@@ -251,7 +256,7 @@ class AuthService {
   /// Stores a PKCE code verifier for a domain and state
   @visibleForTesting
   Future<void> storeCodeVerifier(String domain, String state, String verifier) async {
-    debugPrint('Storing code verifier for domain: $domain, state: $state');
+    logger.d('Storing code verifier for domain: $domain, state: $state');
     
     try {
       // Use a simpler approach to store the verifier directly with a unique key
@@ -265,17 +270,9 @@ class AuthService {
 
       // Also store the domain-state mapping for deep link handling
       await _secureStorage.write(key: 'oauth_domain_$state', value: domain);
-      
-      // Verify that the verifier was stored correctly
-      final storedVerifier = await _secureStorage.read(key: key);
-      if (storedVerifier == verifier) {
-        debugPrint('Verified: code verifier was stored correctly');
-      } else {
-        debugPrint('Error: code verifier was not stored correctly');
-      }
     } catch (e) {
-      debugPrint('Error storing code verifier: $e');
-      throw Exception('Failed to store code verifier: $e');
+      logger.e('Error storing code verifier for $domain', error: e);
+      throw AuthStorageException('Failed to store code verifier: $e', data: e);
     }
   }
   
@@ -283,10 +280,10 @@ class AuthService {
   Future<String?> getDomainFromState(String state) async {
     try {
       final domain = await _secureStorage.read(key: 'oauth_domain_$state');
-      debugPrint('Retrieved domain for state $state: $domain');
+      logger.d('Retrieved domain for state $state: $domain');
       return domain;
     } catch (e) {
-      debugPrint('Error retrieving domain for state $state: $e');
+      logger.e('Error retrieving domain for state $state', error: e);
       return null;
     }
   }
@@ -294,10 +291,10 @@ class AuthService {
   /// Retrieves and removes a PKCE code verifier for a domain and state
   @visibleForTesting
   Future<String?> getAndRemoveCodeVerifier(String domain, String? state) async {
-    debugPrint('Getting code verifier for domain: $domain, state: $state');
+    logger.d('Getting code verifier for domain: $domain, state: $state');
     // If state is null or empty, we're not using PKCE
     if (state == null || state.isEmpty) {
-      debugPrint('State is null or empty, not using PKCE');
+      logger.d('State is null or empty, not using PKCE');
       return null;
     }
     
@@ -309,22 +306,22 @@ class AuthService {
       final verifier = await _secureStorage.read(key: key);
       
       if (verifier != null) {
-        debugPrint('Found code verifier for key: $key');
+        logger.d('Found code verifier for key: $key');
         
         // Remove the used verifier
         await _secureStorage.delete(key: key);
-        debugPrint('Removed code verifier for key: $key');
+        logger.d('Removed code verifier for key: $key');
 
         // Also remove the domain-state mapping
         await _secureStorage.delete(key: 'oauth_domain_$state');
-        debugPrint('Removed domain mapping for state: $state');
+        logger.d('Removed domain mapping for state: $state');
         
         return verifier;
       } else {
-        debugPrint('No code verifier found for key: $key');
+        logger.d('No code verifier found for key: $key');
       }
     } catch (e) {
-      debugPrint('Error retrieving code verifier: $e');
+      logger.e('Error retrieving code verifier for $domain', error: e);
     }
     
     return null;
@@ -335,32 +332,27 @@ class AuthService {
   /// Returns the URL to redirect the user to and the state to verify the callback
   /// If [forRegistration] is true, will attempt to show registration page
   Future<Map<String, String>> getAuthorizationUrl(String domain, {bool forRegistration = false}) async {
-    debugPrint('Getting authorization URL for domain: $domain');
+    logger.d('Getting authorization URL for domain: $domain');
     
     // Normalize domain
-    domain = _normalizeDomain(domain);
+    final normalizedDomain = _normalizeDomain(domain);
     
-    final credentials = await getClientCredentials(domain);
-    debugPrint('Got client credentials: client_id=${credentials['client_id']}');
+    final credentials = await getClientCredentials(normalizedDomain);
     
     final state = _generateState();
-    debugPrint('Generated state: $state');
     
     // Generate PKCE code verifier and challenge
     final codeVerifier = _generateCodeVerifier();
-    debugPrint('Generated code verifier (first 10 chars): ${codeVerifier.substring(0, 10)}...');
-    
     final codeChallenge = _generateCodeChallenge(codeVerifier);
-    debugPrint('Generated code challenge: $codeChallenge');
     
     // Store the code verifier for later use
-    await storeCodeVerifier(domain, state, codeVerifier);
+    await storeCodeVerifier(normalizedDomain, state, codeVerifier);
     
     // Build the URL - use sign-up page for registration, OAuth for login
     String url;
     if (forRegistration) {
       // For registration, go directly to the sign-up page with OAuth parameters
-      url = 'https://$domain/auth/sign_up?'
+      url = 'https://$normalizedDomain/auth/sign_up?'
           'client_id=${Uri.encodeComponent(credentials['client_id']!)}&'
           'redirect_uri=${Uri.encodeComponent(_redirectUri)}&'
           'response_type=code&'
@@ -368,10 +360,10 @@ class AuthService {
           'state=$state&'
           'code_challenge=$codeChallenge&'
           'code_challenge_method=S256&'
-          'domain=$domain';
+          'domain=$normalizedDomain';
     } else {
       // For login, use the standard OAuth authorize endpoint
-      url = 'https://$domain/oauth/authorize?'
+      url = 'https://$normalizedDomain/oauth/authorize?'
           'client_id=${Uri.encodeComponent(credentials['client_id']!)}&'
           'redirect_uri=${Uri.encodeComponent(_redirectUri)}&'
           'response_type=code&'
@@ -379,10 +371,10 @@ class AuthService {
           'state=$state&'
           'code_challenge=$codeChallenge&'
           'code_challenge_method=S256&'
-          'domain=$domain';
+          'domain=$normalizedDomain';
     }
     
-    debugPrint('Generated authorization URL: $url');
+    logger.d('Generated authorization URL: $url');
     
     return {
       'url': url,
@@ -399,17 +391,15 @@ class AuthService {
     {String? state}
   ) async {
     try {
-      debugPrint('Exchanging authorization code for domain: $domain, code: $code, state: $state');
+      logger.d('Exchanging authorization code for domain: $domain, code: $code, state: $state');
       
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
-      final credentials = await getClientCredentials(domain);
-      debugPrint('Got client credentials: client_id=${credentials['client_id']}');
+      final credentials = await getClientCredentials(normalizedDomain);
       
       // Get the code verifier if we have a state
-      final codeVerifier = await getAndRemoveCodeVerifier(domain, state);
-      debugPrint('Code verifier: ${codeVerifier != null ? '${codeVerifier.substring(0, 10)}...' : 'null'}');
+      final codeVerifier = await getAndRemoveCodeVerifier(normalizedDomain, state);
       
       // Prepare request data
       final Map<String, dynamic> requestData = {
@@ -426,31 +416,33 @@ class AuthService {
         requestData['code_verifier'] = codeVerifier;
       }
       
-      final response = await _dio.post(
-        'https://$domain/oauth/token',
+      final response = await _dio.post<Map<String, dynamic>>(
+        'https://$normalizedDomain/oauth/token',
         data: requestData,
       );
       
-      final accessToken = response.data['access_token'] as String;
-      final refreshToken = response.data['refresh_token'] as String?;
+      final data = response.data!;
+      final accessToken = data['access_token'] as String;
+      final refreshToken = data['refresh_token'] as String?;
       
       // Store the access token
-      await _storeAccessToken(domain, accessToken);
+      await _storeAccessToken(normalizedDomain, accessToken);
       
       // Store the refresh token if we have one
       if (refreshToken != null) {
-        await _storeRefreshToken(domain, refreshToken);
+        await _storeRefreshToken(normalizedDomain, refreshToken);
       }
       
       // Fetch and store the user's account information
-      await _fetchAndStoreAccountInfo(domain, accessToken);
+      await _fetchAndStoreAccountInfo(normalizedDomain, accessToken);
       
       return {
         'access_token': accessToken,
         'refresh_token': refreshToken ?? '',
       };
     } catch (e) {
-      throw Exception('Failed to exchange authorization code: $e');
+      logger.e('Failed to exchange authorization code for $domain', error: e);
+      throw AuthTokenException('Failed to exchange authorization code: $e', data: e);
     }
   }
   
@@ -459,21 +451,21 @@ class AuthService {
   /// Returns a new access token and refresh token
   Future<Map<String, String>> refreshAccessToken(String domain) async {
     try {
-      debugPrint('Refreshing access token for domain: $domain');
+      logger.d('Refreshing access token for domain: $domain');
       
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       // Get the refresh token
-      final refreshToken = await getRefreshToken(domain);
+      final refreshToken = await getRefreshToken(normalizedDomain);
       if (refreshToken == null) {
-        throw Exception('No refresh token available');
+        throw const AuthTokenException('No refresh token available');
       }
       
-      final credentials = await getClientCredentials(domain);
+      final credentials = await getClientCredentials(normalizedDomain);
       
-      final response = await _dio.post(
-        'https://$domain/oauth/token',
+      final response = await _dio.post<Map<String, dynamic>>(
+        'https://$normalizedDomain/oauth/token',
         data: {
           'client_id': credentials['client_id'],
           'client_secret': credentials['client_secret'],
@@ -483,15 +475,16 @@ class AuthService {
         },
       );
       
-      final accessToken = response.data['access_token'] as String;
-      final newRefreshToken = response.data['refresh_token'] as String?;
+      final data = response.data!;
+      final accessToken = data['access_token'] as String;
+      final newRefreshToken = data['refresh_token'] as String?;
       
       // Store the new access token
-      await _storeAccessToken(domain, accessToken);
+      await _storeAccessToken(normalizedDomain, accessToken);
       
       // Store the new refresh token if we have one
       if (newRefreshToken != null) {
-        await _storeRefreshToken(domain, newRefreshToken);
+        await _storeRefreshToken(normalizedDomain, newRefreshToken);
       }
       
       return {
@@ -499,7 +492,8 @@ class AuthService {
         'refresh_token': newRefreshToken ?? refreshToken,
       };
     } catch (e) {
-      throw Exception('Failed to refresh access token: $e');
+      logger.e('Failed to refresh access token for $domain', error: e);
+      throw AuthTokenException('Failed to refresh access token: $e', data: e);
     }
   }
   
@@ -509,7 +503,7 @@ class AuthService {
       final tokensJson = await _secureStorage.read(key: _accessTokensKey);
       
       final Map<String, dynamic> tokens = tokensJson != null 
-          ? jsonDecode(tokensJson) 
+          ? jsonDecode(tokensJson) as Map<String, dynamic>
           : {};
       
       tokens[domain] = accessToken;
@@ -519,7 +513,8 @@ class AuthService {
         value: jsonEncode(tokens),
       );
     } catch (e) {
-      throw Exception('Failed to store access token: $e');
+      logger.e('Failed to store access token for $domain', error: e);
+      throw AuthStorageException('Failed to store access token: $e', data: e);
     }
   }
   
@@ -529,7 +524,7 @@ class AuthService {
       final tokensJson = await _secureStorage.read(key: _refreshTokensKey);
       
       final Map<String, dynamic> tokens = tokensJson != null 
-          ? jsonDecode(tokensJson) 
+          ? jsonDecode(tokensJson) as Map<String, dynamic>
           : {};
       
       tokens[domain] = refreshToken;
@@ -539,7 +534,8 @@ class AuthService {
         value: jsonEncode(tokens),
       );
     } catch (e) {
-      throw Exception('Failed to store refresh token: $e');
+      logger.e('Failed to store refresh token for $domain', error: e);
+      throw AuthStorageException('Failed to store refresh token: $e', data: e);
     }
   }
   
@@ -547,41 +543,27 @@ class AuthService {
   Future<String?> getAccessToken(String domain) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       final tokensJson = await _secureStorage.read(key: _accessTokensKey);
       
       if (tokensJson != null) {
-        final tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
+        final Map<String, dynamic> tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
         
-        if (tokens.containsKey(domain)) {
-          return tokens[domain] as String;
+        if (tokens.containsKey(normalizedDomain)) {
+          return tokens[normalizedDomain] as String;
         }
       }
 
-      // Fallback: use technical Mastodon account token if configured and domain matches
-      try {
-        // Import deferred to avoid cyclic deps at file top; using string import not possible here.
-        // We will reference via a helper to keep code clean.
-      } catch (_) {}
-      
-      return await _getTechTokenFallback(domain);
+      return await _getTechTokenFallback(normalizedDomain);
     } catch (e) {
-      debugPrint('Failed to get access token: $e');
+      logger.w('Failed to get access token for $domain', error: e);
       return await _getTechTokenFallback(domain);
     }
   }
 
   Future<String?> _getTechTokenFallback(String domain) async {
     try {
-      // Late import to avoid top-level coupling
-      // ignore: avoid_dynamic_calls
-      // Use direct import
-      // Note: This helper simply reads from env via TechAccountConfig
-      // and applies only when domains match.
-      //
-      // Import placed at top of file normally, but keeping helper separated for clarity.
-      // Will rely on direct import addition at file header.
       return (TechAccountConfig.domain == domain) ? TechAccountConfig.accessToken : null;
     } catch (_) {
       return null;
@@ -592,21 +574,21 @@ class AuthService {
   Future<String?> getRefreshToken(String domain) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       final tokensJson = await _secureStorage.read(key: _refreshTokensKey);
       
       if (tokensJson != null) {
-        final tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
+        final Map<String, dynamic> tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
         
-        if (tokens.containsKey(domain)) {
-          return tokens[domain] as String;
+        if (tokens.containsKey(normalizedDomain)) {
+          return tokens[normalizedDomain] as String;
         }
       }
       
       return null;
     } catch (e) {
-      debugPrint('Failed to get refresh token: $e');
+      logger.w('Failed to get refresh token for $domain', error: e);
       return null;
     }
   }
@@ -614,7 +596,7 @@ class AuthService {
   /// Fetches and stores the user's account information
   Future<Account> _fetchAndStoreAccountInfo(String domain, String accessToken) async {
     try {
-      final response = await _dio.get(
+      final response = await _dio.get<Map<String, dynamic>>(
         'https://$domain/api/v1/accounts/verify_credentials',
         options: Options(
           headers: {
@@ -623,38 +605,41 @@ class AuthService {
         ),
       );
       
-      final accountData = response.data;
+      final Map<String, dynamic> accountData = response.data!;
       
       final account = Account(
-        id: accountData['id'],
-        username: accountData['username'],
-        acct: accountData['acct'],
-        displayName: accountData['display_name'],
-        note: accountData['note'],
-        url: accountData['url'],
-        avatar: accountData['avatar'],
-        avatarStatic: accountData['avatar_static'],
-        header: accountData['header'],
-        headerStatic: accountData['header_static'],
-        followersCount: accountData['followers_count'],
-        followingCount: accountData['following_count'],
-        statusesCount: accountData['statuses_count'],
+        id: accountData['id'] as String,
+        username: accountData['username'] as String,
+        acct: accountData['acct'] as String,
+        displayName: accountData['display_name'] as String,
+        note: accountData['note'] as String,
+        url: accountData['url'] as String,
+        avatar: accountData['avatar'] as String,
+        avatarStatic: accountData['avatar_static'] as String,
+        header: accountData['header'] as String,
+        headerStatic: accountData['header_static'] as String,
+        followersCount: accountData['followers_count'] as int,
+        followingCount: accountData['following_count'] as int,
+        statusesCount: accountData['statuses_count'] as int,
         lastStatusAt: accountData['last_status_at'] != null
             ? DateTime.tryParse(accountData['last_status_at'].toString())
             : null,
         createdAt: accountData['created_at'] != null
             ? DateTime.tryParse(accountData['created_at'].toString())
             : null,
-        bot: accountData['bot'] ?? false,
-        locked: accountData['locked'] ?? false,
+        bot: (accountData['bot'] as bool?) ?? false,
+        locked: (accountData['locked'] as bool?) ?? false,
         fields: (accountData['fields'] as List?)
-            ?.map((field) => Field(
-                  name: field['name'] ?? '',
-                  value: field['value'] ?? '',
-                  verifiedAt: field['verified_at'] != null
-                      ? DateTime.tryParse(field['verified_at'].toString())
+            ?.map((field) {
+              final f = field as Map<String, dynamic>;
+              return Field(
+                  name: (f['name'] ?? '') as String,
+                  value: (f['value'] ?? '') as String,
+                  verifiedAt: f['verified_at'] != null
+                      ? DateTime.tryParse(f['verified_at'].toString())
                       : null,
-                ))
+                );
+            })
             .toList(),
       );
       
@@ -663,7 +648,8 @@ class AuthService {
       
       return account;
     } catch (e) {
-      throw Exception('Failed to fetch account information: $e');
+      logger.e('Failed to fetch account info for $domain', error: e);
+      throw AuthTokenException('Failed to fetch account information: $e', data: e);
     }
   }
   
@@ -673,7 +659,7 @@ class AuthService {
       final accountsJson = await _secureStorage.read(key: _accountsKey);
       
       final Map<String, dynamic> accounts = accountsJson != null 
-          ? jsonDecode(accountsJson) 
+          ? jsonDecode(accountsJson) as Map<String, dynamic>
           : {};
       
       accounts[domain] = account.toJson();
@@ -683,7 +669,8 @@ class AuthService {
         value: jsonEncode(accounts),
       );
     } catch (e) {
-      throw Exception('Failed to store account information: $e');
+      logger.e('Failed to store account info for $domain', error: e);
+      throw AuthStorageException('Failed to store account information: $e', data: e);
     }
   }
   
@@ -691,21 +678,21 @@ class AuthService {
   Future<Account?> getAccountInfo(String domain) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       final accountsJson = await _secureStorage.read(key: _accountsKey);
       
       if (accountsJson != null) {
-        final accounts = jsonDecode(accountsJson) as Map<String, dynamic>;
+        final Map<String, dynamic> accounts = jsonDecode(accountsJson) as Map<String, dynamic>;
         
-        if (accounts.containsKey(domain)) {
-          return Account.fromJson(accounts[domain]);
+        if (accounts.containsKey(normalizedDomain)) {
+          return Account.fromJson(accounts[normalizedDomain] as Map<String, dynamic>);
         }
       }
       
       return null;
     } catch (e) {
-      debugPrint('Failed to get account information: $e');
+      logger.w('Failed to get account info for $domain', error: e);
       return null;
     }
   }
@@ -713,9 +700,9 @@ class AuthService {
   /// Checks if the user is authenticated with an instance
   Future<bool> isAuthenticated(String domain) async {
     // Normalize domain
-    domain = _normalizeDomain(domain);
+    final normalizedDomain = _normalizeDomain(domain);
     
-    final accessToken = await getAccessToken(domain);
+    final accessToken = await getAccessToken(normalizedDomain);
     return accessToken != null;
   }
   
@@ -725,13 +712,13 @@ class AuthService {
       final tokensJson = await _secureStorage.read(key: _accessTokensKey);
       
       if (tokensJson != null) {
-        final tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
+        final Map<String, dynamic> tokens = jsonDecode(tokensJson) as Map<String, dynamic>;
         return tokens.keys.toList();
       }
       
       return [];
     } catch (e) {
-      debugPrint('Failed to get authenticated instances: $e');
+      logger.w('Failed to get authenticated instances', error: e);
       return [];
     }
   }
@@ -740,13 +727,13 @@ class AuthService {
   Future<void> logout(String domain) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
       // Remove the access token
       final accessTokensJson = await _secureStorage.read(key: _accessTokensKey);
       if (accessTokensJson != null) {
-        final accessTokens = jsonDecode(accessTokensJson) as Map<String, dynamic>;
-        accessTokens.remove(domain);
+        final Map<String, dynamic> accessTokens = jsonDecode(accessTokensJson) as Map<String, dynamic>;
+        accessTokens.remove(normalizedDomain);
         await _secureStorage.write(
           key: _accessTokensKey,
           value: jsonEncode(accessTokens),
@@ -756,8 +743,8 @@ class AuthService {
       // Remove the refresh token
       final refreshTokensJson = await _secureStorage.read(key: _refreshTokensKey);
       if (refreshTokensJson != null) {
-        final refreshTokens = jsonDecode(refreshTokensJson) as Map<String, dynamic>;
-        refreshTokens.remove(domain);
+        final Map<String, dynamic> refreshTokens = jsonDecode(refreshTokensJson) as Map<String, dynamic>;
+        refreshTokens.remove(normalizedDomain);
         await _secureStorage.write(
           key: _refreshTokensKey,
           value: jsonEncode(refreshTokens),
@@ -767,15 +754,16 @@ class AuthService {
       // Remove the account information
       final accountsJson = await _secureStorage.read(key: _accountsKey);
       if (accountsJson != null) {
-        final accounts = jsonDecode(accountsJson) as Map<String, dynamic>;
-        accounts.remove(domain);
+        final Map<String, dynamic> accounts = jsonDecode(accountsJson) as Map<String, dynamic>;
+        accounts.remove(normalizedDomain);
         await _secureStorage.write(
           key: _accountsKey,
           value: jsonEncode(accounts),
         );
       }
     } catch (e) {
-      throw Exception('Failed to logout: $e');
+      logger.e('Failed to logout from $domain', error: e);
+      throw AuthLogoutException('Failed to logout: $e', data: e);
     }
   }
   
@@ -783,10 +771,10 @@ class AuthService {
   Future<bool> validateAccessToken(String domain, String accessToken) async {
     try {
       // Normalize domain
-      domain = _normalizeDomain(domain);
+      final normalizedDomain = _normalizeDomain(domain);
       
-      final response = await _dio.get(
-        'https://$domain/api/v1/apps/verify_credentials',
+      final response = await _dio.get<Map<String, dynamic>>(
+        'https://$normalizedDomain/api/v1/apps/verify_credentials',
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -796,7 +784,7 @@ class AuthService {
       
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Failed to validate access token: $e');
+      logger.w('Failed to validate access token for $domain', error: e);
       return false;
     }
   }

@@ -148,6 +148,13 @@ class MockFlutterSecureStorage extends _i1.Mock
       ) as _i2.AppleOptions);
 
   @override
+  Map<String, List<_i3.ValueChanged<String?>>> get getListeners =>
+      (super.noSuchMethod(
+        Invocation.getter(#getListeners),
+        returnValue: <String, List<_i3.ValueChanged<String?>>>{},
+      ) as Map<String, List<_i3.ValueChanged<String?>>>);
+
+  @override
   void registerListener({
     required String? key,
     required _i3.ValueChanged<String?>? listener,

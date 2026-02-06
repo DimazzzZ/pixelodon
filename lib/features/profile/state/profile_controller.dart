@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/profile_models.dart';
-import '../domain/profile_usecases.dart';
-import 'profile_state.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:pixelodon/features/profile/data/profile_models.dart';
+import 'package:pixelodon/features/profile/domain/profile_usecases.dart';
+import 'package:pixelodon/features/profile/state/profile_state.dart';
+
+part 'profile_controller.g.dart';
 
 /// Controller for managing profile state
 class ProfileController extends StateNotifier<ProfileState> {
@@ -323,7 +326,8 @@ class ProfileController extends StateNotifier<ProfileState> {
 }
 
 /// Provider for profile controller
-final profileControllerProvider = StateNotifierProvider.family<ProfileController, ProfileState, String>((ref, userId) {
+@Riverpod(keepAlive: true)
+ProfileController profileController(ProfileControllerRef ref, String userId) {
   final controller = ProfileController(
     useCases: ref.watch(profileUseCasesProvider),
     userId: userId,
@@ -333,4 +337,4 @@ final profileControllerProvider = StateNotifierProvider.family<ProfileController
   Future.microtask(() => controller.loadInitial());
   
   return controller;
-});
+}

@@ -1,4 +1,4 @@
-import 'adapters_masto_pixelfed.dart';
+import 'package:pixelodon/ui/post/adapters_masto_pixelfed.dart';
 
 class ReplyNode {
   SocialPost post;

@@ -172,7 +172,7 @@ void main() {
         
         expect(style.backgroundColor?.resolve({}), AppTheme.primaryColor);
         expect(style.foregroundColor?.resolve({}), Colors.white);
-        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 16, horizontal: 24));
+        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 12, horizontal: 24));
       });
 
       test('should have correct text button theme', () {
@@ -181,7 +181,7 @@ void main() {
         final style = textButtonTheme.style!;
         
         expect(style.foregroundColor?.resolve({}), AppTheme.primaryColor);
-        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 16, horizontal: 24));
+        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 12, horizontal: 24));
       });
 
       test('should have correct outlined button theme', () {
@@ -191,7 +191,7 @@ void main() {
         
         expect(style.foregroundColor?.resolve({}), AppTheme.primaryColor);
         expect(style.side?.resolve({}), const BorderSide(color: AppTheme.primaryColor));
-        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 16, horizontal: 24));
+        expect(style.padding?.resolve({}), const EdgeInsets.symmetric(vertical: 12, horizontal: 24));
       });
     });
 

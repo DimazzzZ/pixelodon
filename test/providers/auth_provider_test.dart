@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -34,8 +33,8 @@ void main() {
 
     test('AuthRepository should initialize with stored accounts', () async {
       // Arrange
-      final testDomain = 'mastodon.social';
-      final testInstance = Instance(
+      const testDomain = 'mastodon.social';
+      const testInstance = Instance(
         domain: testDomain,
         name: 'Test Instance',
         description: 'Test Description',
@@ -75,15 +74,19 @@ void main() {
           .thenAnswer((_) async => testAccount);
 
       // Act
-      final authRepository = container.read(authRepositoryProvider);
+      final authState = container.read(authRepositoryProvider);
+      final authRepository = container.read(authRepositoryProvider.notifier);
       
       // Wait a bit for the async initialization to complete
       await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Read the updated state after initialization
+      final updatedState = container.read(authRepositoryProvider);
 
       // Assert
-      expect(authRepository.instances, contains(testInstance));
-      expect(authRepository.activeInstance, equals(testInstance));
-      expect(authRepository.activeAccount, equals(testAccount));
+      expect(updatedState.instances, contains(testInstance));
+      expect(updatedState.activeInstance, equals(testInstance));
+      expect(updatedState.activeAccount, equals(testAccount));
       expect(authRepository.getAccount(testDomain), equals(testAccount));
 
       // Verify that the auth service methods were called
@@ -98,15 +101,18 @@ void main() {
           .thenThrow(Exception('Storage error'));
 
       // Act
-      final authRepository = container.read(authRepositoryProvider);
+      final authState = container.read(authRepositoryProvider);
       
       // Wait a bit for the async initialization to complete
       await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Read the updated state after initialization
+      final updatedState = container.read(authRepositoryProvider);
 
       // Assert - should not crash and should have empty state
-      expect(authRepository.instances, isEmpty);
-      expect(authRepository.activeInstance, isNull);
-      expect(authRepository.activeAccount, isNull);
+      expect(updatedState.instances, isEmpty);
+      expect(updatedState.activeInstance, isNull);
+      expect(updatedState.activeAccount, isNull);
 
       // Verify that the auth service method was called
       verify(mockAuthService.getAuthenticatedInstances()).called(1);
@@ -114,8 +120,8 @@ void main() {
 
     test('AuthRepository logout should remove account and update state', () async {
       // Arrange
-      final testDomain = 'mastodon.social';
-      final testInstance = Instance(
+      const testDomain = 'mastodon.social';
+      const testInstance = Instance(
         domain: testDomain,
         name: 'Test Instance',
         description: 'Test Description',
@@ -134,18 +140,21 @@ void main() {
           .thenAnswer((_) async {});
 
       // Act
-      final authRepository = container.read(authRepositoryProvider);
+      final authRepository = container.read(authRepositoryProvider.notifier);
       
       // Wait for initialization
       await Future.delayed(const Duration(milliseconds: 100));
       
       // Perform logout
       await authRepository.logout(testDomain);
+      
+      // Read the updated state after logout
+      final updatedState = container.read(authRepositoryProvider);
 
       // Assert
-      expect(authRepository.instances, isEmpty);
-      expect(authRepository.activeInstance, isNull);
-      expect(authRepository.activeAccount, isNull);
+      expect(updatedState.instances, isEmpty);
+      expect(updatedState.activeInstance, isNull);
+      expect(updatedState.activeAccount, isNull);
 
       // Verify that logout was called
       verify(mockAuthService.logout(testDomain)).called(1);

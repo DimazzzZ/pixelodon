@@ -4,11 +4,11 @@ import 'package:pixelodon/ui/post/indent_guide.dart';
 
 void main() {
   testWidgets('IndentGuide rails mirror in RTL', (tester) async {
-    final widget = Directionality(
+    const widget = Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(
         home: Scaffold(
-          body: IndentGuide(depth: 3, child: const SizedBox(height: 40, width: 100)),
+          body: IndentGuide(depth: 3, child: SizedBox(height: 40, width: 100)),
         ),
       ),
     );
